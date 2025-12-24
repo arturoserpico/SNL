@@ -1,0 +1,91 @@
+class HeatTransfer1D {
+public:
+	Eigen::VectorXd T;
+
+	HeatTransfer1D(double lenght, size_t numNodes, double tempStart, double tempEnd) {
+		double dx = lenght / numNodes;
+		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> laplacian = Eigen::MatrixXd::Zero(numNodes, numNodes);
+		for (size_t i = 1; i < laplacian.rows() - 1; i++) {
+			laplacian(i, i) = - 2 / (dx * dx);
+			laplacian(i, i - 1) = 1 / (dx * dx);
+			laplacian(i, i + 1) = 1 / (dx * dx);
+		}
+
+		laplacian(0, 0) = -2 / (dx * dx);
+		laplacian(0, 1) = 1 / (dx * dx);
+
+		laplacian(numNodes - 1, numNodes - 1) = -2 / (dx * dx);
+		laplacian(numNodes - 1, numNodes - 2) = 1 / (dx * dx);
+
+		Eigen::VectorXd result = Eigen::VectorXd::Zero(numNodes);
+		result(0) = -tempStart / (dx * dx);
+		result(numNodes - 1) = -tempEnd / (dx * dx);
+
+		T = laplacian.inverse() * result;
+	}
+};
+
+class HeatTransfer2D {
+public:
+	Eigen::MatrixXd T;
+
+	HeatTransfer2D(
+		double domainSide, 
+		size_t numNodesOnSide, 
+		const Eigen::VectorXd& tempUp, 
+		const Eigen::VectorXd& tempDown, 
+		const Eigen::VectorXd& tempRight, 
+		const Eigen::VectorXd& tempLeft
+	) {
+		size_t numNodes = numNodesOnSide * numNodesOnSide;
+
+		double dx = domainSide / numNodesOnSide;
+
+		Eigen::MatrixXd laplacian = Eigen::MatrixXd::Zero(numNodes, numNodes);
+
+		double inverseDx2 = 1 / (dx * dx);
+
+		for(size_t i = 0; i < numNodesOnSide; i++) {
+			for(size_t j = 0; j < numNodesOnSide; j++) {
+				size_t index = i * numNodesOnSide + j;
+
+				Eigen::MatrixXd row = Eigen::MatrixXd::Zero(numNodesOnSide, numNodesOnSide);
+
+				row(i, j) = -4 * inverseDx2;
+				if (i != 0)
+					row(i - 1, j) = inverseDx2;
+				if (i != numNodesOnSide - 1)
+					row(i + 1, j) = inverseDx2;
+				if (j != 0)
+					row(i, j - 1) = inverseDx2;
+				if (j != numNodesOnSide - 1)
+					row(i, j + 1) = inverseDx2;
+
+				laplacian.row(index) = row.reshaped();
+			}
+		}
+
+		Eigen::MatrixXd resultMatrix = Eigen::MatrixXd::Zero(numNodesOnSide, numNodesOnSide);
+
+		for (size_t i = 0; i < numNodesOnSide; i++) {
+			for (size_t j = 0; j < numNodesOnSide; j++) {
+				double value = 0;
+
+				if (i == 0)
+					value -= tempLeft(j) * inverseDx2;
+				if (i == numNodesOnSide - 1)
+					value -= tempRight(j) * inverseDx2;
+				if (j == 0)
+					value -= tempDown(i) * inverseDx2;
+				if (j == numNodesOnSide - 1)
+					value -= tempUp(i) * inverseDx2;
+
+				resultMatrix(i, j) = value;
+			}
+		}
+
+		Eigen::VectorXd result = resultMatrix.reshaped();
+
+		T = (laplacian.inverse() * result).reshaped(numNodesOnSide, numNodesOnSide).eval();
+	}
+};
