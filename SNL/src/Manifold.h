@@ -9,8 +9,16 @@ namespace snl {
 		std::unordered_set<Ref<MeshElement<dimension, meshDimension>>> elements;
 		Ref<Mesh<meshDimension>> meshVal;
 	public:
-		Mesh<meshDimension> mesh() {
-			expect()
+		Mesh<meshDimension>& mesh() {
+			expect(!meshVal.empty(), "cannot access not bound Mesh reference");
+			return meshVal;
 		}
+
+		const Mesh<meshDimension>& mesh() const {
+			expect(!meshVal.empty(), "cannot access not bound Mesh reference");
+			return meshVal;
+		}
+
+
 	};
 }
