@@ -53,9 +53,15 @@ int main() {
 
 	snl::GridMesh2D mesh(10, 5, 10, 5);
 
-	snl::Area2D chain = mesh.chain();
+	std::unordered_set<snl::Ref<snl::Face2D>> faces = mesh.faces();
 
-	std::cout << chain.boundary().elements().size() << std::endl;
+	snl::Face2D& face = *faces.begin();
+
+	std::cout << (face.chain().boundary() == face.boundary()) << std::endl;
+	
+	//snl::Area2D chain = mesh.chain();
+
+	//std::cout << chain.boundary().elements().size() << std::endl;
 
 	std::ofstream positions("output\\Positions.dat");
 	std::ofstream edges("output\\Edges.dat");

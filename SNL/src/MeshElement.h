@@ -67,6 +67,10 @@ namespace snl {
 			return result;
 		}
 
+		Chain<dimension, meshDimension> chain() {
+			return Chain<dimension, meshDimension>(mesh(), { *this });
+		}
+
 		//bool isClosed() const {
 		//	std::map<Ref<const MeshElement<dimension - 2, meshDimension>>, size_t> elementCount;
 		//

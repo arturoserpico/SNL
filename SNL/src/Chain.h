@@ -44,6 +44,10 @@ namespace snl {
 			return elementsVal.end();
 		}
 
+		size_t size() const {
+			return elementsVal.size();
+		}
+
 		template<size_t elementDimension = dimension>
 		std::unordered_set<Ref<MeshElement<elementDimension, meshDimension>>> elements();
 
