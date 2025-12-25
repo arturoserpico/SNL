@@ -150,7 +150,7 @@
     <None Include="output\script.py" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Chain.h" />
+    <ClInclude Include="src\Manifold.h" />
     <ClInclude Include="src\Edge.h" />
     <ClInclude Include="src\Error.h" />
     <ClInclude Include="src\GridMesh2D.h" />
@@ -158,6 +158,7 @@
     <ClInclude Include="src\MeshElement.h" />
     <ClInclude Include="src\Node.h" />
     <ClInclude Include="src\Ref.h" />
+    <ClInclude Include="src\Set.h" />
     <ClInclude Include="src\UniqueVector.h" />
   </ItemGroup>
   <ItemGroup>

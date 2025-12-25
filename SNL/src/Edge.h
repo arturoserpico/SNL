@@ -54,7 +54,7 @@ namespace snl {
 		}
 
 		template<size_t elementDimension>
-		std::unordered_set<Ref<MeshElement<elementDimension, meshDimension>>> elements() {
+		Set<Ref<MeshElement<elementDimension, meshDimension>>> elements() {
 			if constexpr (elementDimension == 1) {
 				return { *this };
 			} else {
@@ -63,7 +63,7 @@ namespace snl {
 		}
 
 		template<size_t elementDimension>
-		std::unordered_set<Ref<const MeshElement<elementDimension, meshDimension>>> elements() const {
+		Set<Ref<const MeshElement<elementDimension, meshDimension>>> elements() const {
 			if constexpr (elementDimension == 1) {
 				return { *this };
 			}
@@ -86,7 +86,7 @@ namespace snl {
 
 		MeshElement(
 			Mesh<meshDimension>& mesh,
-			const std::unordered_set<Ref<Node<meshDimension>>>& boundary = {}
+			const Set<Ref<Node<meshDimension>>>& boundary = {}
 		) :
 			meshVal(mesh),
 			boundaryVal(mesh, boundary)

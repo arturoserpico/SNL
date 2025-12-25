@@ -53,11 +53,11 @@ int main() {
 
 	snl::GridMesh2D mesh(10, 5, 10, 5);
 
-	std::unordered_set<snl::Ref<snl::Face2D>> faces = mesh.faces();
+	snl::Set<snl::Ref<snl::Face2D>> faces = mesh.faces();
 
 	snl::Face2D& face = *faces.begin();
 
-	std::cout << (face.chain().boundary() == face.boundary()) << std::endl;
+	std::cout << (face.manifold().boundary() == face.boundary()) << std::endl;
 	
 	//snl::Area2D chain = mesh.chain();
 

@@ -4,7 +4,8 @@
 #include <unordered_map>
 #include <Eigen/Dense>
 #include "Ref.h"
-#include "Chain.h"
+#include "Set.h"
+#include "Manifold.h"
 
 namespace snl {
 	template<size_t dimesion>
@@ -12,7 +13,7 @@ namespace snl {
 
 	template<size_t dimension, size_t meshDimension>
 	class MeshElement {
-		Chain<dimension - 1, meshDimension> boundaryVal = {};
+		Manifold<dimension - 1, meshDimension> boundaryVal = {};
 	 	Ref<Mesh<meshDimension>> meshVal = nullptr;
 	public:
 		Mesh<meshDimension>& mesh() {
@@ -23,24 +24,24 @@ namespace snl {
 			return meshVal.get();
 		}
 
-		virtual const Chain<dimension - 1, meshDimension> boundary() const {
+		virtual const Manifold<dimension - 1, meshDimension> boundary() const {
 			return boundaryVal;
 		};
 
-		virtual Chain<dimension - 1, meshDimension> boundary() {
+		virtual Manifold<dimension - 1, meshDimension> boundary() {
 			return boundaryVal;
 		};
 
 		template<size_t elementDimension>
-		std::unordered_set<Ref<MeshElement<elementDimension, meshDimension>>> elements() {
-			std::unordered_set<Ref<MeshElement<elementDimension, meshDimension>>> result;
+		Set<Ref<MeshElement<elementDimension, meshDimension>>> elements() {
+			Set<Ref<MeshElement<elementDimension, meshDimension>>> result;
 
 			if constexpr (elementDimension == dimension) {
 				return { *this };
 			}
 
-			Chain<dimension - 1, meshDimension> boundary = this->boundary();
-			std::unordered_set<Ref<MeshElement<elementDimension, meshDimension>>> rec;
+			Manifold<dimension - 1, meshDimension> boundary = this->boundary();
+			Set<Ref<MeshElement<elementDimension, meshDimension>>> rec;
 			for (MeshElement<dimension - 1, meshDimension>& boundaryElement : boundary) {
 				rec = boundaryElement.elements<elementDimension>();
 				result.insert(rec.begin(), rec.end());
@@ -50,15 +51,15 @@ namespace snl {
 		}
 
 		template<size_t elementDimension>
-		std::unordered_set<Ref<const MeshElement<elementDimension, meshDimension>>> elements() const {
-			std::unordered_set<Ref<const MeshElement<elementDimension, meshDimension>>> result;
+		Set<Ref<const MeshElement<elementDimension, meshDimension>>> elements() const {
+			Set<Ref<const MeshElement<elementDimension, meshDimension>>> result;
 
 			if constexpr (elementDimension == dimension) {
 				return { *this };
 			}
 
-			const Chain<dimension - 1, meshDimension> boundary = this->boundary();
-			std::unordered_set<Ref<const MeshElement<elementDimension, meshDimension>>> rec;
+			const Manifold<dimension - 1, meshDimension> boundary = this->boundary();
+			Set<Ref<const MeshElement<elementDimension, meshDimension>>> rec;
 			for (const MeshElement<dimension - 1, meshDimension>& boundaryElement : boundary) {
 				rec = boundaryElement.elements<elementDimension>();
 				result.insert(rec.begin(), rec.end());
@@ -67,17 +68,17 @@ namespace snl {
 			return result;
 		}
 
-		Chain<dimension, meshDimension> chain() {
-			return Chain<dimension, meshDimension>(mesh(), { *this });
+		Manifold<dimension, meshDimension> manifold() {
+			return Manifold<dimension, meshDimension>(mesh(), { *this });
 		}
 
 		//bool isClosed() const {
 		//	std::map<Ref<const MeshElement<dimension - 2, meshDimension>>, size_t> elementCount;
 		//
-		//	std::unordered_set<Ref<const MeshElement<dimension - 1, meshDimension>>> boundary = this->boundary();
+		//	Set<Ref<const MeshElement<dimension - 1, meshDimension>>> boundary = this->boundary();
 		//
 		//	for (const MeshElement<dimension - 1, meshDimension>& boundaryElement : boundary) {
-		//		std::unordered_set<Ref<const MeshElement<dimension - 2, meshDimension>>> boundaryElementBoundary
+		//		Set<Ref<const MeshElement<dimension - 2, meshDimension>>> boundaryElementBoundary
 		//	}
 		//}
 
@@ -85,7 +86,7 @@ namespace snl {
 
 		MeshElement(
 			Mesh<meshDimension>& mesh,
-			Chain<dimension - 1, meshDimension> boundary = {}
+			Manifold<dimension - 1, meshDimension> boundary = {}
 		) : 
 			meshVal(mesh), 
 			boundaryVal(boundary)
@@ -93,7 +94,7 @@ namespace snl {
 
 		MeshElement(
 			Mesh<meshDimension>& mesh,
-			const std::unordered_set<Ref<MeshElement<dimension - 1, meshDimension>>>& boundary = {}
+			const Set<Ref<MeshElement<dimension - 1, meshDimension>>>& boundary = {}
 		) :
 			meshVal(mesh),
 			boundaryVal(mesh, boundary)
@@ -112,12 +113,12 @@ namespace snl {
 
 	template<size_t dimension, size_t meshDimension>
 	template<size_t elementDimension>
-	std::unordered_set<Ref<MeshElement<elementDimension, meshDimension>>> Chain<dimension, meshDimension>::elements() {
+	Set<Ref<MeshElement<elementDimension, meshDimension>>> Manifold<dimension, meshDimension>::elements() {
 		if constexpr (elementDimension == dimension) {
 			return elementsVal;
 		} else {
-			std::unordered_set<Ref<MeshElement<elementDimension, meshDimension>>> result;
-			std::unordered_set<Ref<MeshElement<elementDimension, meshDimension>>> rec;
+			Set<Ref<MeshElement<elementDimension, meshDimension>>> result;
+			Set<Ref<MeshElement<elementDimension, meshDimension>>> rec;
 
 			for (MeshElement<dimension, meshDimension>& elements : this->elements()) {
 				rec = elements.elements<elementDimension>();
@@ -131,8 +132,8 @@ namespace snl {
 
 	template<size_t dimension, size_t meshDimension>
 	template<size_t elementDimension>
-	std::unordered_set<Ref<const MeshElement<elementDimension, meshDimension>>> Chain<dimension, meshDimension>::elements() const {
-		std::unordered_set<Ref<const MeshElement<elementDimension, meshDimension>>> result;
+	Set<Ref<const MeshElement<elementDimension, meshDimension>>> Manifold<dimension, meshDimension>::elements() const {
+		Set<Ref<const MeshElement<elementDimension, meshDimension>>> result;
 		
 		if constexpr (elementDimension == dimension) {
 			for (const MeshElement<dimension, meshDimension>& element : elementsVal)
@@ -140,7 +141,7 @@ namespace snl {
 
 			return result;
 		} else {
-			std::unordered_set<Ref<const MeshElement<elementDimension, meshDimension>>> rec;
+			Set<Ref<const MeshElement<elementDimension, meshDimension>>> rec;
 
 			for (const MeshElement<dimension, meshDimension>& elements : this->elements()) {
 				rec = elements.elements<elementDimension>();
@@ -153,7 +154,7 @@ namespace snl {
 	}
 
 	template<size_t dimension, size_t meshDimension>
-	std::unordered_map<Ref<MeshElement<dimension - 1, meshDimension>>, size_t> Chain<dimension, meshDimension>::makeOccurenceMap() {
+	std::unordered_map<Ref<MeshElement<dimension - 1, meshDimension>>, size_t> Manifold<dimension, meshDimension>::makeOccurenceMap() {
 		std::unordered_map<Ref<MeshElement<dimension - 1, meshDimension>>, size_t> result;
 
 		for (MeshElement<dimension, meshDimension>& element : elements()) {
@@ -171,7 +172,7 @@ namespace snl {
 	}
 
 	template<size_t dimension, size_t meshDimension>
-	std::unordered_map<Ref<const MeshElement<dimension - 1, meshDimension>>, size_t> Chain<dimension, meshDimension>::makeOccurenceMap() const {
+	std::unordered_map<Ref<const MeshElement<dimension - 1, meshDimension>>, size_t> Manifold<dimension, meshDimension>::makeOccurenceMap() const {
 		std::unordered_map<Ref<const MeshElement<dimension - 1, meshDimension>>, size_t> result;
 
 		for (const MeshElement<dimension, meshDimension>& element : elements()) {
