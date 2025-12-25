@@ -8,27 +8,27 @@ namespace snl {
 
 	template<size_t meshDimension>
 	class MeshElement<1, meshDimension> {
-		std::unordered_set<Ref<Node<meshDimension>>> boundaryVal = {};
+		PointCloud<meshDimension> boundaryVal = {};
 		Ref<Mesh<meshDimension>> meshVal = nullptr;
 	public:
-		Mesh<meshDimension>& mesh() const {
+		Mesh<meshDimension>& mesh() {
 			return meshVal.get();
 		}
 
-		virtual std::unordered_set<Ref<const Node<meshDimension>>> boundary() const {
-			std::unordered_set<Ref<const Node<meshDimension>>> result;
-
-			for (Node<meshDimension>& element : boundaryVal)
-				result.insert(element);
-
-			return result;
+		const Mesh<meshDimension>& mesh() const {
+			return meshVal.get();
 		}
 
-		virtual std::unordered_set<Ref<Node<meshDimension>>> boundary() {
+		virtual const PointCloud<meshDimension> boundary() const {
+			return boundaryVal;
+		}
+
+		virtual PointCloud<meshDimension> boundary() {
 			return boundaryVal;
 		}
 
 		std::pair<Node<meshDimension>&, Node<meshDimension>&> nodes() {
+			auto boundary = this->boundary();
 			auto it = boundary.begin();
 			Node<meshDimension>& a = *it;
 			it++;
@@ -58,7 +58,7 @@ namespace snl {
 			if constexpr (elementDimension == 1) {
 				return { *this };
 			} else {
-				return boundary();
+				return boundary().elements();
 			}
 		}
 
@@ -68,7 +68,7 @@ namespace snl {
 				return { *this };
 			}
 			else {
-				return boundary();
+				return boundary().elements();
 			}
 		}
 
@@ -76,13 +76,22 @@ namespace snl {
 
 		MeshElement(
 			Mesh<meshDimension>& mesh,
-			std::unordered_set<Ref<Node<meshDimension>>> boundary = {}
+			const PointCloud<meshDimension>& boundary = {}
 		) :
-			meshVal(&mesh),
+			meshVal(mesh),
 			boundaryVal(boundary)
 		{
-			if (boundary.size() != 2)
-				throw Exception("Edge must have exactly 2 nodes in its boundary");
+			expected(boundary.elements().size() == 2, "Edge must have exactly two nodes in its boundary.");
+		}
+
+		MeshElement(
+			Mesh<meshDimension>& mesh,
+			const std::unordered_set<Ref<Node<meshDimension>>>& boundary = {}
+		) :
+			meshVal(mesh),
+			boundaryVal(mesh, boundary)
+		{
+			expected(boundary.size() == 2, "Edge must have exactly two nodes in its boundary.");
 		}
 
 		MeshElement(
@@ -91,7 +100,7 @@ namespace snl {
 			Node<meshDimension>& b
 		) :
 			meshVal(mesh),
-			boundaryVal({ Ref(a), Ref(b) })
+			boundaryVal(mesh, { Ref(a), Ref(b) })
 		{}
 
 		friend bool operator==(const Edge<meshDimension>& a, const Edge<meshDimension>& b) {

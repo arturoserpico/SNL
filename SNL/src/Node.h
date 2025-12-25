@@ -11,7 +11,11 @@ namespace snl {
 		Eigen::Vector<double, meshDimension> posVal = 0;
 		Ref<Mesh<meshDimension>> meshVal = nullptr;
 	public:
-		Mesh<meshDimension>& mesh() const {
+		Mesh<meshDimension>& mesh() {
+			return meshVal.get();
+		}
+
+		const Mesh<meshDimension>& mesh() const {
 			return meshVal.get();
 		}
 
@@ -70,7 +74,7 @@ namespace std {
 	struct hash<snl::Node<meshDimension>> {
 		size_t operator()(const snl::Node<meshDimension>& node) const noexcept {
 			return std::hash<Eigen::Vector<double, meshDimension>>{}(node.pos()) ^
-				(1 << std::hash<snl::Ref<snl::Mesh<meshDimension>>>{}(node.mesh())); // combine hashes
+				(1 << std::hash<snl::Ref<const snl::Mesh<meshDimension>>>{}(node.mesh())); // combine hashes
 		}
 	};
 }

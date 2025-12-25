@@ -51,19 +51,17 @@ int main() {
 	//	std::cout << ref << std::endl;
 	//}
 
-	snl::GridMesh2D mesh(1, 1, 3, 3);
+	snl::GridMesh2D mesh(10, 5, 10, 5);
 
-	std::unordered_set<snl::Ref<snl::Face2D>> faces = mesh.faces();
+	snl::Area2D chain = mesh.chain();
 
-	snl::Face2D& face = *faces.begin();
+	std::cout << chain.boundary().elements().size() << std::endl;
 
- 	std::cout << face.elements<0>().size() << std::endl;
+	std::ofstream positions("output\\Positions.dat");
+	std::ofstream edges("output\\Edges.dat");
+	std::ofstream facesPrint("output\\Faces.dat");
 
-	//std::ofstream positions("output\\Positions.dat");
-	//std::ofstream edges("output\\Edges.dat");
-	//std::ofstream faces("output\\Faces.dat");
-
-	//mesh.print(positions, edges, faces);
+	mesh.print(positions, edges, facesPrint);
 
 	//std::cout << grid.nodesMatrix << std::endl;
 	//std::cout << grid.linkMatrix << std::endl

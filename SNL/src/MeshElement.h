@@ -1,8 +1,10 @@
 #pragma once
 
 #include <unordered_set>
+#include <unordered_map>
 #include <Eigen/Dense>
 #include "Ref.h"
+#include "Chain.h"
 
 namespace snl {
 	template<size_t dimesion>
@@ -10,23 +12,22 @@ namespace snl {
 
 	template<size_t dimension, size_t meshDimension>
 	class MeshElement {
-		std::unordered_set<Ref<MeshElement<dimension - 1, meshDimension>>> boundaryVal = {};
+		Chain<dimension - 1, meshDimension> boundaryVal = {};
 	 	Ref<Mesh<meshDimension>> meshVal = nullptr;
 	public:
-		Mesh<meshDimension>& mesh() const {
+		Mesh<meshDimension>& mesh() {
 			return meshVal.get();
 		}
 
-		virtual std::unordered_set<Ref<const MeshElement<dimension - 1, meshDimension>>> boundary() const {
-			std::unordered_set<Ref<const MeshElement<dimension - 1, meshDimension>>> result;
+		const Mesh<meshDimension>& mesh() const {
+			return meshVal.get();
+		}
 
-			for (MeshElement<dimension - 1, meshDimension>& element : boundaryVal)
-				result.insert(element);
-
-			return result;
+		virtual const Chain<dimension - 1, meshDimension> boundary() const {
+			return boundaryVal;
 		};
 
-		virtual std::unordered_set<Ref<MeshElement<dimension - 1, meshDimension>>> boundary() {
+		virtual Chain<dimension - 1, meshDimension> boundary() {
 			return boundaryVal;
 		};
 
@@ -38,7 +39,7 @@ namespace snl {
 				return { *this };
 			}
 
-			std::unordered_set<Ref<MeshElement<dimension - 1, meshDimension>>> boundary = this->boundary();
+			Chain<dimension - 1, meshDimension> boundary = this->boundary();
 			std::unordered_set<Ref<MeshElement<elementDimension, meshDimension>>> rec;
 			for (MeshElement<dimension - 1, meshDimension>& boundaryElement : boundary) {
 				rec = boundaryElement.elements<elementDimension>();
@@ -56,7 +57,7 @@ namespace snl {
 				return { *this };
 			}
 
-			std::unordered_set<Ref<const MeshElement<dimension - 1, meshDimension>>> boundary = this->boundary();
+			const Chain<dimension - 1, meshDimension> boundary = this->boundary();
 			std::unordered_set<Ref<const MeshElement<elementDimension, meshDimension>>> rec;
 			for (const MeshElement<dimension - 1, meshDimension>& boundaryElement : boundary) {
 				rec = boundaryElement.elements<elementDimension>();
@@ -80,10 +81,18 @@ namespace snl {
 
 		MeshElement(
 			Mesh<meshDimension>& mesh,
-			std::unordered_set<Ref<MeshElement<dimension - 1, meshDimension>>> boundary = {}
+			Chain<dimension - 1, meshDimension> boundary = {}
 		) : 
 			meshVal(mesh), 
 			boundaryVal(boundary)
+		{}
+
+		MeshElement(
+			Mesh<meshDimension>& mesh,
+			const std::unordered_set<Ref<MeshElement<dimension - 1, meshDimension>>>& boundary = {}
+		) :
+			meshVal(mesh),
+			boundaryVal(mesh, boundary)
 		{}
 
 		friend bool operator==(const MeshElement<dimension, meshDimension>& a, const MeshElement<dimension, meshDimension>& b) {
@@ -96,6 +105,84 @@ namespace snl {
 
 	using Face2D = Face<2>;
 	using Face3D = Face<3>;
+
+	template<size_t dimension, size_t meshDimension>
+	template<size_t elementDimension>
+	std::unordered_set<Ref<MeshElement<elementDimension, meshDimension>>> Chain<dimension, meshDimension>::elements() {
+		if constexpr (elementDimension == dimension) {
+			return elementsVal;
+		} else {
+			std::unordered_set<Ref<MeshElement<elementDimension, meshDimension>>> result;
+			std::unordered_set<Ref<MeshElement<elementDimension, meshDimension>>> rec;
+
+			for (MeshElement<dimension, meshDimension>& elements : this->elements()) {
+				rec = elements.elements<elementDimension>();
+
+				result.insert(rec.begin(), rec.end());
+			}
+
+			return result;
+		}
+	}
+
+	template<size_t dimension, size_t meshDimension>
+	template<size_t elementDimension>
+	std::unordered_set<Ref<const MeshElement<elementDimension, meshDimension>>> Chain<dimension, meshDimension>::elements() const {
+		std::unordered_set<Ref<const MeshElement<elementDimension, meshDimension>>> result;
+		
+		if constexpr (elementDimension == dimension) {
+			for (const MeshElement<dimension, meshDimension>& element : elementsVal)
+				result.insert(Ref<const MeshElement<elementDimension, meshDimension>>(element));
+
+			return result;
+		} else {
+			std::unordered_set<Ref<const MeshElement<elementDimension, meshDimension>>> rec;
+
+			for (const MeshElement<dimension, meshDimension>& elements : this->elements()) {
+				rec = elements.elements<elementDimension>();
+
+				result.insert(rec.begin(), rec.end());
+			}
+
+			return result;
+		}
+	}
+
+	template<size_t dimension, size_t meshDimension>
+	std::unordered_map<Ref<MeshElement<dimension - 1, meshDimension>>, size_t> Chain<dimension, meshDimension>::makeOccurenceMap() {
+		std::unordered_map<Ref<MeshElement<dimension - 1, meshDimension>>, size_t> result;
+
+		for (MeshElement<dimension, meshDimension>& element : elements()) {
+			auto boundary = element.boundary();
+
+			for (MeshElement<dimension - 1, meshDimension>& internalElement : boundary) {
+				if (result.contains(internalElement))
+					result.at(internalElement)++;
+				else
+					result.emplace(internalElement, 1);
+			}
+		}
+
+		return result;
+	}
+
+	template<size_t dimension, size_t meshDimension>
+	std::unordered_map<Ref<const MeshElement<dimension - 1, meshDimension>>, size_t> Chain<dimension, meshDimension>::makeOccurenceMap() const {
+		std::unordered_map<Ref<const MeshElement<dimension - 1, meshDimension>>, size_t> result;
+
+		for (const MeshElement<dimension, meshDimension>& element : elements()) {
+			auto boundary = element.boundary();
+
+			for (const MeshElement<dimension - 1, meshDimension>& internalElement : boundary) {
+				if (result.contains(internalElement))
+					result.at(internalElement)++;
+				else
+					result.emplace(internalElement, 1);
+			}
+		}
+
+		return result;
+	}
 }
 
 namespace std {
@@ -135,10 +222,12 @@ namespace std {
 				seed += v * 0x9e3779b97f4a7c15ULL;
 				};
 
-			for (const snl::MeshElement<dimension - 1, meshDimension>& boundaryElement : element.boundary())
+			auto boundary = element.boundary();
+
+			for (const snl::MeshElement<dimension - 1, meshDimension>& boundaryElement : boundary)
 				hashCombine(std::hash<snl::MeshElement<dimension - 1, meshDimension>>{}(boundaryElement));
 
-			hashCombine(std::hash<snl::Ref<snl::Mesh<meshDimension>>>{}(element.mesh()));
+			hashCombine(std::hash<snl::Ref<const snl::Mesh<meshDimension>>>{}(element.mesh()));
 
 			return seed;
 		}

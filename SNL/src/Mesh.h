@@ -131,6 +131,11 @@ namespace snl
 
 		template<size_t elementDimension>
 		MeshElement<elementDimension, dimension>& findElementByBoundary(const std::unordered_set<Ref<MeshElement<elementDimension - 1, dimension>>>& boundary) {
+			return findElementByBoundary<elementDimension>(Chain<elementDimension - 1, dimension>(*this, boundary));
+		}
+
+		template<size_t elementDimension>
+		MeshElement<elementDimension, dimension>& findElementByBoundary(const Chain<elementDimension - 1, dimension>& boundary) {
 			for (MeshElement<elementDimension, dimension>& element : elements<elementDimension>()) {
 				if (element.boundary() == boundary)
 					return element;
@@ -140,6 +145,11 @@ namespace snl
 
 		template<size_t elementDimension>
 		const MeshElement<elementDimension, dimension>& findElementByBoundary(const std::unordered_set<Ref<MeshElement<elementDimension - 1, dimension>>>& boundary) const {
+			return findElementByBoundary<elementDimension>(Chain<elementDimension - 1, dimension>(*this, boundary));
+		}
+
+		template<size_t elementDimension>
+		const MeshElement<elementDimension, dimension>& findElementByBoundary(const Chain<elementDimension - 1, dimension>& boundary) const {
 			for (const MeshElement<elementDimension, dimension>& element : elements<elementDimension>()) {
 				if (element.boundary() == boundary)
 					return element;
@@ -148,23 +158,27 @@ namespace snl
 		}
 
 		template<size_t elementDimension>
-		std::unordered_set<Ref<MeshElement<elementDimension, dimension>>> findElementsByBoundary(MeshElement<elementDimension - 1, dimension>& boundaryElement) {
+		Chain<elementDimension, dimension> findElementsByBoundary(MeshElement<elementDimension - 1, dimension>& boundaryElement) {
 			std::unordered_set<Ref<MeshElement<elementDimension, dimension>>> result;
 			for (MeshElement<elementDimension, dimension>& element : elements<elementDimension>())
 				if (element.boundary().contains(boundaryElement))
 					result.insert(element);
 
-			return result;
+			return Chain<elementDimension, dimension>(*this, result);
 		}
 
 		template<size_t elementDimension>
-		std::unordered_set<Ref<const MeshElement<elementDimension, dimension>>> findElementsByBoundary(const MeshElement<elementDimension - 1, dimension>& boundaryElement) const {
+		const Chain<elementDimension, dimension> findElementsByBoundary(const MeshElement<elementDimension - 1, dimension>& boundaryElement) const {
 			std::unordered_set<Ref<const MeshElement<elementDimension, dimension>>> result;
 			for (const MeshElement<elementDimension, dimension>& element : elements<elementDimension>())
 				if (element.boundary().contains(boundaryElement))
 					result.insert(element);
 
-			return result;
+			return Chain<elementDimension, dimension>(*this, result);
+		}
+
+		Chain<dimension, dimension> chain() {
+			return Chain<dimension, dimension>(*this, elements<dimension>());
 		}
 
 		Mesh() = default;
@@ -212,7 +226,9 @@ namespace snl
 			}
 
 			for (const Face<dimension>& face : this->faces()) {
-				for (const Edge<dimension>& edge : face.boundary())
+				auto boundary = face.boundary();
+
+				for (const Edge<dimension>& edge : boundary)
 					faces << edgeIndexMap[&edge] << " ";
 
 				faces << "\n";
@@ -228,6 +244,13 @@ namespace std {
 	template<size_t dimension>
 	struct hash<snl::Ref<snl::Mesh<dimension>>> {
 		size_t operator()(snl::Ref<snl::Mesh<dimension>> mesh) const noexcept {
+			return reinterpret_cast<size_t>(mesh.raw());
+		}
+	};
+
+	template<size_t dimension>
+	struct hash<snl::Ref<const snl::Mesh<dimension>>> {
+		size_t operator()(snl::Ref<const snl::Mesh<dimension>> mesh) const noexcept {
 			return reinterpret_cast<size_t>(mesh.raw());
 		}
 	};

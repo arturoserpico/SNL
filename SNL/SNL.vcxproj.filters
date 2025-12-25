@@ -46,10 +46,7 @@
     <ClInclude Include="src\UniqueVector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Triangle.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Manifold.h">
+    <ClInclude Include="src\Chain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
