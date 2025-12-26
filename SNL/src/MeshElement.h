@@ -20,7 +20,7 @@ namespace snl {
 			return meshVal.get();
 		}
 
-		const Mesh<meshDimension>& mesh() const {
+	 	const Mesh<meshDimension>& mesh() const {
 			return meshVal.get();
 		}
 
@@ -33,42 +33,34 @@ namespace snl {
 		};
 
 		template<size_t elementDimension>
-		Set<Ref<MeshElement<elementDimension, meshDimension>>> elements() {
-			Set<Ref<MeshElement<elementDimension, meshDimension>>> result;
-
+		ElementComplex<elementDimension, meshDimension> elements() {
 			if constexpr (elementDimension == dimension) {
 				return { *this };
 			}
+			else {
+				Manifold<dimension - 1, meshDimension> boundary = this->boundary();
 
-			Manifold<dimension - 1, meshDimension> boundary = this->boundary();
-			Set<Ref<MeshElement<elementDimension, meshDimension>>> rec;
-			for (MeshElement<dimension - 1, meshDimension>& boundaryElement : boundary) {
-				rec = boundaryElement.elements<elementDimension>();
-				result.insert(rec.begin(), rec.end());
+				return boundary.elements<elementDimension>();
 			}
-
-			return result;
 		}
 
 		template<size_t elementDimension>
-		Set<Ref<const MeshElement<elementDimension, meshDimension>>> elements() const {
-			Set<Ref<const MeshElement<elementDimension, meshDimension>>> result;
-
+		const ElementComplex<elementDimension, meshDimension> elements() const {
 			if constexpr (elementDimension == dimension) {
 				return { *this };
 			}
+			else {
+				const Manifold<dimension - 1, meshDimension> boundary = this->boundary();
 
-			const Manifold<dimension - 1, meshDimension> boundary = this->boundary();
-			Set<Ref<const MeshElement<elementDimension, meshDimension>>> rec;
-			for (const MeshElement<dimension - 1, meshDimension>& boundaryElement : boundary) {
-				rec = boundaryElement.elements<elementDimension>();
-				result.insert(rec.begin(), rec.end());
+				return boundary.elements<elementDimension>();
 			}
-
-			return result;
 		}
 
 		Manifold<dimension, meshDimension> manifold() {
+			return Manifold<dimension, meshDimension>(mesh(), { *this });
+		}
+
+		const Manifold<dimension, meshDimension> manifold() const {
 			return Manifold<dimension, meshDimension>(mesh(), { *this });
 		}
 
@@ -113,12 +105,12 @@ namespace snl {
 
 	template<size_t dimension, size_t meshDimension>
 	template<size_t elementDimension>
-	Set<Ref<MeshElement<elementDimension, meshDimension>>> Manifold<dimension, meshDimension>::elements() {
+	ElementComplex<elementDimension, meshDimension> ElementComplex<dimension, meshDimension>::elements() {
 		if constexpr (elementDimension == dimension) {
-			return elementsVal;
+			return *this;
 		} else {
 			Set<Ref<MeshElement<elementDimension, meshDimension>>> result;
-			Set<Ref<MeshElement<elementDimension, meshDimension>>> rec;
+			ElementComplex<elementDimension, meshDimension> rec;
 
 			for (MeshElement<dimension, meshDimension>& elements : this->elements()) {
 				rec = elements.elements<elementDimension>();
@@ -126,35 +118,33 @@ namespace snl {
 				result.insert(rec.begin(), rec.end());
 			}
 
-			return result;
+			return ElementComplex<elementDimension, meshDimension>(mesh(), result);
 		}
 	}
 
 	template<size_t dimension, size_t meshDimension>
 	template<size_t elementDimension>
-	Set<Ref<const MeshElement<elementDimension, meshDimension>>> Manifold<dimension, meshDimension>::elements() const {
-		Set<Ref<const MeshElement<elementDimension, meshDimension>>> result;
+	const ElementComplex<elementDimension, meshDimension> ElementComplex<dimension, meshDimension>::elements() const {
+		Set<Ref<MeshElement<elementDimension, meshDimension>>> result;
 		
 		if constexpr (elementDimension == dimension) {
-			for (const MeshElement<dimension, meshDimension>& element : elementsVal)
-				result.insert(Ref<const MeshElement<elementDimension, meshDimension>>(element));
-
-			return result;
+			for (MeshElement<dimension, meshDimension>& element : elementsVal)
+				result.insert(Ref<MeshElement<elementDimension, meshDimension>>(element));
 		} else {
-			Set<Ref<const MeshElement<elementDimension, meshDimension>>> rec;
+			ElementComplex<elementDimension, meshDimension> rec;
 
-			for (const MeshElement<dimension, meshDimension>& elements : this->elements()) {
+			for (MeshElement<dimension, meshDimension>& elements : this->elements()) {
 				rec = elements.elements<elementDimension>();
 
 				result.insert(rec.begin(), rec.end());
 			}
-
-			return result;
 		}
+
+		return ElementComplex<elementDimension, meshDimension>(meshVal, result);
 	}
 
 	template<size_t dimension, size_t meshDimension>
-	std::unordered_map<Ref<MeshElement<dimension - 1, meshDimension>>, size_t> Manifold<dimension, meshDimension>::makeOccurenceMap() {
+	std::unordered_map<Ref<MeshElement<dimension - 1, meshDimension>>, size_t> ElementComplex<dimension, meshDimension>::makeOccurenceMap() {
 		std::unordered_map<Ref<MeshElement<dimension - 1, meshDimension>>, size_t> result;
 
 		for (MeshElement<dimension, meshDimension>& element : elements()) {
@@ -172,7 +162,7 @@ namespace snl {
 	}
 
 	template<size_t dimension, size_t meshDimension>
-	std::unordered_map<Ref<const MeshElement<dimension - 1, meshDimension>>, size_t> Manifold<dimension, meshDimension>::makeOccurenceMap() const {
+	std::unordered_map<Ref<const MeshElement<dimension - 1, meshDimension>>, size_t> ElementComplex<dimension, meshDimension>::makeOccurenceMap() const {
 		std::unordered_map<Ref<const MeshElement<dimension - 1, meshDimension>>, size_t> result;
 
 		for (const MeshElement<dimension, meshDimension>& element : elements()) {

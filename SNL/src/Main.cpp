@@ -52,13 +52,16 @@ int main() {
 	//}
 
 	snl::GridMesh2D mesh(10, 5, 10, 5);
-
-	snl::Set<snl::Ref<snl::Face2D>> faces = mesh.faces();
-
-	snl::Face2D& face = *faces.begin();
-
-	std::cout << (face.manifold().boundary() == face.boundary()) << std::endl;
 	
+	snl::Area2D manifold = mesh.manifold();
+
+	snl::EdgeComplex2D edgeList = mesh.elements<1>();
+
+	snl::Edge2D& edge = *mesh.elements<1>().begin();
+
+	std::cout << edge.elements<0>().size() << std::endl;
+	std::cout << edgeList.elements<0>().size() << std::endl;
+
 	//snl::Area2D chain = mesh.chain();
 
 	//std::cout << chain.boundary().elements().size() << std::endl;

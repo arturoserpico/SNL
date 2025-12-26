@@ -150,6 +150,7 @@
     <None Include="output\script.py" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ElementComplex.h" />
     <ClInclude Include="src\Manifold.h" />
     <ClInclude Include="src\Edge.h" />
     <ClInclude Include="src\Error.h" />

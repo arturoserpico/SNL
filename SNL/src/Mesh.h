@@ -20,19 +20,11 @@ namespace snl
 
 	template<size_t dimension, size_t... indexs>
 	struct _Elements<dimension, std::index_sequence<indexs...>> {
-		using Type = std::tuple<Ref<Set<Ref<MeshElement<indexs, dimension>>>>...>;
+		using Type = std::tuple<Ref<ElementComplex<indexs, dimension>>...>;
 	};
 
 	template<size_t dimension, size_t indexUntil = dimension>
 	using Elements = _Elements<dimension, std::make_index_sequence<indexUntil + 1>>::Type;
-
-	template<size_t dimension, size_t index = dimension>
-	Elements<dimension, index> initElements() {
-		if constexpr (index == 0)
-			return std::tuple(Ref(*(new Set<Ref<MeshElement<0, dimension>>>())));
-		else
-			return std::tuple_cat(initElements<dimension, index - 1>(), std::tuple(Ref(*(new Set<Ref<MeshElement<index, dimension>>>()))));
-	}
 
 	//template<size_t dimension, typename IndexSeq>
 	//struct _ElementsRef;
@@ -53,16 +45,24 @@ namespace snl
 	template<size_t dimension>
 	class Mesh {
 	protected:
-		Elements<dimension> elementsVal = initElements<dimension>();
-	public:
-		template<size_t dimensionOfElements>
-		Set<Ref<MeshElement<dimensionOfElements, dimension>>>& elements() {
-			return std::get<dimensionOfElements>(elementsVal);
+		template<size_t dimension, size_t index = dimension>
+		Elements<dimension, index> initElements() {
+			if constexpr (index == 0)
+				return std::tuple(Ref(*(new ElementComplex<0, dimension>(*this, {}))));
+			else
+				return std::tuple_cat(initElements<dimension, index - 1>(), std::tuple(Ref(*(new ElementComplex<index, dimension>(*this, {})))));
 		}
 
-		template<size_t dimensionOfElements>
-		const Set<Ref<MeshElement<dimensionOfElements, dimension>>>& elements() const {
-			return std::get<dimensionOfElements>(elementsVal);
+		Elements<dimension> elementsVal = initElements<dimension>();
+	public:
+		template<size_t elementDimension>
+		ElementComplex<elementDimension, dimension>& elements() {
+			return std::get<elementDimension>(elementsVal);
+		}
+
+		template<size_t elementDimension>
+		const ElementComplex<elementDimension, dimension>& elements() const {
+			return std::get<elementDimension>(elementsVal);
 		}
 
 		auto& nodes() {
@@ -92,7 +92,7 @@ namespace snl
 		Node<dimension>& addNode(const Eigen::Vector<double, dimension>& pos) {
 			Node<dimension>* node = new Node<dimension>(*this, pos);
 
-			nodes().insert(*node);
+			nodes().add(*node);
 
 			return *node;
 		}
@@ -100,7 +100,7 @@ namespace snl
 		Edge<dimension>& addEdge(Node<dimension>& a, Node<dimension>& b) {
 			Edge<dimension>* edge = new Edge<dimension>(*this, a, b);
 
-			edges().insert(*edge);
+			edges().add(*edge);
 
 			return *edge;
 		}
@@ -111,21 +111,21 @@ namespace snl
 
 			Edge<dimension>* edge = new Edge<dimension>(*this, a, b);
 
-			edges().insert(*edge);
+			edges().add(*edge);
 
 			return *edge;
 		}
 
 		Face<dimension>& addFace(const Set<Ref<Edge<dimension>>>& edges) {
 			Face<dimension>* face = new Face<dimension>(*this, edges);
-			faces().insert(*face);
+			faces().add(*face);
 			return *face;
 		}
 
 		template<size_t elementDimension>
 		MeshElement<elementDimension, dimension>& addElement(const Set<Ref<MeshElement<elementDimension - 1, dimension>>>& boundary) {
 			MeshElement<elementDimension, dimension>* element = new MeshElement<elementDimension, dimension>(*this, boundary);
-			elements<elementDimension>().insert(*element);
+			elements<elementDimension>().add(*element);
 			return *element;
 		}
 
@@ -178,7 +178,7 @@ namespace snl
 		}
 
 		Manifold<dimension, dimension> manifold() {
-			return Manifold<dimension, dimension>(*this, elements<dimension>());
+			return Manifold<dimension, dimension>(elements<dimension>());
 		}
 
 		Mesh() = default;

@@ -53,8 +53,16 @@ namespace snl {
 			return (a.pos() - b.pos()).norm();
 		}
 
+		Line<meshDimension> manifold() {
+			return Line<meshDimension>(mesh(), { *this });
+		}
+
+		const Line<meshDimension> manifold() const {
+			return Line<meshDimension>(mesh(), { *this });
+		}
+
 		template<size_t elementDimension>
-		Set<Ref<MeshElement<elementDimension, meshDimension>>> elements() {
+		ElementComplex<elementDimension, meshDimension> elements() {
 			if constexpr (elementDimension == 1) {
 				return { *this };
 			} else {
@@ -63,7 +71,7 @@ namespace snl {
 		}
 
 		template<size_t elementDimension>
-		Set<Ref<const MeshElement<elementDimension, meshDimension>>> elements() const {
+		const ElementComplex<elementDimension, meshDimension> elements() const {
 			if constexpr (elementDimension == 1) {
 				return { *this };
 			}
