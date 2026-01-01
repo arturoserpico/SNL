@@ -3,8 +3,6 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <Eigen/Dense>
-#include "Ref.h"
-#include "Set.h"
 #include "Manifold.h"
 
 namespace snl {
@@ -35,7 +33,7 @@ namespace snl {
 		template<size_t elementDimension>
 		ElementComplex<elementDimension, meshDimension> elements() {
 			if constexpr (elementDimension == dimension) {
-				return { *this };
+				return ElementComplex<elementDimension, meshDimension>(mesh(), { *this });
 			}
 			else {
 				Manifold<dimension - 1, meshDimension> boundary = this->boundary();
@@ -47,7 +45,7 @@ namespace snl {
 		template<size_t elementDimension>
 		const ElementComplex<elementDimension, meshDimension> elements() const {
 			if constexpr (elementDimension == dimension) {
-				return { *this };
+				return ElementComplex<elementDimension, meshDimension>(mesh(), { *this });
 			}
 			else {
 				const Manifold<dimension - 1, meshDimension> boundary = this->boundary();

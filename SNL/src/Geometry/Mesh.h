@@ -7,8 +7,6 @@
 #include <utility>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
-#include "Ref.h"
-#include "UniqueVector.h"
 #include "MeshElement.h"
 #include "Node.h"
 #include "Edge.h"
@@ -158,23 +156,23 @@ namespace snl
 		}
 
 		template<size_t elementDimension>
-		Manifold<elementDimension, dimension> findElementsByBoundary(MeshElement<elementDimension - 1, dimension>& boundaryElement) {
+		ElementComplex<elementDimension, dimension> findElementsByBoundary(MeshElement<elementDimension - 1, dimension>& boundaryElement) {
 			Set<Ref<MeshElement<elementDimension, dimension>>> result;
 			for (MeshElement<elementDimension, dimension>& element : elements<elementDimension>())
 				if (element.boundary().contains(boundaryElement))
 					result.insert(element);
 
-			return Manifold<elementDimension, dimension>(*this, result);
+			return ElementComplex<elementDimension, dimension>(*this, result);
 		}
 
 		template<size_t elementDimension>
-		const Manifold<elementDimension, dimension> findElementsByBoundary(const MeshElement<elementDimension - 1, dimension>& boundaryElement) const {
+		const ElementComplex<elementDimension, dimension> findElementsByBoundary(const MeshElement<elementDimension - 1, dimension>& boundaryElement) const {
 			Set<Ref<const MeshElement<elementDimension, dimension>>> result;
 			for (const MeshElement<elementDimension, dimension>& element : elements<elementDimension>())
 				if (element.boundary().contains(boundaryElement))
 					result.insert(element);
 
-			return Manifold<elementDimension, dimension>(*this, result);
+			return ElementComplex<elementDimension, dimension>(*this, result);
 		}
 
 		Manifold<dimension, dimension> manifold() {

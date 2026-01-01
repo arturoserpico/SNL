@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Error.h"
-#include "Set.h"
-#include "Ref.h"
+#include "../Utils/Error.h"
+#include "../Utils/Set.h"
+#include "../Utils/Ref.h"
 
 namespace snl {
 	template<size_t dimesion>
@@ -27,8 +27,8 @@ namespace snl {
 			return meshVal.get();
 		}
 
-		bool contains(const MeshElement<dimension, meshDimension>& element) const {
-			return elementsVal.contains(element);
+		bool contains(MeshElement<dimension, meshDimension>& element) const {
+			return elementsVal.contains(Ref(element));
 		}
 
 		auto begin() {

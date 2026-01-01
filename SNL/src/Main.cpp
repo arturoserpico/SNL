@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
-#include "GridMesh2D.h"
+#include "Geometry/GridMesh2D.h"
 
 constexpr double PI = 3.14159265358979323846;
 
@@ -52,25 +52,24 @@ int main() {
 	//}
 
 	snl::GridMesh2D mesh(10, 5, 10, 5);
-	
-	snl::Area2D manifold = mesh.manifold();
 
-	snl::EdgeComplex2D edgeList = mesh.elements<1>();
+	//snl::Region2D manifold = mesh.manifold();
 
-	snl::Edge2D& edge = *mesh.elements<1>().begin();
+	snl::Edge2D& edge = mesh.findElementByBoundary<1>({ mesh.nodeAtPosition(1, 1), mesh.nodeAtPosition(2, 1) });
 
-	std::cout << edge.elements<0>().size() << std::endl;
-	std::cout << edgeList.elements<0>().size() << std::endl;
+	snl::FaceComplex2D connected = mesh.findElementsByBoundary<2>(edge);
+
+	size_t count = connected.elements<2>().size() + connected.elements<1>().size() - connected.elements<0>().size();
 
 	//snl::Area2D chain = mesh.chain();
 
 	//std::cout << chain.boundary().elements().size() << std::endl;
 
-	std::ofstream positions("output\\Positions.dat");
-	std::ofstream edges("output\\Edges.dat");
+	std::ofstream positionsPrint("output\\Positions.dat");
+	std::ofstream edgesPrint("output\\Edges.dat");
 	std::ofstream facesPrint("output\\Faces.dat");
 
-	mesh.print(positions, edges, facesPrint);
+	mesh.print(positionsPrint, edgesPrint, facesPrint);
 
 	//std::cout << grid.nodesMatrix << std::endl;
 	//std::cout << grid.linkMatrix << std::endl

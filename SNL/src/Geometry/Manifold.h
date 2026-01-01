@@ -53,7 +53,7 @@ namespace snl {
 	template<size_t meshDimension>
 	using Surface = Manifold<2, meshDimension>;
 
-	using Area2D = Surface<2>;
+	using Region2D = Surface<2>;
 	using Surface3D = Surface<3>;
 
 	template<size_t meshDimension>

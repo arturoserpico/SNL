@@ -150,23 +150,24 @@
     <None Include="output\script.py" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\ElementComplex.h" />
-    <ClInclude Include="src\Manifold.h" />
-    <ClInclude Include="src\Edge.h" />
-    <ClInclude Include="src\Error.h" />
-    <ClInclude Include="src\GridMesh2D.h" />
-    <ClInclude Include="src\Mesh.h" />
-    <ClInclude Include="src\MeshElement.h" />
-    <ClInclude Include="src\Node.h" />
-    <ClInclude Include="src\Ref.h" />
-    <ClInclude Include="src\Set.h" />
-    <ClInclude Include="src\UniqueVector.h" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="src\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="src\Old.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Geometry\Edge.h" />
+    <ClInclude Include="src\Geometry\ElementComplex.h" />
+    <ClInclude Include="src\Geometry\GridMesh2D.h" />
+    <ClInclude Include="src\Geometry\Manifold.h" />
+    <ClInclude Include="src\Geometry\Mesh.h" />
+    <ClInclude Include="src\Geometry\MeshElement.h" />
+    <ClInclude Include="src\Geometry\Node.h" />
+    <ClInclude Include="src\Linear\Tensor.h" />
+    <ClInclude Include="src\Utils\Error.h" />
+    <ClInclude Include="src\Utils\Ref.h" />
+    <ClInclude Include="src\Utils\Set.h" />
+    <ClInclude Include="src\Utils\UniqueVector.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

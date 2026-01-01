@@ -64,7 +64,7 @@ namespace snl {
 		template<size_t elementDimension>
 		ElementComplex<elementDimension, meshDimension> elements() {
 			if constexpr (elementDimension == 1) {
-				return { *this };
+				return ElementComplex<elementDimension, meshDimension>(mesh(), { *this });
 			} else {
 				return boundary().elements();
 			}
@@ -73,7 +73,7 @@ namespace snl {
 		template<size_t elementDimension>
 		const ElementComplex<elementDimension, meshDimension> elements() const {
 			if constexpr (elementDimension == 1) {
-				return { *this };
+				return ElementComplex<elementDimension, meshDimension>(mesh(), { *this });
 			}
 			else {
 				return boundary().elements();
