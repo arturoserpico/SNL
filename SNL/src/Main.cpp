@@ -7,7 +7,7 @@
 #include <Eigen/Sparse>
 #include "Geometry/GridMesh2D.h"
 //#include "Linear/Tensor.h"
-//#include "Symbolic/Sym.h"
+#include "Symbolic/Sym.h"
 
 constexpr double PI = 3.14159265358979323846;
 
@@ -54,6 +54,16 @@ int main() {
 	//}
 
 	//snl::Tensor<double, 2, 1, 2, 2, 2> t;
+
+	snl::Sym<double> x;
+
+	snl::Sym<double, double> y = x + 2;
+
+	x.set(5);
+
+	y.compute();
+
+	std::cout << y.get() << std::endl;
 
 	snl::GridMesh2D mesh(10, 5, 10, 5);
 
