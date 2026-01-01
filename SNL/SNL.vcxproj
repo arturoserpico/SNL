@@ -164,6 +164,7 @@
     <ClInclude Include="src\Geometry\MeshElement.h" />
     <ClInclude Include="src\Geometry\Node.h" />
     <ClInclude Include="src\Linear\Tensor.h" />
+    <ClInclude Include="src\Symbolic\Sym.h" />
     <ClInclude Include="src\Utils\Error.h" />
     <ClInclude Include="src\Utils\Ref.h" />
     <ClInclude Include="src\Utils\Set.h" />

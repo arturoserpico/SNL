@@ -51,6 +51,16 @@ namespace snl
 				return std::tuple_cat(initElements<dimension, index - 1>(), std::tuple(Ref(*(new ElementComplex<index, dimension>(*this, {})))));
 		}
 
+		template<size_t index = 0>
+		void deallocateElements() {
+			if constexpr (index != dimension + 1) {
+				for (MeshElement<index, dimension>& element : elements<index>())
+					delete &element;
+				
+				deallocateElements<index + 1>();
+			}
+		}
+
 		Elements<dimension> elementsVal = initElements<dimension>();
 	public:
 		template<size_t elementDimension>
@@ -182,6 +192,10 @@ namespace snl
 		Mesh() = default;
 
 		Mesh(Elements<dimension> elements) : elementsVal(elements) {}
+
+		~Mesh() {
+			deallocateElements();
+		}
 
 		void print(std::ostream& positions = std::cout, std::ostream& edges = std::cout, std::ostream& faces = std::cout) const {
 			std::map<const Node<dimension>*, size_t> nodeIndexMap;

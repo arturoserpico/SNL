@@ -6,6 +6,8 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include "Geometry/GridMesh2D.h"
+//#include "Linear/Tensor.h"
+//#include "Symbolic/Sym.h"
 
 constexpr double PI = 3.14159265358979323846;
 
@@ -50,6 +52,8 @@ int main() {
 	//for (std::reference_wrapper<int> ref : test) {
 	//	std::cout << ref << std::endl;
 	//}
+
+	//snl::Tensor<double, 2, 1, 2, 2, 2> t;
 
 	snl::GridMesh2D mesh(10, 5, 10, 5);
 
