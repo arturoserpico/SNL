@@ -71,16 +71,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\Users\artur\source\repos\SNL\Lib\Include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\Arturo Serpico\source\repos\ASBackend\SNL\Lib\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>C:\Users\artur\source\repos\SNL\Lib\Include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\Arturo Serpico\source\repos\ASBackend\SNL\Lib\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\Users\artur\source\repos\SNL\Lib\Include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\Arturo Serpico\source\repos\ASBackend\SNL\Lib\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\Users\artur\source\repos\SNL\Lib\Include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\Arturo Serpico\source\repos\ASBackend\SNL\Lib\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -164,6 +164,10 @@
     <ClInclude Include="src\Geometry\MeshElement.h" />
     <ClInclude Include="src\Geometry\Node.h" />
     <ClInclude Include="src\Linear\Tensor.h" />
+    <ClInclude Include="src\Metaprogramming\Concepts.h" />
+    <ClInclude Include="src\Metaprogramming\StaticString.h" />
+    <ClInclude Include="src\Metaprogramming\TypeList.h" />
+    <ClInclude Include="src\Metaprogramming\Utils.h" />
     <ClInclude Include="src\Symbolic\Sym.h" />
     <ClInclude Include="src\Utils\Error.h" />
     <ClInclude Include="src\Utils\Ref.h" />

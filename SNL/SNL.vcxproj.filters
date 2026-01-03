@@ -69,5 +69,17 @@
     <ClInclude Include="src\Symbolic\Sym.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Metaprogramming\Concepts.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Metaprogramming\TypeList.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Metaprogramming\Utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Metaprogramming\StaticString.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

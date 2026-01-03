@@ -5,6 +5,8 @@
 #include <functional>
 #include "../Utils/Ref.h"
 #include "../Utils/Error.h"
+#include "../Metaprogramming/Concepts.h"
+#include "../Metaprogramming/TypeList.h"
 
 namespace snl {
 	template<typename T>
@@ -20,6 +22,11 @@ namespace snl {
 		std::optional<std::function<T(Dependencies...)>> fun;
 		std::tuple<Ref<GenericSym<Dependencies>>...> dependencies;
 		std::vector<void*> ownedList;
+
+		template<size_t index = 0>
+		void initDepList(IsTypeIgnoreCVRef<GenericSym<Get<TypeList<Dependencies...>, index>>> auto element) {
+			
+		}
 	public:
 		Sym() requires (sizeof...(Dependencies) == 0) = default;
 		Sym(T value) requires (sizeof...(Dependencies) == 0) : data(value) {}
@@ -31,7 +38,7 @@ namespace snl {
 
 		Sym(
 			std::function<T(Dependencies...)> fun,
-			GenericSym<Dependencies>&... dependencies
+			IsTypeIgnoreCVRef<GenericSym<Dependencies>> auto... dependencies
 		) : fun(fun), dependencies(Ref(dependencies)...) {}
 
 		~Sym() {
