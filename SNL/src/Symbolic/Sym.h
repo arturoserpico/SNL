@@ -89,6 +89,17 @@ namespace snl {
 
 
 
+	template<typename T>
+	constexpr bool _isSymbolic = false;
+
+	template<typename... Ts>
+	constexpr bool _isSymbolic<Sym<Ts...>> = true;
+
+	template<typename T>
+	constexpr bool isSymbolic = _isSymbolic<std::remove_cvref_t<T>>;
+	
+
+
 	template<typename A, typename B, typename R = decltype(A() + B()), typename... ADep, typename... BDep>
 		requires requires(A a, B b) { a + b; }
 	Sym<R, A, B> operator+(Sym<A, ADep...>& a, Sym<B, BDep...>& b) {
