@@ -68,19 +68,17 @@ int main() {
 
 	snl::Sym<double> x;
 
-	snl::Sym<double, double> y = 3 + x - 2;
+	snl::Sym<double> z;
 
-	x.set(3);
+	snl::Sym<double, double> y = 1 / (x + 1);
+
+	y.substitute(x, z);
+
+	z.set(2);
 
 	y.compute();
 
 	std::cout << y.get();
-
-	using List = snl::TypeList<int, double, std::string>;
-
-	snl::lenght<List>;
-
-	snl::Get<List, 2>;
 
 	snl::GridMesh2D mesh(10, 5, 10, 5);
 

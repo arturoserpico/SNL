@@ -24,4 +24,15 @@ namespace snl {
 
 	template<auto then, auto otherwise>
 	auto staticIf<false, then, otherwise> = otherwise;
+
+
+
+	struct StaticError {
+		constexpr StaticError() {}
+
+		template<typename T>
+		constexpr operator T() {
+			return T();
+		}
+	};
 }

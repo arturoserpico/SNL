@@ -51,5 +51,26 @@ namespace snl {
 
 
 
+	template<typename List, typename T>
+	constexpr bool contains = false;
 
+	template<typename First, typename... Rest, typename T>
+	constexpr bool contains<TypeList<First, Rest...>, T> = std::is_same_v<First, T> || contains<TypeList<Rest...>, T>;
+
+	template<typename T>
+	constexpr bool contains<TypeList<>, T> = false;
+
+
+
+	template<typename List, typename T>
+	constexpr size_t find = 0;
+
+	template<typename First, typename... Rest, typename T>
+	constexpr size_t find<TypeList<First, Rest...>, T> = 1 + find<TypeList<Rest...>, T>;
+
+	template<typename T, typename... Rest>
+	constexpr size_t find<TypeList<T, Rest...>, T> = 0;
+
+	template<typename T>
+	constexpr size_t find<TypeList<>, T> = 0;
 }
