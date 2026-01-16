@@ -7,7 +7,7 @@
 #include <Eigen/Sparse>
 #include "Geometry/GridMesh2D.h"
 //#include "Linear/Tensor.h"
-//#include "Symbolic/Sym.h"
+#include "Symbolic/Sym.h"
 #include "Metaprogramming/TypeList.h"
 
 constexpr double PI = 3.14159265358979323846;
@@ -65,6 +65,16 @@ int main() {
 	//y.compute();
 	//
 	//std::cout << y.get() << std::endl;
+
+	snl::Sym<double> x;
+
+	snl::Sym<double, double> y = 3 + x - 2;
+
+	x.set(3);
+
+	y.compute();
+
+	std::cout << y.get();
 
 	using List = snl::TypeList<int, double, std::string>;
 
