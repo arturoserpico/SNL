@@ -245,24 +245,56 @@ namespace snl {
 
 	
 
+	auto SymSub(IsSymbolicIgnoreCV auto& a, IsSymbolicIgnoreCV auto& b)
+		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a - b; }
+	{
+		using A = GetSymbolicTypeInfo<decltype(a)>::Type;
+		using B = GetSymbolicTypeInfo<decltype(b)>::Type;
+		using R = decltype(A() - B());
+
+		return Sym<R, A, B>([](A a, B b) -> R { return a - b; }, a, b);
+	}
+
+	template<typename B>
+	auto SymSub(IsSymbolicIgnoreCV auto& a, B b)
+		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a - b; }
+	{
+		using A = GetSymbolicTypeInfo<decltype(a)>::Type;
+		using R = decltype(A() - B());
+
+		return Sym<R, A>([b](A a) -> R { return a - b; }, a);
+	}
+
+	template<typename A>
+	auto SymSub(A a, IsSymbolicIgnoreCV auto& b)
+		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a - b; }
+	{
+		using B = GetSymbolicTypeInfo<decltype(b)>::Type;
+		using R = decltype(A() - B());
+
+		return Sym<R, B>([a](B b) -> R { return a - b; }, b);
+	}
+
+
+
 	auto operator-(IsSymbolicIgnoreCV auto& a, IsSymbolicIgnoreCV auto& b)
 		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a - b; }
 	{
-		return SymAdd(a, static_cast<const std::remove_cvref_t<decltype(a)>&>(-b));
+		return SymSub(a, b);
 	}
 
 	template<typename B>
 	auto operator-(IsSymbolicIgnoreCV auto& a, B b)
 		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a - b; }
 	{
-		return SymAdd(a, -b);
+		return SymSub(a, b);
 	}
 
 	template<typename A>
 	auto operator-(A a, IsSymbolicIgnoreCV auto& b)
 		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a - b; }
 	{
-		return SymAdd(a, static_cast<const std::remove_cvref_t<decltype(a)>&>(-b));
+		return SymSub(a, b);
 	}
 
 
@@ -270,9 +302,9 @@ namespace snl {
 	auto operator-(IsSymbolicIgnoreCV auto&& a, IsSymbolicIgnoreCV auto&& b)
 		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a - b; }
 	{
-		return SymAdd(
+		return SymSub(
 			static_cast<const std::remove_cvref_t<decltype(a)>&>(a), 
-			static_cast<const std::remove_cvref_t<decltype(a)>&>(-b)
+			static_cast<const std::remove_cvref_t<decltype(a)>&>(b)
 		);
 	}
 
@@ -280,14 +312,14 @@ namespace snl {
 	auto operator-(IsSymbolicIgnoreCV auto&& a, B b)
 		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a - b; }
 	{
-		return SymAdd(static_cast<const std::remove_cvref_t<decltype(a)>&>(a), -b);
+		return SymSub(static_cast<const std::remove_cvref_t<decltype(a)>&>(a), b);
 	}
 
 	template<typename A>
 	auto operator-(A a, IsSymbolicIgnoreCV auto&& b)
 		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a - b; }
 	{
-		return SymAdd(a, static_cast<const std::remove_cvref_t<decltype(a)>&>(-b));
+		return SymSub(a, static_cast<const std::remove_cvref_t<decltype(b)>&>(b));
 	}
 	//
 	//
