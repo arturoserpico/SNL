@@ -66,19 +66,16 @@ int main() {
 	//
 	//std::cout << y.get() << std::endl;
 
-	snl::Sym<double> x;
+	
+	snl::Sym<double> val;
 
-	snl::Sym<double> z;
+	snl::Sym<double> x(std::function([](double x) -> double { return 2 * x; }), val);
 
-	snl::Sym<double, double> y = 1 / (x + 1);
+	val.set(5);
 
-	y.substitute(x, z);
+	x.compute();
 
-	z.set(2);
-
-	y.compute();
-
-	std::cout << y.get();
+	std::cout << x.get() << std::endl;
 
 	snl::GridMesh2D mesh(10, 5, 10, 5);
 

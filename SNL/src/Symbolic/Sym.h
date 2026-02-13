@@ -10,507 +10,76 @@
 
 namespace snl {
 	template<typename T>
-	class GenericSym {
-	public:
-		virtual void compute() = 0;
-		virtual T get() const = 0;
-	};
+	class Sym {
+		std::optional<T> value;
+		std::function<T(std::vector<void*>)> fun;
+		std::vector<void*> deps;
 
-	template<typename T, typename... Dependencies>
-	class Sym;
+		template<typename First, typename... Rest>
+		static std::vector<void*> deconcretizeDeps(Sym<First>& first, Sym<Rest>&... rest) {
+			void* result = static_cast<void*>(&first);
 
-	template<typename T>
-	struct _GetSymbolicTypeInfo;
-
-	template<typename T, typename... Dependencies>
-	struct _GetSymbolicTypeInfo<Sym<T, Dependencies...>> {
-		using Type = T;
-		using DepList = TypeList<Dependencies...>;
-	};
-
-	template<typename T>
-	using GetSymbolicTypeInfo = _GetSymbolicTypeInfo<std::remove_cvref_t<T>>;
-
-	template<typename T>
-	constexpr bool isSymbolic = false;
-
-	template<typename... Ts>
-	constexpr bool isSymbolic<Sym<Ts...>> = true;
-
-
-	template<typename T, typename C>
-	constexpr bool isSymbolicOfType = false;
-
-	template<typename C, typename... Deps>
-	constexpr bool isSymbolicOfType<Sym<C, Deps...>, C> = true;
-
-
-	template<typename T>
-	concept IsSymbolic = isSymbolic<T>;
-
-	template<typename T>
-	concept IsSymbolicIgnoreV = isSymbolic<std::remove_volatile_t<T>>;
-
-	template<typename T>
-	concept IsSymbolicIgnoreCV = isSymbolic<std::remove_cv_t<T>>;
-
-	template<typename T>
-	concept IsSymbolicIgnoreCVRef = isSymbolic<std::remove_cvref_t<T>>;
-
-	template<typename T, typename C>
-	concept IsSymbolicOfType = isSymbolicOfType<T, C>;
-
-	template<typename T, typename C>
-	concept IsSymbolicOfTypeIgnoreV = isSymbolicOfType<std::remove_volatile_t<T>, C>;
-
-	template<typename T, typename C>
-	concept IsSymbolicOfTypeIgnoreCV = isSymbolicOfType<std::remove_cv_t<T>, C>;
-
-	template<typename T, typename C>
-	concept IsSymbolicOfTypeIgnoreCVRef = isSymbolicOfType<std::remove_cvref_t<T>, C>;
-
-	template<typename T, typename... Dependencies>
-	class Sym : public GenericSym<T> {
-		std::optional<T> data;
-		std::optional<std::function<T(Dependencies...)>> fun;
-		std::tuple<Ref<GenericSym<Dependencies>>...> dependencies;
-		std::vector<std::shared_ptr<void>> ownedList;
-
-		template<size_t index = 0>
-		void initDepList(IsSymbolicIgnoreCV auto& first, IsSymbolicIgnoreCV auto&... rest) {
-			Ref<GenericSym<Get<TypeList<Dependencies...>, index>>> ref;
-
-			if constexpr (std::is_const_v<std::remove_reference_t<decltype(first)>>) {
-				using T = std::remove_cvref_t<decltype(first)>;
-				std::shared_ptr<T> elementCopy = std::make_shared<T>(T(first));
-				ownedList.push_back(elementCopy);
-				ref.bind(*elementCopy);
+			if constexpr (sizeof...(rest) == 0) {
+				return { result };
 			}
 			else {
-				ref.bind(first);
+				std::vector<void*> restDeps = deconcretizeDeps<Rest...>(rest...);
+				restDeps.push_back(result);
+				return restDeps;
 			}
+		}
 
-			std::get<index>(dependencies) = ref;
+		template<typename First, typename... Rest>
+		static std::tuple<Sym<First>&, Sym<Rest>&...> concretizeDeps(const std::vector<void*>& deps, size_t index = 0) {
+			Sym<First>& result = *static_cast<Sym<First>*>(deps[index]);
 
-			if constexpr (index < (sizeof...(Dependencies) - 1))
-				initDepList<index + 1>(rest...);
+			if constexpr (sizeof...(Rest) == 0) {
+				return std::tuple<Sym<First>&>(result);
+			}
+			else {
+				std::tuple<Sym<Rest>&...> restResults = concretizeDeps<Rest...>(deps, index + 1);
+				return std::tuple_cat(std::tuple<Sym<First>&>(result), restResults);
+			}
+		}
+
+		template<typename First, typename... Rest>
+		static std::tuple<First, Rest...> computeDeps(Sym<First>& first, Sym<Rest>&... rest) {
+			first.compute();
+
+			if constexpr (sizeof...(rest) == 0) {
+				return std::make_tuple(first.get());
+			}
+			else {
+				std::tuple<Rest...> restResults = computeDeps<Rest...>(rest...);
+				return std::tuple_cat(std::make_tuple(first.get()), restResults);
+			}
 		}
 	public:
-		Sym() requires (sizeof...(Dependencies) == 0) = default;
-		Sym(T value) requires (sizeof...(Dependencies) == 0) : data(value) {}
-		
-		Sym(
-			std::function<T(Dependencies...)> fun, 
-			std::tuple<Ref<GenericSym<Dependencies>>...> dependencies
-		) : fun(fun), dependencies(dependencies) {
-			check();
-		}
+		Sym() = default;
 
-		Sym(
-			std::function<T(Dependencies...)> fun,
-			IsSymbolicIgnoreCV auto&... dependencies
-		) : fun(fun) {
-			initDepList(dependencies...);
-			check();
-		}
-
-		Sym(const Sym& other) : 
-			data(other.data), 
-			fun(other.fun), 
-			dependencies(other.dependencies), 
-			ownedList(other.ownedList) {
-			check();
-		}
-
-		void check() {
-			if (!(bool) fun.value()) {
-				std::cout << "fun is empty" << std::endl;
-				__debugbreak();
-			}
-		}
-
-		void set(T value) requires (sizeof...(Dependencies) == 0) {
-			expect(!fun.has_value(), "Cannot set symbolic object with construction method");
-			data = value;
+		template<typename... Deps>
+		Sym(std::function<T(Deps...)> compute, Sym<Deps>&... deps) {
+			this->deps = deconcretizeDeps(deps...);
+			fun = [compute](std::vector<void*> deps) {
+					auto concretizedDeps = concretizeDeps<Deps...>(deps);
+					auto computedDeps = std::apply(computeDeps<Deps...>, concretizedDeps);
+					return std::apply(compute, computedDeps);
+				};
 		}
 
 		void compute() {
-			if (fun.has_value()) {
-				std::tuple<Dependencies...> values;
-
-				auto toValues =
-				[&]<size_t... indices>(std::index_sequence<indices...>) -> void {
-					struct _ {};
-
-					auto doCompute = []<typename T>(Ref<GenericSym<T>> sym) -> _ {
-						sym.get().compute();
-						return _();
-					};
-
-					std::array<_, sizeof...(Dependencies)>({ doCompute(std::get<indices>(dependencies))... });
-
-					values = std::tuple<Dependencies...>(std::get<indices>(dependencies).get().get()...);
-				};
-
-				toValues(std::make_index_sequence<sizeof...(Dependencies)>());
-
-				data = std::apply(fun.value(), values);
+			if (fun) {
+				value = fun(deps);
 			}
 		}
 
-		T get() const {
-			expect(data.has_value(), "cannot get value of symbolic object if value is not present");
-
-			return data.value();
+		T get() {
+			expect(value.has_value(), "Value not computed or assigned yet");
+			return value.value();
 		}
 
-		void substitute(IsSymbolic auto& target, IsSymbolic auto& substitute) 
-			requires (
-				std::is_same_v<
-					typename GetSymbolicTypeInfo<decltype(target)>::Type, 
-					typename GetSymbolicTypeInfo<decltype(substitute)>::Type
-				>
-				&& contains<TypeList<Dependencies...>, typename GetSymbolicTypeInfo<decltype(target)>::Type>
-			)
-		{
-			using Target = GetSymbolicTypeInfo<decltype(target)>::Type;
-			constexpr size_t targetIndex = find<TypeList<Dependencies...>, Target>;
-			std::get<targetIndex>(dependencies) = substitute;
-			
-			void* ref = (void*)&target;
-
-			for (std::vector<std::shared_ptr<void>>::iterator it = ownedList.begin(); it != ownedList.end(); it++) {
-				if (it->get() == ref) {
-					ownedList.erase(it);
-					break;
-				}
-			}
-		}
-
-		template<typename R, typename... Args>
-		Sym<R, T> callMethod(const std::function<R(T, Args...)>& fun, Args... args) {
-			return Sym<R, T>([](T val) -> R {
-					return fun(val, args...);
-				}, *this);
+		void set(T val) {
+			value = val;
 		}
 	};
-	
-	auto SymAdd(IsSymbolicIgnoreCV auto& a, IsSymbolicIgnoreCV auto& b) 
-		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a + b; }
-	{
-		using A = GetSymbolicTypeInfo<decltype(a)>::Type;
-		using B = GetSymbolicTypeInfo<decltype(b)>::Type;
-		using R = decltype(A() + B());
-
-		return Sym<R, A, B>([](A a, B b) -> R { return a + b; }, a, b);
-	}
-
-	template<typename B>
-	auto SymAdd(IsSymbolicIgnoreCV auto& a, B b) 
-		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a + b; } 
-	{
-		using A = GetSymbolicTypeInfo<decltype(a)>::Type;
-		using R = decltype(A() + B());
-
-		return Sym<R, A>([b](A a) -> R { return a + b; }, a);
-	}
-	
-	template<typename A>
-	auto SymAdd(A a, IsSymbolicIgnoreCV auto& b)
-		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a + b; }
-	{
-		using B = GetSymbolicTypeInfo<decltype(b)>::Type;
-		using R = decltype(A() + B());
-
-		return Sym<R, B>([a](B b) -> R { return a + b; }, b);
-	}
-
-	auto operator+(IsSymbolicIgnoreCV auto& a, IsSymbolicIgnoreCV auto& b)
-		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a + b; }
-	{
-		return SymAdd(a, b);
-	}
-
-	template<typename B>
-	auto operator+(IsSymbolicIgnoreCV auto& a, B b)
-		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a + b; }
-	{
-		return SymAdd(a, b);
-	}
-	
-	template<typename A>
-	auto operator+(A a, IsSymbolicIgnoreCV auto& b)
-		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a + b; }
-	{
-		return SymAdd(a, b);
-	}
-
-
-
-	auto operator+(IsSymbolicIgnoreCV auto&& a, IsSymbolicIgnoreCV auto&& b)
-		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a + b; }
-	{
-		return SymAdd(
-			static_cast<const std::remove_cvref_t<decltype(a)>&>(a), 
-			static_cast<const std::remove_cvref_t<decltype(b)>&>(b));
-	}
-
-	template<typename B>
-	auto operator+(IsSymbolicIgnoreCV auto&& a, B b)
-		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a + b; }
-	{
-		return SymAdd(static_cast<const std::remove_cvref_t<decltype(a)>&>(a), b);
-	}
-
-	template<typename A>
-	auto operator+(A a, IsSymbolicIgnoreCV auto&& b)
-		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a + b; }
-	{
-		return SymAdd(a, static_cast<const std::remove_cvref_t<decltype(b)>&>(b));
-	}
-
-
-
-	auto operator-(IsSymbolicIgnoreCV auto& x) {
-		using X = GetSymbolicTypeInfo<decltype(x)>::Type;
-		using R = decltype(-X());
-		return Sym<R, X>([](X x) -> R { return -x; }, x);
-	}
-
-	auto operator-(IsSymbolicIgnoreCV auto&& x) {
-		using X = GetSymbolicTypeInfo<decltype(x)>::Type;
-		using R = decltype(-X());
-		return Sym<R, X>([](X x) -> R { return -x; }, static_cast<const std::remove_cvref_t<decltype(x)>&>(x));
-	}
-
-	
-
-	auto SymSub(IsSymbolicIgnoreCV auto& a, IsSymbolicIgnoreCV auto& b)
-		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a - b; }
-	{
-		using A = GetSymbolicTypeInfo<decltype(a)>::Type;
-		using B = GetSymbolicTypeInfo<decltype(b)>::Type;
-		using R = decltype(A() - B());
-
-		return Sym<R, A, B>([](A a, B b) -> R { return a - b; }, a, b);
-	}
-
-	template<typename B>
-	auto SymSub(IsSymbolicIgnoreCV auto& a, B b)
-		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a - b; }
-	{
-		using A = GetSymbolicTypeInfo<decltype(a)>::Type;
-		using R = decltype(A() - B());
-
-		return Sym<R, A>([b](A a) -> R { return a - b; }, a);
-	}
-
-	template<typename A>
-	auto SymSub(A a, IsSymbolicIgnoreCV auto& b)
-		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a - b; }
-	{
-		using B = GetSymbolicTypeInfo<decltype(b)>::Type;
-		using R = decltype(A() - B());
-
-		return Sym<R, B>([a](B b) -> R { return a - b; }, b);
-	}
-
-
-
-	auto operator-(IsSymbolicIgnoreCV auto& a, IsSymbolicIgnoreCV auto& b)
-		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a - b; }
-	{
-		return SymSub(a, b);
-	}
-
-	template<typename B>
-	auto operator-(IsSymbolicIgnoreCV auto& a, B b)
-		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a - b; }
-	{
-		return SymSub(a, b);
-	}
-
-	template<typename A>
-	auto operator-(A a, IsSymbolicIgnoreCV auto& b)
-		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a - b; }
-	{
-		return SymSub(a, b);
-	}
-
-
-
-	auto operator-(IsSymbolicIgnoreCV auto&& a, IsSymbolicIgnoreCV auto&& b)
-		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a - b; }
-	{
-		return SymSub(
-			static_cast<const std::remove_cvref_t<decltype(a)>&>(a), 
-			static_cast<const std::remove_cvref_t<decltype(a)>&>(b)
-		);
-	}
-
-	template<typename B>
-	auto operator-(IsSymbolicIgnoreCV auto&& a, B b)
-		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a - b; }
-	{
-		return SymSub(static_cast<const std::remove_cvref_t<decltype(a)>&>(a), b);
-	}
-
-	template<typename A>
-	auto operator-(A a, IsSymbolicIgnoreCV auto&& b)
-		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a - b; }
-	{
-		return SymSub(a, static_cast<const std::remove_cvref_t<decltype(b)>&>(b));
-	}
-
-
-
-	auto SymMul(IsSymbolicIgnoreCV auto& a, IsSymbolicIgnoreCV auto& b)
-		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a * b; }
-	{
-		using A = GetSymbolicTypeInfo<decltype(a)>::Type;
-		using B = GetSymbolicTypeInfo<decltype(b)>::Type;
-		using R = decltype(A() * B());
-
-		return Sym<R, A, B>([](A a, B b) -> R { return a * b; }, a, b);
-	}
-
-	template<typename B>
-	auto SymMul(IsSymbolicIgnoreCV auto& a, B b)
-		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a * b; }
-	{
-		using A = GetSymbolicTypeInfo<decltype(a)>::Type;
-		using R = decltype(A() * B());
-
-		return Sym<R, A>([b](A a) -> R { return a * b; }, a);
-	}
-
-	template<typename A>
-	auto SymMul(A a, IsSymbolicIgnoreCV auto& b)
-		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a * b; }
-	{
-		using B = GetSymbolicTypeInfo<decltype(b)>::Type;
-		using R = decltype(A() * B());
-
-		return Sym<R, B>([a](B b) -> R { return a * b; }, b);
-	}
-
-	auto operator*(IsSymbolicIgnoreCV auto& a, IsSymbolicIgnoreCV auto& b)
-		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a * b; }
-	{
-		return SymMul(a, b);
-	}
-
-	template<typename B>
-	auto operator*(IsSymbolicIgnoreCV auto& a, B b)
-		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a * b; }
-	{
-		return SymMul(a, b);
-	}
-
-	template<typename A>
-	auto operator*(A a, IsSymbolicIgnoreCV auto& b)
-		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a * b; }
-	{
-		return SymMul(a, b);
-	}
-
-
-
-	auto operator*(IsSymbolicIgnoreCV auto&& a, IsSymbolicIgnoreCV auto&& b)
-		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a * b; }
-	{
-		return SymMul(
-			static_cast<const std::remove_cvref_t<decltype(a)>&>(a),
-			static_cast<const std::remove_cvref_t<decltype(b)>&>(b));
-	}
-
-	template<typename B>
-	auto operator*(IsSymbolicIgnoreCV auto&& a, B b)
-		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a * b; }
-	{
-		return SymMul(static_cast<const std::remove_cvref_t<decltype(a)>&>(a), b);
-	}
-
-	template<typename A>
-	auto operator*(A a, IsSymbolicIgnoreCV auto&& b)
-		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a * b; }
-	{
-		return SymMul(a, static_cast<const std::remove_cvref_t<decltype(b)>&>(b));
-	}
-
-
-
-	auto SymDiv(IsSymbolicIgnoreCV auto& a, IsSymbolicIgnoreCV auto& b)
-		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a / b; }
-	{
-		using A = GetSymbolicTypeInfo<decltype(a)>::Type;
-		using B = GetSymbolicTypeInfo<decltype(b)>::Type;
-		using R = decltype(A()/ B());
-
-		return Sym<R, A, B>([](A a, B b) -> R { return a / b; }, a, b);
-	}
-
-	template<typename B>
-	auto SymDiv(IsSymbolicIgnoreCV auto& a, B b)
-		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a / b; }
-	{
-		using A = GetSymbolicTypeInfo<decltype(a)>::Type;
-		using R = decltype(A()/ B());
-
-		return Sym<R, A>([b](A a) -> R { return a / b; }, a);
-	}
-
-	template<typename A>
-	auto SymDiv(A a, IsSymbolicIgnoreCV auto& b)
-		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a / b; }
-	{
-		using B = GetSymbolicTypeInfo<decltype(b)>::Type;
-		using R = decltype(A()/ B());
-
-		return Sym<R, B>([a](B b) -> R { return a / b; }, b);
-	}
-
-	auto operator/(IsSymbolicIgnoreCV auto& a, IsSymbolicIgnoreCV auto& b)
-		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a / b; }
-	{
-		return SymDiv(a, b);
-	}
-
-	template<typename B>
-	auto operator/(IsSymbolicIgnoreCV auto& a, B b)
-		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a / b; }
-	{
-		return SymDiv(a, b);
-	}
-
-	template<typename A>
-	auto operator/(A a, IsSymbolicIgnoreCV auto& b)
-		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a / b; }
-	{
-		return SymDiv(a, b);
-	}
-
-
-
-	auto operator/(IsSymbolicIgnoreCV auto&& a, IsSymbolicIgnoreCV auto&& b)
-		requires requires(GetSymbolicTypeInfo<decltype(a)>::Type a, GetSymbolicTypeInfo<decltype(b)>::Type b) { a / b; }
-	{
-		return SymDiv(
-			static_cast<const std::remove_cvref_t<decltype(a)>&>(a),
-			static_cast<const std::remove_cvref_t<decltype(b)>&>(b));
-	}
-
-	template<typename B>
-	auto operator/(IsSymbolicIgnoreCV auto&& a, B b)
-		requires requires(typename GetSymbolicTypeInfo<decltype(a)>::Type a, B b) { a / b; }
-	{
-		return SymDiv(static_cast<const std::remove_cvref_t<decltype(a)>&>(a), b);
-	}
-
-	template<typename A>
-	auto operator/(A a, IsSymbolicIgnoreCV auto&& b)
-		requires requires(A a, typename GetSymbolicTypeInfo<decltype(b)>::Type b) { a / b; }
-	{
-		return SymDiv(a, static_cast<const std::remove_cvref_t<decltype(b)>&>(b));
-	}
 }
