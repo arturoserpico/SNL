@@ -9,6 +9,7 @@
 //#include "Linear/Tensor.h"
 #include "Symbolic/Sym.h"
 #include "Metaprogramming/TypeList.h"
+#include "Utils/ManagedObject.h"
 
 constexpr double PI = 3.14159265358979323846;
 
@@ -66,36 +67,41 @@ int main() {
 	//
 	//std::cout << y.get() << std::endl;
 
-	
-	snl::Sym<double> val;
+	snl::Ref<int> test = snl::makeManaged<int>(5);
 
-	snl::Sym<double> x(std::function([](double x) -> double { return 2 * x; }), val);
+	snl::Ref<int> copy = test;
 
-	val.set(5);
+	//std::cout << ref << std::endl;
 
-	x.compute();
+	//snl::Sym<double> val;
 
-	std::cout << x.get() << std::endl;
+	//snl::Sym<double> x(std::function([](double x) -> double { return 2 * x; }), val);
 
-	snl::GridMesh2D mesh(10, 5, 10, 5);
+	//val.set(5);
 
-	//snl::Region2D manifold = mesh.manifold();
+	//x.compute();
 
-	snl::Edge2D& edge = mesh.findElementByBoundary<1>({ mesh.nodeAtPosition(1, 1), mesh.nodeAtPosition(2, 1) });
+	//std::cout << x.get() << std::endl;
 
-	snl::FaceComplex2D connected = mesh.findElementsByBoundary<2>(edge);
-
-	size_t count = connected.elements<2>().size() + connected.elements<1>().size() - connected.elements<0>().size();
-
-	//snl::Area2D chain = mesh.chain();
-
-	//std::cout << chain.boundary().elements().size() << std::endl;
-
-	std::ofstream positionsPrint("output\\Positions.dat");
-	std::ofstream edgesPrint("output\\Edges.dat");
-	std::ofstream facesPrint("output\\Faces.dat");
-
-	mesh.print(positionsPrint, edgesPrint, facesPrint);
+	//snl::GridMesh2D mesh(10, 5, 10, 5);
+	//
+	////snl::Region2D manifold = mesh.manifold();
+	//
+	//snl::Edge2D& edge = mesh.findElementByBoundary<1>({ mesh.nodeAtPosition(1, 1), mesh.nodeAtPosition(2, 1) });
+	//
+	//snl::FaceComplex2D connected = mesh.findElementsByBoundary<2>(edge);
+	//
+	//size_t count = connected.elements<2>().size() + connected.elements<1>().size() - connected.elements<0>().size();
+	//
+	////snl::Area2D chain = mesh.chain();
+	//
+	////std::cout << chain.boundary().elements().size() << std::endl;
+	//
+	//std::ofstream positionsPrint("output\\Positions.dat");
+	//std::ofstream edgesPrint("output\\Edges.dat");
+	//std::ofstream facesPrint("output\\Faces.dat");
+	//
+	//mesh.print(positionsPrint, edgesPrint, facesPrint);
 
 	//std::cout << grid.nodesMatrix << std::endl;
 	//std::cout << grid.linkMatrix << std::endl

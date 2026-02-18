@@ -5,12 +5,23 @@
 
 namespace snl {
 	template<typename T>
+	class ManagedObject;
+
+	template<typename T>
 	class Ref {
+		bool managed = false;
 		T* inner = nullptr;
+
+		Ref(T& val, bool managed) : inner(&val), managed(managed) {}
 	public:
 		Ref() = default;
 
+		Ref(T* val) : inner(val) {}
 		Ref(T& val) : inner(&val) {}
+		
+		Ref(const Ref<T>&);
+
+		~Ref();
 
 		T* raw() const {
 			return inner;
@@ -37,6 +48,8 @@ namespace snl {
 		friend bool operator==(Ref<T> a, Ref<T> b) {
 			return a.get() == b.get();
 		}
+
+		friend class ManagedObject<T>;
 	};
 }
 

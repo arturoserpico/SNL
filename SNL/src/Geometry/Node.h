@@ -8,7 +8,7 @@ namespace snl {
 
 	template<size_t meshDimension>
 	class MeshElement<0, meshDimension> {
-		Eigen::Vector<double, meshDimension> posVal = 0;
+		Eigen::Vector<double, meshDimension> posVal = Eigen::Vector<double, meshDimension>::Zero();
 		Ref<Mesh<meshDimension>> meshVal = nullptr;
 	public:
 		Mesh<meshDimension>& mesh() {
