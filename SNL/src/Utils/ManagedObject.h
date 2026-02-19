@@ -21,7 +21,6 @@ namespace snl {
 		}
 
 		~ManagedObject() {
-			std::cout << "object destroyed" << std::endl;
 			objectRegister.erase(&inner);
 		}
 
@@ -41,6 +40,12 @@ namespace snl {
 
 	template<typename T>
 	std::map<T*, ManagedObject<T>*> ManagedObject<T>::objectRegister = {};
+
+	template<typename T>
+	Ref<T> makeManaged(const T& val) {
+		auto obj = new ManagedObject<T>(val);
+		return obj->ref();
+	}
 
 	template<typename T, typename... Args>
 	Ref<T> makeManaged(Args&&... args) {

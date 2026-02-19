@@ -67,9 +67,16 @@ int main() {
 	//
 	//std::cout << y.get() << std::endl;
 
-	snl::Ref<int> test = snl::makeManaged<int>(5);
+	struct Point {
+		int x;
+		int y;
+	};
 
-	snl::Ref<int> copy = test;
+	snl::Ref<Point> test = snl::makeManaged<Point>(Point{ .x = 5, .y = 4 });
+
+	snl::Ref<Point> copy = test;
+
+	std::cout << copy.get().x << std::endl;
 
 	//std::cout << ref << std::endl;
 
