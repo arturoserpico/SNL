@@ -85,15 +85,15 @@ int main() {
 
 	//std::cout << ref << std::endl;
 
-	//snl::Sym<double> val;
+	snl::Sym<double> val;
 
-	//snl::Sym<double> x(std::function([](double x) -> double { return 2 * x; }), val);
+	snl::Sym<double> x(std::function([](double x) -> double { return 2 * x; }), val);
 
-	//val.set(5);
+	val.set(5);
 
-	//x.compute();
+	x.compute();
 
-	//std::cout << x.get() << std::endl;
+	std::cout << x.get() << std::endl;
 
 	//snl::GridMesh2D mesh(10, 5, 10, 5);
 	//

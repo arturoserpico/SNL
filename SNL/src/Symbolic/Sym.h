@@ -12,26 +12,26 @@ namespace snl {
 	template<typename T>
 	class Sym {
 		std::optional<T> value;
-		std::function<T(Ref<void>)> fun;
-		std::vector<void*> deps;
+		std::function<T(std::vector<Ref<void>>)> fun;
+		std::vector<Ref<void>> deps;
 
 		template<typename First, typename... Rest>
-		static std::vector<void*> deconcretizeDeps(Sym<First>& first, Sym<Rest>&... rest) {
-			void* result = static_cast<void*>(&first);
+		static std::vector<Ref<void>> deconcretizeDeps(Sym<First>& first, Sym<Rest>&... rest) {
+			Ref<void> result(&first);
 
 			if constexpr (sizeof...(rest) == 0) {
 				return { result };
 			}
 			else {
-				std::vector<void*> restDeps = deconcretizeDeps<Rest...>(rest...);
+				std::vector<Ref<void>> restDeps = deconcretizeDeps<Rest...>(rest...);
 				restDeps.push_back(result);
 				return restDeps;
 			}
 		}
 
 		template<typename First, typename... Rest>
-		static std::tuple<Sym<First>&, Sym<Rest>&...> concretizeDeps(const std::vector<void*>& deps, size_t index = 0) {
-			Sym<First>& result = *static_cast<Sym<First>*>(deps[index]);
+		static std::tuple<Sym<First>&, Sym<Rest>&...> concretizeDeps(std::vector<Ref<void>> deps, size_t index = 0) {
+			Sym<First>& result = deps[index].as<Sym<First>>();
 
 			if constexpr (sizeof...(Rest) == 0) {
 				return std::tuple<Sym<First>&>(result);
@@ -60,7 +60,7 @@ namespace snl {
 		template<typename... Deps>
 		Sym(std::function<T(Deps...)> compute, Sym<Deps>&... deps) {
 			this->deps = deconcretizeDeps(deps...);
-			fun = [compute](std::vector<void*> deps) {
+			fun = [compute](std::vector<Ref<void>> deps) {
 					auto concretizedDeps = concretizeDeps<Deps...>(deps);
 					auto computedDeps = std::apply(computeDeps<Deps...>, concretizedDeps);
 					return std::apply(compute, computedDeps);
@@ -82,4 +82,7 @@ namespace snl {
 			value = val;
 		}
 	};
+
+	template<typename A, typename B> requires requires(A a, B b) { a + b; }
+	auto operator+(Sym<A>,  Sym<B>) {}
 }
