@@ -12,7 +12,7 @@ namespace snl {
 	template<typename T>
 	class Sym {
 		std::optional<T> value;
-		std::function<T(std::vector<void*>)> fun;
+		std::function<T(Ref<void>)> fun;
 		std::vector<void*> deps;
 
 		template<typename First, typename... Rest>

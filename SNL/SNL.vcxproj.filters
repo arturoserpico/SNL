@@ -84,7 +84,7 @@
     <ClInclude Include="src\Symbolic\Function.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Utils\ManagedObject.h">
+    <ClInclude Include="src\Memory\ObjectManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

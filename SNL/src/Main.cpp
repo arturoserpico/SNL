@@ -9,7 +9,7 @@
 //#include "Linear/Tensor.h"
 #include "Symbolic/Sym.h"
 #include "Metaprogramming/TypeList.h"
-#include "Utils/ManagedObject.h"
+#include "Memory/ObjectManager.h"
 
 constexpr double PI = 3.14159265358979323846;
 
@@ -70,13 +70,18 @@ int main() {
 	struct Point {
 		int x;
 		int y;
+
+		~Point() {
+			if(snl::objManager.find(this))
+			std::cout << "object deleted\n";
+		}
 	};
 
 	snl::Ref<Point> test = snl::makeManaged<Point>(Point{ .x = 5, .y = 4 });
 
-	snl::Ref<Point> copy = test;
+	snl::Ref<void> copy = test;
 
-	std::cout << copy.get().x << std::endl;
+	std::cout << copy.as<Point>().get().x << std::endl;
 
 	//std::cout << ref << std::endl;
 
