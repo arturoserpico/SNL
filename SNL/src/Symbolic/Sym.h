@@ -70,6 +70,10 @@ namespace snl {
 				};
 		}
 
+		Sym<T> dep() {
+			return Sym<T>(std::function<T(T)>([](T val) { return val; }), Ref(*this));
+		}
+
 		void compute() {
 			if (fun) {
 				value = fun(deps);
@@ -109,57 +113,4 @@ namespace snl {
 
 	template<typename T>
 	using SymT = _SymT<std::remove_cvref_t<T>>::Type;
-
-	auto binOperatorsWrapper(IsSym auto& a, IsSym auto& b) {
-		using A = SymT<decltype(a)>;
-		using B = SymT<decltype(b)>;
-		return std::tuple<Ref<Sym<A>>, Ref<Sym<B>>>{ a, b };
-	}
-
-	auto binOperatorsWrapper(IsSym auto& a, const IsSym auto& b) {
-		using A = SymT<decltype(a)>;
-		using B = SymT<decltype(b)>;
-		return std::tuple<Ref<Sym<A>>, Ref<Sym<B>>>{ a, makeManaged<Sym<B>>(b) };
-	}
-
-	auto binOperatorsWrapper(const IsSym auto& a, IsSym auto& b) {
-		using A = SymT<decltype(a)>;
-		using B = SymT<decltype(b)>;
-		return std::tuple<Ref<Sym<A>>, Ref<Sym<B>>>{ makeManaged<Sym<A>>(a), b };
-	}
-
-	auto binOperatorsWrapper(const IsSym auto& a, const IsSym auto& b) {
-		using A = SymT<decltype(a)>;
-		using B = SymT<decltype(b)>;
-		return std::tuple<Ref<Sym<A>>, Ref<Sym<B>>>{ makeManaged<Sym<A>>(a), makeManaged<Sym<B>>(b) };
-	}
-
-	template<typename A, typename B>
-	auto SymAdd(Ref<Sym<A>> a, Ref<Sym<B>> b) -> Sym<decltype(A() + B())>
-		requires requires (A a, B b) { a + b; }
-	{
-		return Sym<decltype(A() + B())>(std::function([](A a, B b) {
-			return a + b;
-		}), a, b);
-	}
-
-	auto operator+(IsSym auto& _a, IsSym auto& _b) {
-		auto [a, b] = binOperatorsWrapper(_a, _b);
-		return SymAdd(a, b);
-	}
-
-	auto operator+(IsSym auto& _a, const IsSym auto& _b) {
-		auto [a, b] = binOperatorsWrapper(_a, _b);
-		return SymAdd(a, b);
-	}
-
-	auto operator+(const IsSym auto& _a, IsSym auto& _b) {
-		auto [a, b] = binOperatorsWrapper(_a, _b);
-		return SymAdd(a, b);
-	}
-
-	auto operator+(const IsSym auto& _a, const IsSym auto& _b) {
-		auto [a, b] = binOperatorsWrapper(_a, _b);
-		return SymAdd(a, b);
-	}
 }

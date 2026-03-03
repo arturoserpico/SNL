@@ -8,6 +8,7 @@
 #include "Geometry/GridMesh2D.h"
 //#include "Linear/Tensor.h"
 #include "Symbolic/Sym.h"
+#include "Symbolic/SymOperators.h"
 #include "Metaprogramming/TypeList.h"
 #include "Memory/ObjectManager.h"
 
@@ -17,9 +18,9 @@ constexpr double PI = 3.14159265358979323846;
 int main() {
 	snl::Sym<double> x;
 
-	snl::Sym<double> y = x + snl::Sym(3);
+	snl::Sym<double> y = snl::Sym(5) + x * snl::Sym(2);
 
-	x.set(2);
+	x.set(3);
 
 	y.compute();
 
