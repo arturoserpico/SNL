@@ -9,4 +9,7 @@ namespace snl {
 
 	template<typename T, typename List>
 	concept IsOneOf = contains<List, T>;
+
+	template<typename T, typename Target>
+	concept IsRefOrConstRef = IsOneOf<T, TypeList<Target&, const Target&>>;
 }

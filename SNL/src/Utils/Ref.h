@@ -13,9 +13,15 @@ namespace snl {
 	public:
 		Ref() = default;
 
-		Ref(T& val, bool managed) : inner(&val), managed(managed) {}
-		Ref(T* val) : inner(val) {}
-		Ref(T& val) : inner(&val) {}
+		Ref(T& val, bool managed = false) : inner(&val), managed(managed) {
+			if (managed)
+				addObjectRef(inner);
+		}
+		
+		Ref(T* val, bool managed = false) : inner(val), managed(managed) {
+			if (managed)
+				addObjectRef(inner);
+		}
 
 		Ref(const Ref<T>& other) : inner(other.inner), managed(other.managed) {
 			if (managed)
@@ -50,24 +56,18 @@ namespace snl {
 			inner = &val;
 		}
 
+		bool isManaged() {
+			return managed;
+		}
+
 		friend bool operator==(Ref<T> a, Ref<T> b) {
 			return a.get() == b.get();
 		}
 
 		template<typename A>
 		Ref<A> as() {
-			Ref<A> result;
-
-			result.managed = managed;
-			result.inner = reinterpret_cast<A*>(inner);
-
-			if (managed)
-				addObjectRef(inner);
-
-			return result;
+			return Ref<A>(static_cast<A*>(inner), managed);
 		}
-
-		friend class Ref<void>;
 	};
 
 	template<>
@@ -77,7 +77,10 @@ namespace snl {
 	public:
 		Ref() = default;
 		
-		Ref(void* val) : inner(val) {}
+		Ref(void* val, bool managed = false) : managed(managed), inner(val) {
+			if (managed)
+				addObjectRef(inner);
+		}
 
 		template<typename T>
 		Ref(const Ref<T>& other) : managed(other.managed), inner(reinterpret_cast<void*>(other.inner)) {
@@ -85,6 +88,11 @@ namespace snl {
 				addObjectRef(inner);
 		}
 
+		Ref(const Ref<void>& other) : managed(other.managed), inner(other.inner) {
+			if (managed)
+				addObjectRef(inner);
+		}
+		
 		~Ref();
 
 		void* raw() const {
@@ -99,17 +107,13 @@ namespace snl {
 			inner = val;
 		}
 
+		bool isManaged() {
+			return managed;
+		}
+
 		template<typename T>
 		Ref<T> as() {
-			Ref<T> result;
-
-			result.managed = managed;
-			result.inner = reinterpret_cast<T*>(inner);
-
-			if (managed)
-				addObjectRef(inner);
-
-			return result;
+			return Ref<T>(static_cast<T*>(inner), managed);
 		}
 	};
 }
