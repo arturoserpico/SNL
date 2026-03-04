@@ -33,6 +33,11 @@ namespace snl {
 		void substitute(Sym<T>& target, Sym<T>& substitute) {
 			this->substitute(Ref(target), Ref(substitute));
 		}
+
+		template<typename T>
+		void substitute(Sym<T>& target, const Sym<T>& substitute) {
+			this->substitute(Ref(target), makeManaged(substitute));
+		}
 	};
 
 	template<typename T>
@@ -120,7 +125,7 @@ namespace snl {
 		}
 
 		Sym<T> dep() {
-			return Sym<T>(std::function<T(T)>([](T val) { return val; }), Ref(*this));
+			return Sym<T>(SymIdentity<T>(), Ref(*this));
 		}
 
 		template<typename SymOpType>

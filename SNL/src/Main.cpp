@@ -21,6 +21,7 @@ int main() {
 	snl::Sym<double> k;
 
 	snl::Sym<double> y = 2 + (x + 3) * x;
+	snl::Sym<double> a = y.dep();
 
 	y.substitute(x, z);
 
@@ -28,5 +29,7 @@ int main() {
 
 	y.compute();
 
-	std::cout << y.get() << std::endl;
+	a.compute();
+
+	std::cout << a.get() << std::endl;
 }

@@ -37,4 +37,11 @@ namespace snl {
 			return a / b;
 		}
 	};
+
+	template<typename T>
+	struct SymIdentity : SymOpType<T(T)> {
+		T eval(T val) {
+			return val;
+		}
+	};
 }
