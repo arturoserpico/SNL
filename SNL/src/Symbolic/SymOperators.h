@@ -2,14 +2,12 @@
 
 #include "Sym.h"
 
-#define SymBinOpDecl(OP)\
+#define SymBinOpDecl(OP, TYPE)\
 template<typename A, typename B>\
-auto operator##OP##(Ref<Sym<A>> a, Ref<Sym<B>> b) -> Sym<decltype(A() + B())>\
-	requires requires (A a, B b) { a + b; }\
+auto operator##OP##(Ref<Sym<A>> a, Ref<Sym<B>> b) -> Sym<decltype(A() OP B())>\
+	requires requires (A a, B b) { a OP b; }\
 {\
-	return Sym<decltype(A() + B())>(std::function([](A a, B b) {\
-		return a OP b;\
-		}), a, b);\
+	return Sym<decltype(A() + B())>(##TYPE##<A, B>(), a, b);\
 }\
 \
 auto operator##OP##(IsSym auto& _a, IsSym auto& _b) {\
@@ -30,6 +28,22 @@ auto operator##OP##(const IsSym auto& _a, IsSym auto& _b) {\
 auto operator##OP##(const IsSym auto& _a, const IsSym auto& _b) {\
 	auto [a, b] = binOperatorsWrapper(_a, _b);\
 	return a OP b;\
+}\
+\
+auto operator##OP##(IsSym auto& a, auto b) requires !IsSym<decltype(b)> {\
+	return a OP Sym(b);\
+}\
+\
+auto operator##OP##(const IsSym auto& a, auto b) requires !IsSym<decltype(b)> {\
+	return a OP Sym(b);\
+}\
+\
+auto operator##OP##(auto a, IsSym auto& b) requires !IsSym<decltype(a)> {\
+	return Sym(a) OP b;\
+}\
+\
+auto operator##OP##(auto a, const IsSym auto& b) requires !IsSym<decltype(a)> {\
+		return Sym(a) OP b; \
 }
 
 namespace snl {
@@ -57,8 +71,8 @@ namespace snl {
 		return std::tuple<Ref<Sym<A>>, Ref<Sym<B>>>{ makeManaged<Sym<A>>(a), makeManaged<Sym<B>>(b) };
 	}
 
-	SymBinOpDecl(+)
-	SymBinOpDecl(-)
-	SymBinOpDecl(*)
-	SymBinOpDecl(/)
+	SymBinOpDecl(+, SymAddOp)
+	SymBinOpDecl(-, SymSubOp)
+	SymBinOpDecl(*, SymMulOp)
+	SymBinOpDecl(/, SymDivOp)
 }

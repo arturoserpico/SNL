@@ -170,6 +170,7 @@
     <ClInclude Include="src\Metaprogramming\Utils.h" />
     <ClInclude Include="src\Symbolic\Function.h" />
     <ClInclude Include="src\Symbolic\Sym.h" />
+    <ClInclude Include="src\Symbolic\SymNodes.h" />
     <ClInclude Include="src\Symbolic\SymOperators.h" />
     <ClInclude Include="src\Utils\Error.h" />
     <ClInclude Include="src\Memory\ObjectManager.h" />

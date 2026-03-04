@@ -18,7 +18,7 @@ constexpr double PI = 3.14159265358979323846;
 int main() {
 	snl::Sym<double> x;
 
-	snl::Sym<double> y = snl::Sym(5) + x * snl::Sym(2);
+	snl::Sym<double> y = (5 - x * 2) / 2;
 
 	x.set(3);
 

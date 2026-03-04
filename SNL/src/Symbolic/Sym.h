@@ -8,12 +8,14 @@
 #include "../Utils/Error.h"
 #include "../Metaprogramming/Concepts.h"
 #include "../Metaprogramming/TypeList.h"
+#include "SymNodes.h"
 
 namespace snl {
 	template<typename T>
 	class Sym {
 		std::optional<T> value;
 		std::function<T(std::vector<Ref<void>>)> fun;
+		const std::type_info& symOpType = typeid(void);
 		std::vector<Ref<void>> deps;
 
 		template<typename First, typename... Rest>
@@ -60,18 +62,23 @@ namespace snl {
 
 		Sym(T val) : value(val) {}
 
-		template<typename... Deps>
-		Sym(std::function<T(Deps...)> compute, Ref<Sym<Deps>>... deps) {
+		template<typename SymOpType, typename... Deps>
+		Sym(SymOpType evalObj, Ref<Sym<Deps>>... deps) : symOpType(typeid(SymOpType)) {
 			this->deps = deconcretizeDeps(deps...);
-			fun = [compute](std::vector<Ref<void>> deps) {
+			fun = [evalObj](std::vector<Ref<void>> deps) {
 					auto concretizedDeps = concretizeDeps<Deps...>(deps);
 					auto computedDeps = std::apply(computeDeps<Deps...>, concretizedDeps);
-					return std::apply(compute, computedDeps);
+					return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
 				};
 		}
 
 		Sym<T> dep() {
 			return Sym<T>(std::function<T(T)>([](T val) { return val; }), Ref(*this));
+		}
+
+		template<typename SymOpType>
+		bool isOpType() {
+			return symOpType == typeid(SymOpType);
 		}
 
 		void compute() {
