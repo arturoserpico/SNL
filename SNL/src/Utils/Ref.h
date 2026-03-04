@@ -68,6 +68,11 @@ namespace snl {
 		Ref<A> as() {
 			return Ref<A>(static_cast<A*>(inner), managed);
 		}
+
+		template<typename A>
+		Ref<A> dyn() {
+			return Ref<A>(dynamic_cast<A*>(inner), managed);
+		}
 	};
 
 	template<>

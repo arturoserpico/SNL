@@ -12,10 +12,35 @@
 
 namespace snl {
 	template<typename T>
-	class Sym {
+	class Sym;
+
+	struct GenericSym {
+		virtual std::vector<Ref<void>>& rawDeps() = 0;
+		virtual std::vector<const std::type_info*> getDepsTypes() = 0;
+		template<typename T>
+		void substitute(Ref<Sym<T>> target, Ref<Sym<T>> substitute) {
+			for (size_t i = 0; i < rawDeps().size(); i++) {
+				if (target.raw() == rawDeps()[i].as<Sym<T>>().raw()) {
+					expect(typeid(T) == *getDepsTypes()[i], "substitution target is not of correct type");
+					rawDeps()[i] = substitute.as<void>();
+				}
+				else
+					rawDeps()[i].as<GenericSym>().get().substitute(target, substitute);
+			}
+		}
+
+		template<typename T>
+		void substitute(Sym<T>& target, Sym<T>& substitute) {
+			this->substitute(Ref(target), Ref(substitute));
+		}
+	};
+
+	template<typename T>
+	class Sym : public GenericSym {
 		std::optional<T> value;
 		std::function<T(std::vector<Ref<void>>)> fun;
-		const std::type_info& symOpType = typeid(void);
+		const std::type_info* symOpType = nullptr;
+		std::vector<const std::type_info*> depsTypes;
 		std::vector<Ref<void>> deps;
 
 		template<typename First, typename... Rest>
@@ -57,13 +82,27 @@ namespace snl {
 				return std::tuple_cat(std::make_tuple(first.get().get()), restResults);
 			}
 		}
+
+		template<typename First, typename... Rest>
+		static std::vector<const std::type_info*> getDepsTypes() {
+			const std::type_info* result = &typeid(First);
+
+			if constexpr (sizeof...(Rest) == 0) {
+				return { result };
+			}
+			else {
+				std::vector<Ref<void>> rest = getDepsTypes<Rest...>();
+				rest.insert(rest.begin(), result);
+				return rest;
+			}
+		}
 	public:
 		Sym() = default;
 
 		Sym(T val) : value(val) {}
 
 		template<typename SymOpType, typename... Deps>
-		Sym(SymOpType evalObj, Ref<Sym<Deps>>... deps) : symOpType(typeid(SymOpType)) {
+		Sym(SymOpType evalObj, Ref<Sym<Deps>>... deps) : symOpType(&typeid(SymOpType)), depsTypes({ &typeid(Deps)... }) {
 			this->deps = deconcretizeDeps(deps...);
 			fun = [evalObj](std::vector<Ref<void>> deps) {
 					auto concretizedDeps = concretizeDeps<Deps...>(deps);
@@ -72,13 +111,21 @@ namespace snl {
 				};
 		}
 
+		std::vector<Ref<void>>& rawDeps() {
+			return deps;
+		}
+		
+		std::vector<const std::type_info*> getDepsTypes() {
+			return depsTypes;
+		}
+
 		Sym<T> dep() {
 			return Sym<T>(std::function<T(T)>([](T val) { return val; }), Ref(*this));
 		}
 
 		template<typename SymOpType>
 		bool isOpType() {
-			return symOpType == typeid(SymOpType);
+			return *symOpType == typeid(SymOpType);
 		}
 
 		void compute() {
