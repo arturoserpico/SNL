@@ -50,7 +50,7 @@ namespace snl {
 
 	template<typename T, typename... Args>
 	Ref<T> makeManaged(Args&&... args) {
-		return objManager.create(std::forward<Args>(args)...);
+		return objManager.create<T>(std::forward<Args>(args)...);
 	}
 
 	template<typename T>

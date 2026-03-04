@@ -16,7 +16,25 @@ namespace snl {
 
 	struct GenericSym {
 		virtual std::vector<Ref<void>>& rawDeps() = 0;
-		virtual std::vector<const std::type_info*> getDepsTypes() = 0;
+		virtual const std::vector<Ref<void>>& rawDeps() const = 0;
+		virtual std::vector<const std::type_info*> getDepsTypes() const = 0;
+		
+		std::string print() const {
+			std::stringstream str;
+
+			str << "{\n";
+
+			for (Ref<void> dep : rawDeps())
+				str << '\t' << dep.as<GenericSym>().get().print();
+
+			if (rawDeps().size() == 0)
+				str << this << '\n';
+
+			str << "}\n";
+
+			return str.str();
+		}
+
 		template<typename T>
 		void substitute(Ref<Sym<T>> target, Ref<Sym<T>> substitute) {
 			for (size_t i = 0; i < rawDeps().size(); i++) {
@@ -38,6 +56,8 @@ namespace snl {
 		void substitute(Sym<T>& target, const Sym<T>& substitute) {
 			this->substitute(Ref(target), makeManaged(substitute));
 		}
+
+		virtual Ref<void> rawDeepCopy() const = 0;
 	};
 
 	template<typename T>
@@ -47,6 +67,41 @@ namespace snl {
 		const std::type_info* symOpType = nullptr;
 		std::vector<const std::type_info*> depsTypes;
 		std::vector<Ref<void>> deps;
+	
+	public:
+
+		std::vector<Ref<void>>& rawDeps() {
+			return deps;
+		}
+
+		const std::vector<Ref<void>>& rawDeps() const {
+			return deps;
+		}
+
+		std::vector<const std::type_info*> getDepsTypes() const {
+			return depsTypes;
+		}
+
+	private:
+
+		template<typename First, typename... Rest>
+		static std::vector<Ref<void>> copyDeps(Ref<Sym<First>> first, Ref<Sym<Rest>>... rest) {
+			Ref<void> result;
+
+			if (first.get().rawDeps().size() == 0)
+				result = first.as<void>();
+			else
+				result = makeManaged(first.get().copy()).as<void>();
+
+			if constexpr (sizeof...(rest) == 0) {
+				return { result };
+			}
+			else {
+				std::vector<Ref<void>> restDeps = copyDeps<Rest...>(rest...);
+				restDeps.insert(restDeps.begin(), result);
+				return restDeps;
+			}
+		}
 
 		template<typename First, typename... Rest>
 		static std::vector<Ref<void>> deconcretizeDeps(Ref<Sym<First>> first, Ref<Sym<Rest>>... rest) {
@@ -101,7 +156,23 @@ namespace snl {
 				return rest;
 			}
 		}
+
+		Ref<void> rawDeepCopy() const {
+			Ref<Sym<T>> copy = makeManaged(*this);
+
+			for (size_t i = 0; i < rawDeps().size(); i++)
+				if (rawDeps()[i].as<GenericSym>().get().rawDeps().size() != 0)
+					copy.get().rawDeps()[i] = rawDeps()[i].as<GenericSym>().get().rawDeepCopy();
+
+			return copy.as<void>();
+		}
+
 	public:
+
+		Sym<T> deepCopy() const {
+			return rawDeepCopy().as<Sym<T>>();
+		}
+
 		Sym() = default;
 
 		Sym(T val) : value(val) {}
@@ -114,14 +185,6 @@ namespace snl {
 					auto computedDeps = std::apply(computeDeps<Deps...>, concretizedDeps);
 					return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
 				};
-		}
-
-		std::vector<Ref<void>>& rawDeps() {
-			return deps;
-		}
-		
-		std::vector<const std::type_info*> getDepsTypes() {
-			return depsTypes;
 		}
 
 		Sym<T> dep() {

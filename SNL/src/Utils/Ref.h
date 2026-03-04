@@ -70,8 +70,18 @@ namespace snl {
 		}
 
 		template<typename A>
+		Ref<const A> as() const {
+			return Ref<const A>(static_cast<const A*>(inner), managed);
+		}
+
+		template<typename A>
 		Ref<A> dyn() {
 			return Ref<A>(dynamic_cast<A*>(inner), managed);
+		}
+
+		template<typename A>
+		Ref<const A> dyn() const {
+			return Ref<const A>(dynamic_cast<const A*>(inner), managed);
 		}
 	};
 
@@ -119,6 +129,11 @@ namespace snl {
 		template<typename T>
 		Ref<T> as() {
 			return Ref<T>(static_cast<T*>(inner), managed);
+		}
+
+		template<typename T>
+		Ref<const T> as() const {
+			return Ref<const T>(static_cast<const T*>(inner), managed);
 		}
 	};
 }
