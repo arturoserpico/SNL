@@ -22,26 +22,15 @@ int main() {
 	snl::Function<double(double, double)> f;
 	f(x, y) = x * y + 2 * x;
 
-	auto e = f(x, y);
+	snl::Function<double(double)> g;
+	g(x) = 2 * x;
 
-	z = e;
-	std::cout << &std::get<0>(f.variables) << std::endl;
-	std::cout << f.expr.print() << std::endl;
-	std::cout << z.print() << std::endl;
-
-	e.inverseSubstituteAll<>(z);
+	z = g(y) * 2 + f(x, y);
 
 	x.set(2);
-	y.set(4);
+	y.set(3);
 
 	z.compute();
 
 	std::cout << z.get() << std::endl;
-
-	//snl::Function<double(double, double)> f;
-	//
-	//snl::Sym<double> x, y;
-	//f(x, y) = x * y - (x + y);
-	//
-	//std::cout << f(2, 3) << std::endl;
 }

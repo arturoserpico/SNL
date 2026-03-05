@@ -6,13 +6,13 @@ namespace snl {
 	class Function;
 
 	template<typename R, typename... Args>
-	struct FunctionCallProxy {
+	class FunctionCallProxy {
 		Ref<Sym<R>> expr;
 		std::tuple<Ref<Sym<Args>>...> callVars;
 		Ref<std::tuple<Sym<Args>...>> funArgs;
 
 		template<size_t index = sizeof...(Args) - 1>
-		void substituteAll(Sym<R>& target) {
+		void substituteAll(Sym<R>& target) const {
 			target.substitute(std::get<index>(callVars).get(), std::get<index>(funArgs.get()));
 
 			if constexpr (index != 0)
@@ -20,11 +20,11 @@ namespace snl {
 		}
 
 		template<size_t index = sizeof...(Args) - 1>
-		void inverseSubstituteAll(Sym<R>& target) {
+		void inverseSubstituteAll(Sym<R>& target) const {
 			target.substitute(std::get<index>(funArgs.get()), std::get<index>(callVars).get());
 
 			if constexpr (index != 0)
-				substituteAll<index - 1>(target);
+				inverseSubstituteAll<index - 1>(target);
 		}
 	public:
 		FunctionCallProxy(Sym<R>& expr, std::tuple<Ref<Sym<Args>>...> declVars, std::tuple<Sym<Args>...>& funArgs) :
@@ -38,15 +38,28 @@ namespace snl {
 			return *this;
 		}
 
-		operator Sym<R> () {
+		Sym<R> sym() const {
 			Sym<R> result = expr.get().deepCopy();
 			inverseSubstituteAll<>(result);
 			return result;
 		}
+
+		operator Sym<R> () const {
+			return sym();
+		}
 	};
+	
+	template<typename T>
+	constexpr bool isFunctionCallProxy = false;
+
+	template<typename... Ts>
+	constexpr bool isFunctionCallProxy<FunctionCallProxy<Ts...>> = true;
+
+	template<typename T>
+	concept IsFunctionCallProxy = isFunctionCallProxy<T>;
 
 	template<typename R, typename... Args>
-	struct Function<R(Args...)> {
+	class Function<R(Args...)> {
 		snl::Sym<R> expr;
 		std::tuple<Sym<Args>...> variables;
 
