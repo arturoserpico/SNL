@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <type_traits>
+#include "../Metaprogramming/Utils.h"
 #include "Error.h"
 
 namespace snl {
@@ -136,6 +137,15 @@ namespace snl {
 			return Ref<const T>(static_cast<const T*>(inner), managed);
 		}
 	};
+
+	template<typename T>
+	struct _RemRef;
+
+	template<typename T>
+	struct _RemRef<Ref<T>> : TypeAlias<T> {};
+
+	template<typename T>
+	using RemRef = _RemRef<T>::Type;
 }
 
 namespace std {

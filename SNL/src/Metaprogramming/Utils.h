@@ -17,13 +17,13 @@ namespace snl {
 
 
 	template<bool condition, auto then, auto otherwise>
-	auto staticIf = 0;
+	constexpr auto staticIf = 0;
 
 	template<auto then, auto otherwise>
-	auto staticIf<true, then, otherwise> = then;
+	constexpr auto staticIf<true, then, otherwise> = then;
 
 	template<auto then, auto otherwise>
-	auto staticIf<false, then, otherwise> = otherwise;
+	constexpr auto staticIf<false, then, otherwise> = otherwise;
 
 
 

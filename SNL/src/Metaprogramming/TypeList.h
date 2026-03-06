@@ -40,6 +40,22 @@ namespace snl {
 
 
 
+	template<typename List, size_t index>
+	struct _SafeGet;
+
+	template<typename First, typename... Rest, size_t index>
+	struct _SafeGet<TypeList<First, Rest...>, index> : _Get<TypeList<Rest...>, index - 1> {};
+
+	template<size_t index>
+	struct _SafeGet<TypeList<>, index> : TypeAlias<void> {};
+	template<typename First, typename... Rest>
+	struct _SafeGet<TypeList<First, Rest...>, 0> : TypeAlias<First> {};
+
+	template<typename List, size_t index>
+	using SafeGet = _SafeGet<List, index>::Type;
+
+
+
 	template<typename Element, typename List>
 	struct _Prepend;
 

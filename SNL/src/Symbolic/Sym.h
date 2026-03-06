@@ -196,10 +196,12 @@ namespace snl {
 			return *symOpType == typeid(SymOpType);
 		}
 
-		void compute() {
+		Sym<T>& compute() {
 			if (fun) {
 				value = fun(deps);
 			}
+
+			return *this;
 		}
 
 		T get() {
@@ -210,7 +212,14 @@ namespace snl {
 		void set(T val) {
 			value = val;
 		}
+
+		operator T () {
+			return compute().get();
+		}
 	};
+
+	template<typename SymOpType, typename... Deps>
+	Sym(SymOpType, Ref<Sym<Deps>>...) -> Sym<typename SymOpType::R>;
 
 	template<typename T>
 	constexpr bool isSym = false;
@@ -228,11 +237,20 @@ namespace snl {
 	concept IsRefIgnoreCVRef = isSym<std::remove_cvref_t<T>>;
 
 	template<typename T>
-	struct _SymT;
+	struct _RemSym;
 
 	template<typename T>
-	struct _SymT<Sym<T>> : TypeAlias<T> {};
+	struct _RemSym<Sym<T>> : TypeAlias<T> {};
 
 	template<typename T>
-	using SymT = _SymT<std::remove_cvref_t<T>>::Type;
+	using RemSym = _RemSym<std::remove_cvref_t<T>>::Type;
+
+	template<typename T>
+	struct _SafeRemSym : TypeAlias<void> {};
+
+	template<typename T>
+	struct _SafeRemSym<Sym<T>> : TypeAlias<T> {};
+
+	template<typename T>
+	using SafeRemSym = _SafeRemSym<std::remove_cvref_t<T>>::Type;
 }

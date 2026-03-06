@@ -19,18 +19,15 @@ constexpr double PI = 3.14159265358979323846;
 int main() {
 	snl::Sym<double> x, y, z;
 
-	snl::Function<double(double, double)> f;
-	f(x, y) = x * y + 2 * x;
+	snl::Function<double(double)> f;
+	f(x) = x + 1;
 
-	snl::Function<double(double)> g;
-	g(x) = 2 * x;
+	snl::Function<double(double, double)> g;
+	g(x, y) = snl::pow(2, x) + y;
 
-	z = g(y) * 2 + f(x, y);
+	x.set(4);
 
-	x.set(2);
-	y.set(3);
+	z = g(x, x) + 3;
 
-	z.compute();
-
-	std::cout << z.get() << std::endl;
+	std::cout << z << std::endl;
 }
