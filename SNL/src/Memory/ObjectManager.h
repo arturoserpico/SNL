@@ -9,14 +9,14 @@ namespace snl {
 		template<typename T>
 		Ref<T> create(const T& val) {
 			T* obj = new T(val);
-			objectRegister.emplace(obj, 1);
+			objectRegister[obj] = 1;
 			return Ref<T>(*obj, true);
 		}
 
 		template<typename T, typename... Args>
 		Ref<T> create(Args&&... args) {
 			T* obj = new T(std::forward<Args>(args)...);
-			objectRegister.emplace(obj, 1);
+			objectRegister[obj] = 1;
 			return Ref<T>(*obj, true);
 		}
 
@@ -34,6 +34,10 @@ namespace snl {
 
 		bool find(const auto* obj) {
 			return objectRegister.count(reinterpret_cast<const void*>(obj));
+		}
+
+		size_t count() {
+			return objectRegister.size();
 		}
 	};
 

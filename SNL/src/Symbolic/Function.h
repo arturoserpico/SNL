@@ -21,7 +21,7 @@ namespace snl {
 
 		template<size_t index = sizeof...(Args) - 1>
 		void inverseSubstituteAll(Sym<R>& target) const {
-			target.substitute(std::get<index>(funArgs.get()), std::get<index>(callVars).get());
+			target.substitute(Ref(std::get<index>(funArgs.get())), std::get<index>(callVars));
 
 			if constexpr (index != 0)
 				inverseSubstituteAll<index - 1>(target);
@@ -170,7 +170,7 @@ namespace snl {
 			requires CheckValidFunCall<Args...>::template Inner<sizeof...(Args) - 1, decltype(vars)...>::value
 		{
 			auto tuple = convertArgsToSymRef<ArgsList>(std::forward<decltype(vars)>(vars)...);
-			return FunctionCallProxy<R, Args...>(Ref(expr), tuple ,Ref(variables));
+			return FunctionCallProxy<R, Args...>(expr, tuple, variables);
 		}
 	};
 }

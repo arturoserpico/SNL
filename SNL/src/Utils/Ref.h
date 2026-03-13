@@ -31,6 +31,16 @@ namespace snl {
 
 		~Ref();
 
+		Ref<T>& operator=(const Ref<T>& other) {
+			inner = other.inner;
+			managed = other.managed;
+
+			if (managed)
+				addObjectRef(inner);
+
+			return *this;
+		}
+
 		T* raw() const {
 			return inner;
 		}

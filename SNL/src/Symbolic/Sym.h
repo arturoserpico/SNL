@@ -36,6 +36,25 @@ namespace snl {
 		}
 
 		template<typename T>
+		size_t occurences(Ref<Sym<T>> target) {
+			size_t result = 0;
+
+			for (Ref<void> dep : rawDeps()) {
+				if (dep.raw() == target.as<void>().raw())
+					result++;
+				else
+					result += dep.as<GenericSym>().get().occurences(target);
+			}
+
+			return result;
+		}
+
+		template<typename T>
+		size_t occurences(Sym<T>& target) {
+			return occurences(Ref(target));
+		}
+
+		template<typename T>
 		void substitute(Ref<Sym<T>> target, Ref<Sym<T>> substitute) {
 			for (size_t i = 0; i < rawDeps().size(); i++) {
 				if (target.raw() == rawDeps()[i].as<Sym<T>>().raw()) {
@@ -185,6 +204,24 @@ namespace snl {
 					auto computedDeps = std::apply(computeDeps<Deps...>, concretizedDeps);
 					return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
 				};
+		}
+
+		Sym(const Sym<T>& other) {
+			value = other.value;
+			fun = other.fun;
+			symOpType = other.symOpType;
+			depsTypes = other.depsTypes;
+			deps = other.deps;
+		}
+
+		Sym<T>& operator=(const Sym<T>& other) {
+			value = other.value;
+			fun = other.fun;
+			symOpType = other.symOpType;
+			depsTypes = other.depsTypes;
+			deps = other.deps;
+
+			return *this;
 		}
 
 		Sym<T> dep() {
