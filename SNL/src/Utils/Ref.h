@@ -77,12 +77,12 @@ namespace snl {
 
 		template<typename A>
 		Ref<A> as() {
-			return Ref<A>(static_cast<A*>(inner), managed);
+			return Ref<A>(std::launder(reinterpret_cast<T*>(inner)), managed);
 		}
 
 		template<typename A>
 		Ref<const A> as() const {
-			return Ref<const A>(static_cast<const A*>(inner), managed);
+			return Ref<const A>(std::launder(reinterpret_cast<const A*>(inner)), managed);
 		}
 
 		template<typename A>
@@ -139,12 +139,12 @@ namespace snl {
 
 		template<typename T>
 		Ref<T> as() {
-			return Ref<T>(static_cast<T*>(inner), managed);
+			return Ref<T>(std::launder(reinterpret_cast<T*>(inner)), managed);
 		}
 
 		template<typename T>
 		Ref<const T> as() const {
-			return Ref<const T>(static_cast<const T*>(inner), managed);
+			return Ref<const T>(std::launder(reinterpret_cast<const T*>(inner)), managed);
 		}
 	};
 
