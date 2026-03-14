@@ -18,13 +18,15 @@ constexpr double PI = 3.14159265358979323846;
 int main() {
 	snl::Sym<double> x, y, z;
 
-	snl::Function<double(double, double)> g;
-	g(x, y) = x * 2 + y * 3;
+	snl::Function<double(double)> interpolExp;
+	snl::Function<double(double)> exp;
+	exp(x) = snl::pow(2, x);
 
-	z = g(1, x);
+	for (double i = 0; i < 4; i += 1)
+		interpolExp(i) = std::pow(2, i);
 
-	y.set(2);
-	x.set(4);
+	snl::Function<double(double)> diff;
+	diff(x) = interpolExp(x) - exp(x);
 
-	std::cout << z << std::endl;
+	std::cout << diff(0.5) << std::endl;
 }

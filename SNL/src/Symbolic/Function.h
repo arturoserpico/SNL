@@ -3,10 +3,23 @@
 #include "Constants.h"
 
 namespace snl {
-	enum FunctionType {
+	enum class FunctionType {
 		Numeric,
 		Analytic
 	};
+
+	enum class CallType {
+		Numeric,
+		Symbolic,
+		Mixed
+	};
+
+	CallType combineFunCallTypes(CallType a, CallType b) {
+		if (a == b)
+			return a;
+		else
+			return CallType::Mixed;
+	}
 
 	template<typename F>
 	class Function;
@@ -67,6 +80,7 @@ namespace snl {
 
 	template<typename R, typename... Args>
 	class FunctionCallProxy {
+		CallType callType;
 		Ref<FunctionType> type;
 		Ref<Sym<R>> expr;
 		Ref<std::map<std::tuple<Args...>, R>> numeric;
@@ -89,8 +103,22 @@ namespace snl {
 			if constexpr (index != 0)
 				inverseSubstituteAll<index - 1>(target);
 		}
+
+		template<size_t index = sizeof...(Args) - 1>
+		void _computeCallVars(std::tuple<Args...>& out) {
+			std::get<index>(out) = std::get<index>(callVars).get().compute().get();
+			if constexpr (index != 0)
+				_computeCallVars<index - 1>(out);
+		}
+
+		std::tuple<Args...> computeCallVars() {
+			std::tuple<Args...> result;
+			_computeCallVars(result);
+			return result;
+		}
 	public:
 		FunctionCallProxy(
+			CallType callType,
 			FunctionType& type, 
 			Sym<R>& expr, 
 			Ref<std::map<std::tuple<Args...>, R>> numeric,
@@ -98,6 +126,7 @@ namespace snl {
 			std::tuple<Ref<Sym<Args>>...> declVars, 
 			std::tuple<Sym<Args>...>& funArgs
 		) :
+			callType(callType),
 			type(type), 
 			expr(expr), 
 			numeric(numeric), 
@@ -106,18 +135,43 @@ namespace snl {
 			funArgs(funArgs) 
 		{}
 
+		CallType getCallType() const {
+			return callType;
+		}
+
 		FunctionCallProxy& operator=(const Sym<R>& expr) {
-			this->expr.get() = expr.deepCopy();
+			switch (callType)
+			{
+			case snl::CallType::Numeric: {
+				auto point = computeCallVars();
 
-			substituteAll<>(this->expr);
+				numeric.get()[point] = expr.deepCopy().compute().get();
 
-			type.get() = Analytic;
+				type.get() = FunctionType::Numeric;
 
+				return *this;
+			}
+			case snl::CallType::Symbolic: {
+				this->expr.get() = expr.deepCopy();
+
+				substituteAll<>(this->expr);
+
+				type.get() = FunctionType::Analytic;
+
+				return *this;
+			}
+			case snl::CallType::Mixed:
+				throw Exception("snl::Function declaration cannot be mixed");
+			}
+		}
+
+		FunctionCallProxy& operator=(R value) {
+			*this = Sym<R>(value);
 			return *this;
 		}
 
 		Sym<R> sym() const {
-			if (type == Analytic) {
+			if (type == FunctionType::Analytic) {
 				Sym<R> result = expr.get().deepCopy();
 				inverseSubstituteAll<>(result);
 				return result;
@@ -212,6 +266,46 @@ namespace snl {
 		}
 	}
 
+	template<typename T> 
+		requires !IsFunctionCallProxy<T>
+	CallType getFunCallType(T first, auto&&... rest) {
+		if constexpr (sizeof...(rest) != 0) {
+			CallType typeRest = getFunCallType(std::forward<decltype(rest)>(rest)...);
+			return combineFunCallTypes(CallType::Numeric, typeRest);
+		}
+		else
+			return CallType::Numeric;
+	}
+
+	template<typename T>
+	CallType getFunCallType(Sym<T>& first, auto&&... rest) {
+		if constexpr (sizeof...(rest) != 0) {
+			CallType typeRest = getFunCallType(std::forward<decltype(rest)>(rest)...);
+			return combineFunCallTypes(CallType::Symbolic, typeRest);
+		}
+		else
+			return CallType::Symbolic;
+	}
+
+	template<typename T>
+	CallType getFunCallType(const Sym<T>& first, auto&&... rest) {
+		if constexpr (sizeof...(rest) != 0) {
+			CallType typeRest = getFunCallType(std::forward<decltype(rest)>(rest)...);
+			return combineFunCallTypes(CallType::Symbolic, typeRest);
+		}
+		else
+			return CallType::Symbolic;
+	}
+
+	CallType getFunCallType(const IsFunctionCallProxy auto& first, auto&&... rest) {
+		if constexpr (sizeof...(rest) != 0) {
+			CallType typeRest = getFunCallType(std::forward<decltype(rest)>(rest)...);
+			return combineFunCallTypes(first.getCallType(), typeRest);
+		}
+		else
+			return first.getCallType();
+	}
+
 	template<typename... Args>
 	struct CheckValidFunCall {
 		template<size_t index, typename... CallArgs>
@@ -250,7 +344,7 @@ namespace snl {
 	public:
 		Function() = default;
 		
-		Function(std::map<std::tuple<Args...>, R> points) : type(Numeric), numeric(points) {}
+		Function(std::map<std::tuple<Args...>, R> points) : type(FunctionType::Numeric), numeric(points) {}
 		//FunctionCallProxy<R, Args...> operator()(Sym<Args>&... vars) {
 		//	return FunctionCallProxy<R, Args...>(Ref(expr), { Ref(vars)... }, Ref(variables));
 		//}
@@ -259,7 +353,9 @@ namespace snl {
 			requires CheckValidFunCall<Args...>::template Inner<sizeof...(Args) - 1, decltype(vars)...>::value
 		{
 			auto tuple = convertArgsToSymRef<ArgsList>(std::forward<decltype(vars)>(vars)...);
-			return FunctionCallProxy<R, Args...>(type, expr, numeric, interpolation, tuple, variables);
+			return FunctionCallProxy<R, Args...>(
+				getFunCallType(std::forward<decltype(vars)>(vars)...), 
+				type, expr, numeric, interpolation, tuple, variables);
 		}
 	};
 }
