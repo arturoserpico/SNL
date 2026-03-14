@@ -1,6 +1,9 @@
 #pragma once
 
 namespace snl {
+	template<typename... Ts>
+	struct TypeList;
+
 	template<auto... info>
 	struct ErrorType {};
 
@@ -34,5 +37,28 @@ namespace snl {
 		constexpr operator T() {
 			return T();
 		}
+	};
+
+
+	
+	template<typename F>
+	struct FunctionTypeInfo;
+
+	template<typename R, typename... Args>
+	struct FunctionTypeInfo<R(Args...)> {
+		using Return = R;
+		using ArgsList = TypeList<Args...>;
+	};
+
+	template<typename R, typename... Args>
+	struct FunctionTypeInfo<R(*)(Args...)> {
+		using Return = R;
+		using ArgsList = TypeList<Args...>;
+	};
+
+	template<typename R, typename... Args>
+	struct FunctionTypeInfo<std::function<R(Args...)>> {
+		using Return = R;
+		using ArgsList = TypeList<Args...>;
 	};
 }

@@ -16,22 +16,15 @@
 constexpr double PI = 3.14159265358979323846;
 
 int main() {
-	snl::Sym<double> x, y;
+	snl::Sym<double> x, y, z;
 
-	snl::Function<double(double)> f;
-	f(x) = x * 2 + x;
+	snl::Function<double(double, double)> g;
+	g(x, y) = x * 2 + y * 3;
 
+	z = g(1, x);
+
+	y.set(2);
 	x.set(4);
 
-	std::cout << f(1).sym().occurences(x) << std::endl;
-
-	snl::Sym<double> z = f(5);
-
-	//std::cout << z.occurences(x) << std::endl;
-
-	//std::cout << "ci siamo" << std::endl;
-	//z.substitute(x, snl::Sym<double>(1.));
-
-	std::cout << f(1).sym().compute().get() << std::endl;
-	std::cout << z.compute().get() << std::endl;
+	std::cout << z << std::endl;
 }

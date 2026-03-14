@@ -88,7 +88,6 @@ namespace snl {
 		std::vector<Ref<void>> deps;
 	
 	public:
-
 		std::vector<Ref<void>>& rawDeps() {
 			return deps;
 		}
@@ -102,7 +101,6 @@ namespace snl {
 		}
 
 	private:
-
 		template<typename First, typename... Rest>
 		static std::vector<Ref<void>> copyDeps(Ref<Sym<First>> first, Ref<Sym<Rest>>... rest) {
 			Ref<void> result;
@@ -185,7 +183,6 @@ namespace snl {
 
 			return copy.as<void>();
 		}
-
 	public:
 
 		Sym<T> deepCopy() const {
@@ -204,6 +201,22 @@ namespace snl {
 					auto computedDeps = std::apply(computeDeps<Deps...>, concretizedDeps);
 					return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
 				};
+		}
+
+	private:
+		template<int... seq, typename SymOpType, typename... Deps>
+		static Sym<T> constructFromTuple(
+			std::index_sequence<seq...> sequence,
+			SymOpType evalObj,
+			std::tuple<Ref<Sym<Deps>>...> deps
+		) {
+			return Sym<T>(evalObj, std::get<seq>(deps)...);
+		}
+	
+	public:
+		template<typename SymOpType, typename... Deps>
+		Sym(SymOpType evalObj, std::tuple<Ref<Sym<Deps>>...> deps) {
+			*this = constructFromTuple(std::make_index_sequence<sizeof...(Deps)>(), evalObj, deps);
 		}
 
 		Sym(const Sym<T>& other) {

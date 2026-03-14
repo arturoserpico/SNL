@@ -93,5 +93,8 @@
     <ClInclude Include="src\Symbolic\SymNodes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Symbolic\Constants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

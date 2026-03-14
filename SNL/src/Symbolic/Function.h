@@ -1,13 +1,76 @@
 #pragma once
-#include "Sym.h"
+#include "SymOperators.h"
+#include "Constants.h"
 
 namespace snl {
+	enum FunctionType {
+		Numeric,
+		Analytic
+	};
+
 	template<typename F>
 	class Function;
 
+	template<size_t index, typename... Ts>
+	auto _distance_impl(std::tuple<Ts...> a, std::tuple<Ts...> b) {
+		if constexpr(index == 0)
+			return std::pow(std::get<index>(a) - std::get<index>(b), 2);
+		else
+			return std::sqrt(std::pow(std::get<index>(a) - std::get<index>(b), 2) + 
+			std::pow(_distance_impl<index - 1, Ts...>(a, b), 2));
+	}
+
+	template<typename... Ts>
+	auto distance(std::tuple<Ts...> a, std::tuple<Ts...> b) {
+		return _distance_impl<sizeof...(Ts) - 1, Ts...>(a, b);
+	}
+
+	template<typename... Ts>
+	using TupleDistanceT = decltype(distance<Ts...>(std::tuple<Ts...>(), std::tuple<Ts...>()));
+
+	template<typename R, typename... Args>
+	R idwlerp(std::map<std::tuple<Args...>, R> points, std::tuple<Args...> sample, size_t lerpPointCount = 5) {
+		using Distance = TupleDistanceT<Args...>;
+		
+		R result = 0;
+		
+		size_t pointUsed = 0;
+
+		Distance total = 0;
+
+		for (const auto& [point, value] : points) {
+			if (pointUsed < lerpPointCount - 1) {
+				pointUsed++;
+
+				Distance w = 1 / (distance<Args...>(sample, point) + epsilon<Distance>);
+
+				total += w;
+				result += w * value;
+			}
+		}
+
+		result /= total;
+
+		return result;
+	}
+
+	template<typename R, typename... Args>
+	class InterpolatedFunCall : SymOpType<R(Args...)> {
+		std::map<std::tuple<Args...>, R> points;
+	public:
+		InterpolatedFunCall(std::map<std::tuple<Args...>, R> points) : points(points) {}
+
+		R eval(Args... args) {
+			return idwlerp<R, Args...>(points, std::tuple(args...));
+		}
+	};
+
 	template<typename R, typename... Args>
 	class FunctionCallProxy {
+		Ref<FunctionType> type;
 		Ref<Sym<R>> expr;
+		Ref<std::map<std::tuple<Args...>, R>> numeric;
+		std::function<R(std::map<std::tuple<Args...>, R>, std::tuple<Args...>)> interpolation;
 		std::tuple<Ref<Sym<Args>>...> callVars;
 		Ref<std::tuple<Sym<Args>...>> funArgs;
 
@@ -27,21 +90,41 @@ namespace snl {
 				inverseSubstituteAll<index - 1>(target);
 		}
 	public:
-		FunctionCallProxy(Sym<R>& expr, std::tuple<Ref<Sym<Args>>...> declVars, std::tuple<Sym<Args>...>& funArgs) :
-			expr(expr), callVars(declVars), funArgs(funArgs) {}
+		FunctionCallProxy(
+			FunctionType& type, 
+			Sym<R>& expr, 
+			Ref<std::map<std::tuple<Args...>, R>> numeric,
+			std::function<R(std::map<std::tuple<Args...>, R>, std::tuple<Args...>)> interpolation,
+			std::tuple<Ref<Sym<Args>>...> declVars, 
+			std::tuple<Sym<Args>...>& funArgs
+		) :
+			type(type), 
+			expr(expr), 
+			numeric(numeric), 
+			interpolation(interpolation), 
+			callVars(declVars), 
+			funArgs(funArgs) 
+		{}
 
 		FunctionCallProxy& operator=(const Sym<R>& expr) {
 			this->expr.get() = expr.deepCopy();
 
 			substituteAll<>(this->expr);
 
+			type.get() = Analytic;
+
 			return *this;
 		}
 
 		Sym<R> sym() const {
-			Sym<R> result = expr.get().deepCopy();
-			inverseSubstituteAll<>(result);
-			return result;
+			if (type == Analytic) {
+				Sym<R> result = expr.get().deepCopy();
+				inverseSubstituteAll<>(result);
+				return result;
+			}
+			else {
+				return Sym<R>(InterpolatedFunCall<R, Args...>(numeric), callVars);
+			}
 		}
 
 		operator Sym<R> () const {
@@ -151,7 +234,10 @@ namespace snl {
 	class Function<R(Args...)> {
 		using ArgsList = TypeList<Args...>;
 
+		FunctionType type;
 		snl::Sym<R> expr;
+		std::map<std::tuple<Args...>, R> numeric;
+		std::function<R(std::map<std::tuple<Args...>, R>, std::tuple<Args...>)> interpolation;
 		std::tuple<Sym<Args>...> variables;
 
 		template<size_t index = sizeof...(Args) - 1>
@@ -162,6 +248,9 @@ namespace snl {
 				setVariables<index - 1>(args);
 		}
 	public:
+		Function() = default;
+		
+		Function(std::map<std::tuple<Args...>, R> points) : type(Numeric), numeric(points) {}
 		//FunctionCallProxy<R, Args...> operator()(Sym<Args>&... vars) {
 		//	return FunctionCallProxy<R, Args...>(Ref(expr), { Ref(vars)... }, Ref(variables));
 		//}
@@ -170,7 +259,7 @@ namespace snl {
 			requires CheckValidFunCall<Args...>::template Inner<sizeof...(Args) - 1, decltype(vars)...>::value
 		{
 			auto tuple = convertArgsToSymRef<ArgsList>(std::forward<decltype(vars)>(vars)...);
-			return FunctionCallProxy<R, Args...>(expr, tuple, variables);
+			return FunctionCallProxy<R, Args...>(type, expr, numeric, interpolation, tuple, variables);
 		}
 	};
 }

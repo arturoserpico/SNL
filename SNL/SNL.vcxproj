@@ -168,6 +168,7 @@
     <ClInclude Include="src\Metaprogramming\StaticString.h" />
     <ClInclude Include="src\Metaprogramming\TypeList.h" />
     <ClInclude Include="src\Metaprogramming\Utils.h" />
+    <ClInclude Include="src\Symbolic\Constants.h" />
     <ClInclude Include="src\Symbolic\Function.h" />
     <ClInclude Include="src\Symbolic\Sym.h" />
     <ClInclude Include="src\Symbolic\SymNodes.h" />
