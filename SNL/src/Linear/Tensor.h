@@ -2,11 +2,21 @@
 
 #include <array>
 
-namespace snl {
+#include "../Utils/Bounded.h"
+#include "../Symbolic/Function.h"
 
+namespace snl {
 	template<typename T, size_t nCovariant, size_t nContravariant, size_t... sizes>
 		requires (sizeof...(sizes) == nCovariant + nContravariant)
 	class Tensor;
+
+	template<size_t dim>
+	using Index = Sym<Bounded<size_t, 0, dim - 1>>;
+
+	template<size_t nCovariant, size_t nContravariant, size_t... sizes>
+	class IndexSet {
+
+	};
 
 	template<typename T>
 	class Tensor<T, 0, 0> {

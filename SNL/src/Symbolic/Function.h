@@ -42,7 +42,7 @@ namespace snl {
 	using TupleDistanceT = decltype(distance<Ts...>(std::tuple<Ts...>(), std::tuple<Ts...>()));
 
 	template<typename R, typename... Args>
-	R idwlerp(std::map<std::tuple<Args...>, R> points, std::tuple<Args...> sample, size_t lerpPointCount = 5) {
+	R idwlerp(std::map<std::tuple<Args...>, R> points, std::tuple<Args...> sample) {
 		using Distance = TupleDistanceT<Args...>;
 		
 		R result = 0;
@@ -51,14 +51,19 @@ namespace snl {
 
 		Distance total = 0;
 
-		for (const auto& [point, value] : points) {
-			if (pointUsed < lerpPointCount - 1) {
+		std::map<Distance, R> distanceMap;
+
+		for (const auto& [point, value] : points)
+			distanceMap.emplace(distance<Args...>(sample, point), value);
+
+		for (const auto& [distance, value] : distanceMap) {
+			if (pointUsed < sizeof...(Args) + 1) {
 				pointUsed++;
 
-				Distance w = 1 / (distance<Args...>(sample, point) + epsilon<Distance>);
+				Distance w = 1/(std::pow(distance, 2) + epsilon<Distance>);
 
 				total += w;
-				result += w * value;
+				result += w*value;
 			}
 		}
 

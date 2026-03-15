@@ -146,6 +146,9 @@
     <None Include="output\Data.dat" />
     <None Include="output\Edges.dat" />
     <None Include="output\Faces.dat" />
+    <None Include="output\Plot.dat" />
+    <None Include="output\plot.py" />
+    <None Include="output\Points.dat" />
     <None Include="output\Positions.dat" />
     <None Include="output\script.py" />
   </ItemGroup>
@@ -173,6 +176,7 @@
     <ClInclude Include="src\Symbolic\Sym.h" />
     <ClInclude Include="src\Symbolic\SymNodes.h" />
     <ClInclude Include="src\Symbolic\SymOperators.h" />
+    <ClInclude Include="src\Utils\Bounded.h" />
     <ClInclude Include="src\Utils\Error.h" />
     <ClInclude Include="src\Memory\ObjectManager.h" />
     <ClInclude Include="src\Utils\Ref.h" />
