@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Sym.h"
-#include "Function.h"
+#include "SymUtils.h"
 
 namespace snl {
 	auto operator+(auto&& _a, auto&& _b) {

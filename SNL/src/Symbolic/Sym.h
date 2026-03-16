@@ -254,7 +254,7 @@ namespace snl {
 			return *this;
 		}
 
-		T get() {
+		T get() const {
 			expect(value.has_value(), "Value not computed or assigned yet");
 			return value.value();
 		}
@@ -284,7 +284,7 @@ namespace snl {
 	concept IsSymMaybeConst = isSym<std::remove_const_t<T>>;
 
 	template<typename T>
-	concept IsRefIgnoreCVRef = isSym<std::remove_cvref_t<T>>;
+	concept IsSymIgnoreCVRef = isSym<std::remove_cvref_t<T>>;
 
 	template<typename T>
 	struct _RemSym;

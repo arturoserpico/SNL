@@ -89,6 +89,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -119,6 +120,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -171,6 +173,7 @@
     <ClInclude Include="src\Metaprogramming\StaticString.h" />
     <ClInclude Include="src\Metaprogramming\TypeList.h" />
     <ClInclude Include="src\Metaprogramming\Utils.h" />
+    <ClInclude Include="src\Symbolic\SymUtils.h" />
     <ClInclude Include="src\Symbolic\Constants.h" />
     <ClInclude Include="src\Symbolic\Function.h" />
     <ClInclude Include="src\Symbolic\Sym.h" />

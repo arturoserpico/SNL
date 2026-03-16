@@ -20,6 +20,9 @@
     <None Include="output\Edges.dat" />
     <None Include="output\Positions.dat" />
     <None Include="output\script.py" />
+    <None Include="output\Plot.dat" />
+    <None Include="output\plot.py" />
+    <None Include="output\Points.dat" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Main.cpp">
@@ -94,6 +97,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Symbolic\Constants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\Bounded.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Symbolic\SymUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

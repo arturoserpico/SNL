@@ -67,6 +67,17 @@ namespace snl {
 
 
 
+	template<typename T, size_t size>
+	struct _Fill : _Prepend<T, typename _Fill<T, size - 1>::Type> {};
+
+	template<typename T>
+	struct _Fill<T, 0> : TypeAlias<TypeList<>> {};
+
+	template<typename T, size_t size>
+	using Fill = typename _Fill<T, size>::Type;
+
+
+
 	template<typename List, typename T>
 	constexpr bool contains = false;
 
