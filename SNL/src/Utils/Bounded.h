@@ -39,10 +39,25 @@ namespace snl {
 	concept IsBounded = isBounded<T>;
 
 	template<typename T>
-	struct BoundedType;
+	struct _BoundedType;
 
 	template<typename T, T min, T max>
-	struct BoundedType<Bounded<T, min, max>> : TypeAlias<T> {};
+	struct _BoundedType<Bounded<T, min, max>> : TypeAlias<T> {};
+
+	template<typename T>
+	using BoundedType = _BoundedType<T>::Type;
+
+	template<typename T>
+	constexpr auto boundedMax = 0; 
+
+	template<typename T, T min, T max>
+	constexpr auto boundedMax<Bounded<T, min, max>> = max;
+
+	template<typename T>
+	constexpr auto boundedMin = 0;
+
+	template<typename T, T min, T max>
+	constexpr auto boundedMin<Bounded<T, min, max>> = min;
 
 	template<typename T>
 	auto convertBoundedToValue(T first, auto... rest) {

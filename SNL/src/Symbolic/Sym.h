@@ -268,12 +268,12 @@ namespace snl {
 		}
 
 		template<typename A>
-		Sym<A> cast() const {
-			return Sym<A>(SymCast<T, A>(), makeManaged(deepCopy()));
+		Sym<A> cast() {
+			return Sym<A>(SymCast<T, A>(), makeManaged(dep().deepCopy()));
 		}
 
 		template<typename A>
-		operator Sym<A>() const {
+		operator Sym<A>() {
 			return cast<A>();
 		}
 	};
