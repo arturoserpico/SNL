@@ -137,4 +137,19 @@ namespace snl {
 			return TensorIndexingProxy<T, nCovariant, nContravariant, first, rest...>(*this, tuple, witchSymbolic(std::forward<decltype(indexs)>(indexs)...));
 		}
 	};
+
+	template<typename T, size_t dim>
+	using Vector = Tensor<T, 0, 1, dim>;
+
+	template<typename T, size_t dim>
+	using CoVector = Tensor<T, 1, 0, dim>;
+
+	template<typename T, size_t n, size_t m = n>
+	using Matrix11 = Tensor<T, 1, 1, n, m>;
+
+	template<typename T, size_t n, size_t m = n>
+	using Matrix20 = Tensor<T, 2, 0, n, m>;
+
+	template<typename T, size_t n, size_t m = n>
+	using Matrix02 = Tensor<T, 2, 0, n, m>;
 }

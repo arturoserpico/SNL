@@ -193,7 +193,7 @@ namespace snl {
 
 		Sym(T val) : value(val) {}
 
-		template<typename SymOpType, typename... Deps>
+		template<IsSymOpType SymOpType, typename... Deps>
 		Sym(SymOpType evalObj, Ref<Sym<Deps>>... deps) : symOpType(&typeid(SymOpType)), depsTypes({ &typeid(Deps)... }) {
 			this->deps = deconcretizeDeps(deps...);
 			fun = [evalObj](std::vector<Ref<void>> deps) {
@@ -266,6 +266,16 @@ namespace snl {
 		operator T () {
 			return compute().get();
 		}
+
+		template<typename A>
+		Sym<A> cast() const {
+			return Sym<A>(SymCast<T, A>(), makeManaged(deepCopy()));
+		}
+
+		template<typename A>
+		operator Sym<A>() const {
+			return cast<A>();
+		}
 	};
 
 	template<typename SymOpType, typename... Deps>
@@ -303,4 +313,9 @@ namespace snl {
 
 	template<typename T>
 	using SafeRemSym = _SafeRemSym<std::remove_cvref_t<T>>::Type;
+
+	std::ostream& operator<<(std::ostream& stream, IsSym auto val) {
+		stream << val.compute().get();
+		return stream;
+	}
 }

@@ -126,4 +126,8 @@ namespace snl {
 		std::array<bool, sizeof...(args)> result{ IsSymIgnoreCVRef<decltype(args)>... };
 		return result;
 	}
+
+	template<typename... Args>
+	concept IsSymCall =
+		((IsSymIgnoreCVRef<Args> || IsTensorIndexingProxy<std::remove_cvref_t<Args>> || IsFunctionCallProxy<std::remove_cvref_t<Args>>) || ...);
 }

@@ -13,6 +13,11 @@ namespace snl {
 		virtual R eval(Args...) = 0;
 	};
 
+	template<typename T>
+	concept IsSymOpType = requires(T t) {
+		t.eval;
+	};
+
 	template<typename A, typename B> requires requires (A a, B b) { a + b; }
 	struct SymAddOp : SymOpType<decltype(A() + B())(A, B)> {
 		decltype(A() + B()) eval(A a, B b) {
@@ -52,6 +57,13 @@ namespace snl {
 	struct SymIdentity : SymOpType<T(T)> {
 		T eval(T val) {
 			return val;
+		}
+	};
+
+	template<typename T, std::convertible_to<T> A>
+	struct SymCast : SymOpType<T(A)> {
+		T eval(A val) {
+			return static_cast<T>(val);
 		}
 	};
 }

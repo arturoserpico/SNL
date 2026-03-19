@@ -17,34 +17,20 @@
 constexpr double PI = 3.14159265358979323846;
 
 int main() {
-	snl::Sym<double> x, y, z;
-	
-	snl::Function<double(double)> interpolExp;
-	snl::Function<double(double)> exp;
-	exp(x) = snl::pow(2, x);
-	
-	std::ofstream points("output/Points.dat");
-	
-	for (double i = 0; i < 4.1; i += 0.5) {
-		points << i << ' ' << pow(2, i) << '\n';
-		interpolExp(i) = std::pow(2, i);
-	}
-	
-	snl::Function<double(double)> diff;
-	diff(x) = interpolExp(x) - exp(x);
-	
-	std::ofstream file("output/Plot.dat");
-	
-	for (double i = 0; i < 4; i += 0.01)
-		file << i << ' ' << interpolExp(i) << '\n';
+	snl::Sym<int> x, y;
 
-	snl::Index<3> i, j, k;
+	snl::Index<2> i, j, k;
 
-	snl::Tensor<double, 0, 2, 3, 3> t;
+	snl::Vector<double, 2> v, w;
+	snl::Matrix11<double, 2> t;
 
-	j = i * 2;
+	v(0) = 14;
+	v(1) = 2;
 
-	t(i, 2) = 5.;
+	w(0) = 43;
+	w(1) = -2;
+
+	t(i, j) = v(i) * w(j);
 	
-	std::cout << t(0, 2) << std::endl; 
+	std::cout << t(1, 0) << std::endl; 
 }

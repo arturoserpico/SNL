@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include "Error.h"
 #include "../Metaprogramming/Utils.h"
 
@@ -43,7 +44,18 @@ namespace snl {
 	template<typename T, T min, T max>
 	struct BoundedType<Bounded<T, min, max>> : TypeAlias<T> {};
 
-	auto convertBoundedToValue(IsBounded auto first, auto... rest) {
+	template<typename T>
+	auto convertBoundedToValue(T first, auto... rest) {
+		if constexpr (sizeof...(rest) != 0) {
+			auto restResult = convertBoundedToValue(rest...);
+			return std::tuple_cat(std::tuple(first), restResult);
+		}
+		else
+			return std::tuple(first);
+	}
+
+	template<typename T> requires IsBounded<std::remove_cvref_t<T>>
+	auto convertBoundedToValue(T first, auto... rest) {
 		if constexpr (sizeof...(rest) != 0) {
 			auto restResult = convertBoundedToValue(rest...);
 			return std::tuple_cat(std::tuple(first.get()), restResult);
@@ -52,13 +64,9 @@ namespace snl {
 			return std::tuple(first.get());
 	}
 
-	auto convertBoundedToValue(auto first, auto... rest) requires (!IsBounded<decltype(first)>) {
-		if constexpr (sizeof...(rest) != 0) {
-			auto restResult = convertBoundedToValue(rest...);
-			return std::tuple_cat(std::tuple(first), restResult);
-		}
-		else
-			return std::tuple(first);
+	std::ostream& operator<<(std::ostream& stream, IsBounded auto val) {
+		stream << val.get();
+		return stream;
 	}
 
 	auto operator+(auto _a, auto _b) 
@@ -68,7 +76,7 @@ namespace snl {
 		return a + b;
 	}
 
-	auto operator*(auto _a, auto _b)
+	decltype(auto) operator*(auto _a, auto _b)
 		requires ((IsBounded<decltype(_a)> || IsBounded<decltype(_b)>) && requires() { convertBoundedToValue(_a, _b); })
 	{
 		auto [a, b] = convertBoundedToValue(_a, _b);
