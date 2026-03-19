@@ -21,20 +21,21 @@ int main() {
 	snl::Index<2> i, j, k;
 
 	snl::Vector<double, 2> v, w, c;
-	snl::Matrix11<double, 2> t;
+	snl::Matrix11<double, 2> A;
+	snl::Tensor<double, 0, 3, 2, 2, 2> T;
 
-	v(0) = 14;
+	v(0) = 1;
 	v(1) = 2;
 
-	w(0) = 43;
+	w(0) = 1;
 	w(1) = -2;
 
-	t(i, j) = v(i) * w(j);
+	A(i, j) = v(i) * w(j);
 	
-	double sum1 = snl::sum(i, j) | v(i) * w(j);
-	double sum2 = snl::sum(i, j) | t(i, j);
+	T(i, j, k) = A(i, j) * v(k);
 
-	std::cout << (sum1 == sum2) << std::endl;
+	c(i) = snl::sum(j, k) | T(i, j, k) * A(j, k);
 
-	//std::cout << t(1, 0) << std::endl; 
+	for (size_t val = 0; val < 2; val++)
+		std::cout << c(val) << std::endl;
 }
