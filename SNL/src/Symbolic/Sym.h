@@ -269,7 +269,10 @@ namespace snl {
 
 		template<typename A>
 		Sym<A> cast() {
-			return Sym<A>(SymCast<T, A>(), makeManaged(dep().deepCopy()));
+			if constexpr (std::is_same_v<A, T>)
+				return *this;
+			else
+				return Sym<A>(SymCast<T, A>(), makeManaged(dep().deepCopy()));
 		}
 
 		template<typename A>

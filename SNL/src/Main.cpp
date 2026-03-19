@@ -18,24 +18,21 @@
 constexpr double PI = 3.14159265358979323846;
 
 int main() {
+	snl::Sym<double> x, y;
+
+	snl::Function<double(double, double)> f;
+	f(x, y) = x * y;
+
+	std::cout << f(1, 2) << std::endl;
+
 	snl::Index<2> i, j, k;
 
-	snl::Vector<double, 2> v, w, c;
-	snl::Matrix11<double, 2> A;
-	snl::Tensor<double, 0, 3, 2, 2, 2> T;
+	snl::Vector<double, 2> v, w;
 
-	v(0) = 1;
-	v(1) = 2;
+	v(i) = f(i, 1);
+	w(i) = f(i, 2);
 
-	w(0) = 1;
-	w(1) = -2;
+	double dot = snl::sum(i) | v(i) * w(i);
 
-	A(i, j) = v(i) * w(j);
-	
-	T(i, j, k) = A(i, j) * v(k);
-
-	c(i) = snl::sum(j, k) | T(i, j, k) * A(j, k);
-
-	for (size_t val = 0; val < 2; val++)
-		std::cout << c(val) << std::endl;
+	std::cout << dot << std::endl;
 }

@@ -33,7 +33,7 @@ namespace snl {
 		(staticIf<std::is_same_v<TargetList, TypeList<>>, true, std::is_convertible_v<T, SafeGet<TargetList, index>>>
 		&& !IsFunctionCallProxy<T>
 		&& !IsTensorIndexingProxy<T>)
-		auto convertArgsToSymRef(T first, auto&&... rest) {
+	auto convertArgsToSymRef(T first, auto&&... rest) {
 		Ref<Sym<std::conditional_t<std::is_same_v<TargetList, TypeList<>>, T, SafeGet<TargetList, index>>>> result;
 
 		if constexpr (std::is_same_v<TargetList, TypeList<>>)
@@ -50,20 +50,32 @@ namespace snl {
 	}
 
 	template<typename TargetList = TypeList<>, size_t index = 0, typename T>
-		requires staticIf<std::is_same_v<TargetList, TypeList<>>, true, std::is_same_v<T, SafeGet<TargetList, index>>>
+		requires staticIf<std::is_same_v<TargetList, TypeList<>>, true, std::is_convertible_v<T, SafeGet<TargetList, index>>>
 	auto convertArgsToSymRef(Sym<T>& first, auto&&... rest) {
+		Ref<Sym<std::conditional_t<std::is_same_v<TargetList, TypeList<>>, T, SafeGet<TargetList, index>>>> result;
+
+		if constexpr (std::is_same_v<TargetList, TypeList<>> || std::is_same_v<T, SafeGet<TargetList, index>>)
+			result = first;
+		else
+			result = makeManaged<Sym<Get<TargetList, index>>>(first.cast<Get<TargetList, index>>());
+
 		if constexpr (sizeof...(rest) == 0) {
-			return std::tuple(Ref(first));
+			return std::tuple(result);
 		}
 		else {
-			return std::tuple_cat(std::tuple(Ref(first)), convertArgsToSymRef<TargetList, index + 1>(std::forward<decltype(rest)>(rest)...));
+			return std::tuple_cat(std::tuple(result), convertArgsToSymRef<TargetList, index + 1>(std::forward<decltype(rest)>(rest)...));
 		}
 	}
 
 	template<typename TargetList = TypeList<>, size_t index = 0, typename T>
-		requires staticIf<std::is_same_v<TargetList, TypeList<>>, true, std::is_same_v<T, SafeGet<TargetList, index>>>
+		requires staticIf<std::is_same_v<TargetList, TypeList<>>, true, std::is_convertible_v<T, SafeGet<TargetList, index>>>
 	auto convertArgsToSymRef(const Sym<T>& first, auto&&... rest) {
-		Ref<Sym<T>> result = makeManaged<Sym<T>>(first);
+		Ref<Sym<std::conditional_t<std::is_same_v<TargetList, TypeList<>>, T, SafeGet<TargetList, index>>>> result;
+
+		if constexpr (std::is_same_v<TargetList, TypeList<>>)
+			result = makeManaged<Sym<T>>(first);
+		else
+			result = makeManaged<Sym<Get<TargetList, index>>>(Sym(first).cast<Get<TargetList, index>>());
 
 		if constexpr (sizeof...(rest) == 0) {
 			return std::tuple(result);
