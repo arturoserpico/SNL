@@ -105,5 +105,11 @@
     <ClInclude Include="src\Symbolic\SymUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Symbolic\ExprOperators.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Symbolic\Random.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

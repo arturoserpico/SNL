@@ -7,6 +7,7 @@
 //#include <Eigen/Sparse>
 //#include "Geometry/GridMesh2D.h"
 #include "Symbolic/ExprOperators.h"
+#include "Symbolic/Random.h"
 #include "Linear/Tensor.h"
 #include "Utils/Bounded.h"
 #include "Symbolic/Sym.h"
@@ -21,18 +22,30 @@ int main() {
 	snl::Sym<double> x, y;
 
 	snl::Function<double(double, double)> f;
-	f(x, y) = x * y;
-
-	std::cout << f(1, 2) << std::endl;
+	f(x, y) = x * 2 + y;
 
 	snl::Index<2> i, j, k;
 
-	snl::Vector<double, 2> v, w;
+	snl::Vector<double, 2> v, w, c;
+	snl::CoVector<double, 2> d;
 
-	v(i) = f(i, 1);
-	w(i) = f(i, 2);
+	snl::Matrix11<double, 2> A;
 
-	double dot = snl::sum(i) | v(i) * w(i);
+	A(i, k) = f(i, k);
 
-	std::cout << dot << std::endl;
+	A(0, 1) = 14;
+
+	v(0) = 1;
+	v(1) = 0;
+
+	d(0) = 0;
+	d(1) = 1;
+
+	w(i) = snl::random<double>(0, 1);
+
+	c = v + w;
+
+	std::cout << w(0) << " " << w(1) << std::endl;
+
+	//std::cout << x << std::endl;
 }
