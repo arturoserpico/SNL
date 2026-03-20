@@ -3,7 +3,7 @@
 #include <fstream>
 #include <unordered_set>
 #include <filesystem>
-//#include <Eigen/Dense>
+#include <Eigen/Dense>
 //#include <Eigen/Sparse>
 //#include "Geometry/GridMesh2D.h"
 #include "Symbolic/ExprOperators.h"
@@ -24,28 +24,34 @@ int main() {
 	snl::Function<double(double, double)> f;
 	f(x, y) = x * 2 + y;
 
-	snl::Index<2> i, j, k;
+	snl::Index<100> i, j, k;
 
-	snl::Vector<double, 2> v, w, c;
-	snl::CoVector<double, 2> d;
+	snl::Vector<double, 100> v, w, c;
 
-	snl::Matrix11<double, 2> A;
+	snl::Matrix11<double, 100> A;
 
-	A(i, k) = f(i, k);
-
-	A(0, 1) = 14;
-
-	v(0) = 1;
-	v(1) = 0;
-
-	d(0) = 0;
-	d(1) = 1;
+	A(i, k) = snl::random<double>(0, 1);
 
 	w(i) = snl::random<double>(0, 1);
 
-	c = v + w;
+	auto begin = std::chrono::high_resolution_clock::now();
+	c(i) = snl::sum(j) | A(i, j) * w(j);
+	auto end = std::chrono::high_resolution_clock::now();
 
-	std::cout << w(0) << " " << w(1) << std::endl;
+	std::cout << c << std::endl;
+	std::cout << "Time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "ms" << std::endl;
+
+	Eigen::VectorXd eigenV = Eigen::VectorXd::Random(100);
+	Eigen::VectorXd eigenC = Eigen::VectorXd::Random(100);
+	Eigen::MatrixXd eigenA = Eigen::MatrixXd::Random(100, 100);
+
+	begin = std::chrono::high_resolution_clock::now();
+	eigenC = eigenA * eigenV;
+	end = std::chrono::high_resolution_clock::now();
+
+	std::cout << eigenC << std::endl;
+	std::cout << "Time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "ms" << std::endl;
+
 
 	//std::cout << x << std::endl;
 }

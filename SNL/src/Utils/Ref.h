@@ -118,6 +118,16 @@ namespace snl {
 			if (managed)
 				addObjectRef(inner);
 		}
+
+		Ref<void>& operator=(const Ref<void>& other) {
+			inner = other.inner;
+			managed = other.managed;
+
+			if (managed)
+				addObjectRef(inner);
+
+			return *this;
+		}
 		
 		~Ref();
 

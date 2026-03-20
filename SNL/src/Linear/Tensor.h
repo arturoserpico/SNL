@@ -61,6 +61,7 @@ namespace snl {
 		template<size_t index = 0>
 		void assignTensor(Sym<T>& expr) {
 			if (varying[index]) {
+				//#pragma omp parallel for
 				for (size_t i = 0; i < std::array{ sizes... }[index]; i++) {
 					std::get<index>(indexs).get().set(i);
 
@@ -139,10 +140,10 @@ namespace snl {
 	class Tensor<T, nCovariant, nContravariant, first, rest...> {
 		static constexpr bool isContravariant = nCovariant == 0;
 
-		using SliceType = std::conditional_t<isContravariant, 
-			Tensor<T, nCovariant, nContravariant - 1, rest...>, 
-			Tensor<T, nCovariant - 1, nContravariant, rest...>
-		>;
+		//using SliceType = std::conditional_t<isContravariant, 
+		//	Tensor<T, nCovariant, nContravariant - 1, rest...>, 
+		//	Tensor<T, nCovariant - 1, nContravariant, rest...>
+		//>;
 
 		template<size_t index>
 		using VectorArg =
@@ -151,7 +152,9 @@ namespace snl {
 				Vector<T, std::array{ first, rest... }[index]>,
 				CoVector<T, std::array{ first, rest... }[index]>>;
 
-		std::array<SliceType, first> data;
+		using DataT = std::conditional_t<(first * ... * rest) < 1000, std::array<T, (first * ... * rest)>, std::vector<T>>;
+
+		DataT data;
 
 		TensorIndexingProxy<T, nCovariant, nContravariant, first, rest...> 
 		indexTensor(auto&&... indexs) {
@@ -170,25 +173,32 @@ namespace snl {
 
 			return sum(std::get<indexs>(symIndexs).get()...) | this->indexTensor(std::get<indexs>(symIndexs).get()...) * (vectors(std::get<indexs>(symIndexs).get()) * ...);
 		}
-	public:
-		const auto& operator[](size_t index) const {
-			return data[index];
-		}
 
-		auto& operator[](size_t index) {
-			return data[index];
+		size_t flattenIndexs(const std::array<size_t, nCovariant + nContravariant>& indexs) {
+			constexpr std::array<size_t, nCovariant + nContravariant> sizes{ first, rest... };
+			
+			std::size_t result = 0;
+			std::size_t stride = 1;
+
+			for (int i = nCovariant + nContravariant - 1; i >= 0; --i) {
+				result += indexs[i] * stride;
+				stride *= sizes[i];
+			}
+
+			return result;
+		}
+	public:
+		Tensor() {
+			if constexpr ((first * ... * rest) >= 1000)
+				data.resize((first * ... * rest));
 		}
 
 		const T& operator[](const std::array<size_t, nCovariant + nContravariant>& indexs) const {
-			std::array<size_t, nCovariant + nContravariant - 1> inner;
-			std::copy(indexs.begin().operator+(1), indexs.end(), inner.begin());
-			return data[indexs[0]][inner];
+			return data[flattenIndexs(indexs)];
 		}
 
 		T& operator[](const std::array<size_t, nCovariant + nContravariant>& indexs) {
-			std::array<size_t, nCovariant + nContravariant - 1> inner;
-			std::copy(indexs.begin().operator+(1), indexs.end(), inner.begin());
-			return data[indexs[0]][inner];
+			return data[flattenIndexs(indexs)];
 		}
 
 		auto operator()(auto&&... indexs) {
@@ -239,5 +249,27 @@ namespace snl {
 			result[i] = a[i] + b[i];
 
 		return result;
+	}
+
+	template<typename T, size_t nCovariant, size_t nContravariant, size_t n>
+	std::ostream& operator<<(std::ostream& stream, Tensor<T, nCovariant, nContravariant, n> vec) {
+		for(size_t i = 0; i < n; i++) {
+			stream << vec(i) << "\n";
+		}
+
+		return stream;
+	}
+
+	template<typename T, size_t nCovariant, size_t nContravariant, size_t n, size_t m>
+	std::ostream& operator<<(std::ostream& stream, Tensor<T, nCovariant, nContravariant, n, m> mat) {
+		for (size_t j = 0; j < m; j++) {
+			for (size_t i = 0; i < n; i++) {
+				stream << mat(i, j) << " ";
+			}
+
+			stream << "\n";
+		}
+
+		return stream;
 	}
 }

@@ -16,6 +16,8 @@
 #define saveMsg(VAR) catch(::std::exception e) { VAR = e.what(); }
 
 namespace snl {
+	constexpr size_t debugLevel = 0;
+
 	struct DebugLogger : public std::ostream {
 		static const bool enabled = true;
 
@@ -58,14 +60,16 @@ namespace snl {
 	};
 
 	inline void expect(bool condition, const std::string& msg) {
-		if (!condition)
-			throw Exception(msg);
+		if constexpr (debugLevel > 0)
+			if (!condition)
+				throw Exception(msg);
 	}
 
 	template<typename Exception>
 	inline void expect(bool condition, const std::string& msg) {
-		if (!condition)
-			throw Exception(msg);
+		if constexpr (debugLevel > 0)
+			if (!condition)
+				throw Exception(msg);
 	}
 
 

@@ -82,7 +82,7 @@ namespace snl {
 	template<typename T>
 	class Sym : public GenericSym {
 		std::optional<T> value;
-		std::function<T(std::vector<Ref<void>>)> fun;
+		std::function<T(std::vector<Ref<void>>&)> fun;
 		const std::type_info* symOpType = nullptr;
 		std::vector<const std::type_info*> depsTypes;
 		std::vector<Ref<void>> deps;
@@ -135,7 +135,7 @@ namespace snl {
 		}
 
 		template<typename First, typename... Rest>
-		static std::tuple<Ref<Sym<First>>, Ref<Sym<Rest>>...> concretizeDeps(std::vector<Ref<void>> deps, size_t index = 0) {
+		static std::tuple<Ref<Sym<First>>, Ref<Sym<Rest>>...> concretizeDeps(std::vector<Ref<void>>& deps, size_t index = 0) {
 			Ref<Sym<First>> result = deps[index].as<Sym<First>>();
 
 			if constexpr (sizeof...(Rest) == 0) {
@@ -196,7 +196,7 @@ namespace snl {
 		template<IsSymOpType SymOpType, typename... Deps>
 		Sym(SymOpType evalObj, Ref<Sym<Deps>>... deps) : symOpType(&typeid(SymOpType)), depsTypes({ &typeid(Deps)... }) {
 			this->deps = deconcretizeDeps(deps...);
-			fun = [evalObj](std::vector<Ref<void>> deps) {
+			fun = [evalObj](std::vector<Ref<void>>& deps) {
 					auto concretizedDeps = concretizeDeps<Deps...>(deps);
 					auto computedDeps = std::apply(computeDeps<Deps...>, concretizedDeps);
 					return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
@@ -254,7 +254,7 @@ namespace snl {
 			return *this;
 		}
 
-		T get() const {
+		const T& get() const {
 			expect(value.has_value(), "Value not computed or assigned yet");
 			return value.value();
 		}

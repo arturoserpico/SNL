@@ -27,8 +27,8 @@ namespace snl {
 		void release(const auto* obj) {
 			objectRegister.at(reinterpret_cast<const void*>(obj))--;
 			if (objectRegister.at(reinterpret_cast<const void*>(obj)) == 0) {
-				delete obj;
 				objectRegister.erase(reinterpret_cast<const void*>(obj));
+				delete obj;
 			}
 		}
 
