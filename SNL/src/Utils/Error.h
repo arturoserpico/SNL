@@ -59,14 +59,14 @@ namespace snl {
 		inline ClassedException(const std::string& msg) : Exception(msg + ", exception class: " + (std::string)exceptionClass) {}
 	};
 
-	inline void expect(bool condition, const std::string& msg) {
+	inline void expect(bool condition, const char* msg) {
 		if constexpr (debugLevel > 0)
 			if (!condition)
 				throw Exception(msg);
 	}
 
 	template<typename Exception>
-	inline void expect(bool condition, const std::string& msg) {
+	inline void expect(bool condition, const char* msg) {
 		if constexpr (debugLevel > 0)
 			if (!condition)
 				throw Exception(msg);
