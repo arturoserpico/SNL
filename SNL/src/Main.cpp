@@ -20,17 +20,17 @@ constexpr double PI = 3.14159265358979323846;
 int main() {
 	snl::Sym<double> x, y;
 
+	snl::Function<double(double)> f1;
+
 	snl::Sym<snl::Function<double(double)>> g;
 
 	snl::Function<double(double, snl::Function<double(double)>)> f;
+	
+	f(x, g) |= g(x);
 
-	g.set();
+	f1(x) |= snl::pow(x, 4);
 
-	g.get()(x) = x * x;
-
-	x.set(2);
-
-	std::cout << g(x) << std::endl;
+	std::cout << f(3, f1) << std::endl;
 
 	snl::Index<100> i, j, k;
 
@@ -38,12 +38,12 @@ int main() {
 
 	snl::Matrix11<double, 100> A;
 
-	A(i, k) = snl::random<double>(0, 1);
+	A(i, k) |= snl::random<double>(0, 1);
 
-	w(i) = snl::random<double>(0, 1);
+	w(i) |= snl::random<double>(0, 1);
 
 	auto begin = std::chrono::high_resolution_clock::now();
-	c(i) = snl::sum(j) | A(i, j) * w(j);
+	c(i) |= snl::sum(j) | A(i, j) * w(j);
 	auto end = std::chrono::high_resolution_clock::now();
 
 	std::cout << c << std::endl;

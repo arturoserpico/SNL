@@ -42,9 +42,16 @@ namespace snl {
 	}
 
 	template<typename T>
-	auto Sym<T>::operator()(auto&&... args) {
+	auto Sym<T>::operator()(auto&&... args) & {
 		auto tuple = convertArgsToSymRef(std::forward<decltype(args)>(args)...);
 		using SymArgsList = Transform<Transform<TupleToTypeList<decltype(tuple)>, RemRef>, RemSym>;
 		return Sym<typename SymCall<T, SymArgsList>::R>(SymCall<T, SymArgsList>(), std::tuple_cat(std::make_tuple(Ref(*this)), tuple));
+	}
+
+	template<typename T>
+	auto Sym<T>::operator()(auto&&... args) && {
+		auto tuple = convertArgsToSymRef(std::forward<decltype(args)>(args)...);
+		using SymArgsList = Transform<Transform<TupleToTypeList<decltype(tuple)>, RemRef>, RemSym>;
+		return Sym<typename SymCall<T, SymArgsList>::R>(SymCall<T, SymArgsList>(), std::tuple_cat(std::make_tuple(makeManaged(*this)), tuple));
 	}
 }

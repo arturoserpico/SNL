@@ -94,6 +94,10 @@ namespace snl {
 		Ref<const A> dyn() const {
 			return Ref<const A>(dynamic_cast<const A*>(inner), managed);
 		}
+
+		operator Ref<const T>() const {
+			return Ref<const T>(inner, managed);
+		}
 	};
 
 	template<>

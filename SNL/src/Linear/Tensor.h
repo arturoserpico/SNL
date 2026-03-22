@@ -98,7 +98,7 @@ namespace snl {
 			return sym().compute().get();
 		}
 
-		TensorIndexingProxy<T, nCovariant, nContravariant, sizes...>& operator=(Sym<T> expr) {
+		TensorIndexingProxy<T, nCovariant, nContravariant, sizes...>& operator|=(Sym<T> expr) {
 			assignTensor(expr);
 			return *this;
 		}

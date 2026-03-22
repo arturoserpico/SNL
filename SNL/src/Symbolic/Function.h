@@ -129,6 +129,8 @@ namespace snl {
 			return result;
 		}
 	public:
+		FunctionCallProxy() = default;
+
 		FunctionCallProxy(
 			CallType callType,
 			FunctionType& type, 
@@ -151,14 +153,15 @@ namespace snl {
 			return callType;
 		}
 
-		FunctionCallProxy& operator=(const Sym<R>& expr) {
+		FunctionCallProxy& operator|=(auto&& _expr) {
+			auto [expr] = convertArgsToSymRef<TypeList<R>>(std::forward<decltype(_expr)>(_expr));
 			switch (callType)
 			{
 			case snl::CallType::Numeric: {
 				if constexpr (canNumeric()) {
 					auto point = computeCallVars();
 
-					numeric.get()[point] = expr.deepCopy().compute().get();
+					numeric.get()[point] = expr.get().deepCopy().compute().get();
 
 					type.get() = FunctionType::Numeric;
 
@@ -167,7 +170,7 @@ namespace snl {
 					throw Exception("snl::Function cannot be numeric with given argument types");
 			}
 			case snl::CallType::Symbolic: {
-				this->expr.get() = expr.deepCopy();
+				this->expr.get() = expr.get().deepCopy();
 
 				substituteAll<>(this->expr);
 
@@ -180,10 +183,10 @@ namespace snl {
 			}
 		}
 
-		FunctionCallProxy& operator=(R value) {
-			*this = Sym<R>(value);
-			return *this;
-		}
+		//FunctionCallProxy& operator=(R value) {
+		//	*this = Sym<R>(value);
+		//	return *this;
+		//}
 
 		Sym<R> sym() const {
 			if (type == FunctionType::Analytic) {
@@ -281,6 +284,14 @@ namespace snl {
 		std::tuple<Sym<Args>...> variables;
 
 		template<size_t index = sizeof...(Args) - 1>
+		void substituteAll(const std::tuple<Sym<Args>...>& oldVariables) {
+			expr.substitute(std::get<index>(oldVariables), std::get<index>(variables));
+
+			if constexpr (index != 0)
+				substituteAll<index - 1>(oldVariables);
+		}
+
+		template<size_t index = sizeof...(Args) - 1>
 		void setVariables(std::tuple<Args...> args) {
 			std::get<index>(variables).set(std::get<index>(args));
 
@@ -291,9 +302,15 @@ namespace snl {
 		Function() = default;
 		
 		Function(std::unordered_map<std::tuple<Args...>, R> points) : type(FunctionType::Numeric), numeric(points) {}
-		//FunctionCallProxy<R, Args...> operator()(Sym<Args>&... vars) {
-		//	return FunctionCallProxy<R, Args...>(Ref(expr), { Ref(vars)... }, Ref(variables));
-		//}
+
+		Function(const Function& other) {
+			type = other.type;
+			expr = other.expr.deepCopy();
+			numeric = other.numeric;
+			interpolation = other.interpolation;
+
+			substituteAll(other.variables);
+		}
 
 		auto operator()(auto&&... vars) 
 			//requires CheckValidFunCall<Args...>::template Inner<sizeof...(Args) - 1, decltype(vars)...>::value

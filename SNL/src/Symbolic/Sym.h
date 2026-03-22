@@ -106,7 +106,7 @@ namespace snl {
 		}
 
 		template<typename T>
-		void substitute(Ref<Sym<T>> target, Ref<Sym<T>> substitute) {
+		void substitute(Ref<const Sym<T>> target, Ref<Sym<T>> substitute) {
 			for (size_t i = 0; i < rawDeps().size(); i++) {
 				if (target.raw() == rawDeps()[i].as<Sym<T>>().raw()) {
 					SNLDebugCall(1, expect(typeid(T) == *getDepsTypes()[i], "substitution target is not of correct type"));
@@ -118,12 +118,17 @@ namespace snl {
 		}
 
 		template<typename T>
-		void substitute(Sym<T>& target, Sym<T>& substitute) {
+		void substitute(Ref<Sym<T>> target, Ref<Sym<T>> substitute) {
+			this->substitute(static_cast<Ref<const Sym<T>>>(target), substitute);
+		}
+
+		template<typename T>
+		void substitute(const Sym<T>& target, Sym<T>& substitute) {
 			this->substitute(Ref(target), Ref(substitute));
 		}
 
 		template<typename T>
-		void substitute(Sym<T>& target, const Sym<T>& substitute) {
+		void substitute(const Sym<T>& target, const Sym<T>& substitute) {
 			this->substitute(Ref(target), makeManaged(substitute));
 		}
 
@@ -240,7 +245,8 @@ namespace snl {
 			return copy.as<void>();
 		}
 	public:
-		auto operator()(auto&&...);
+		auto operator()(auto&&...) &;
+		auto operator()(auto&&...) &&;
 
 		Sym<T> deepCopy() const {
 			return rawDeepCopy().as<Sym<T>>();
@@ -345,7 +351,7 @@ namespace snl {
 			if constexpr (std::is_same_v<A, T>)
 				return *this;
 			else
-				return Sym<A>(SymCast<T, A>(), makeManaged(dep().deepCopy()));
+				return Sym<A>(SymCast<A, T>(), makeManaged(dep().deepCopy()));
 		}
 
 		template<typename A>
