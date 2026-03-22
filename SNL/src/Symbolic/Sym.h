@@ -248,6 +248,9 @@ namespace snl {
 		auto operator()(auto&&...) &;
 		auto operator()(auto&&...) &&;
 
+		void operator|=(auto&&) &;
+		void operator|=(auto&&) &&;
+
 		Sym<T> deepCopy() const {
 			return rawDeepCopy().as<Sym<T>>();
 		}
@@ -334,12 +337,14 @@ namespace snl {
 				return compute().get();
 		}
 
-		void set() {
+		Sym<T>& set() {
 			value = T();
+			return *this;
 		}
 
-		void set(T val) {
+		Sym<T>& set(T val) {
 			value = val;
+			return *this;
 		}
 
 		operator T () {

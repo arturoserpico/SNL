@@ -54,4 +54,18 @@ namespace snl {
 		using SymArgsList = Transform<Transform<TupleToTypeList<decltype(tuple)>, RemRef>, RemSym>;
 		return Sym<typename SymCall<T, SymArgsList>::R>(SymCall<T, SymArgsList>(), std::tuple_cat(std::make_tuple(makeManaged(*this)), tuple));
 	}
+
+	template<typename T>
+	void Sym<T>::operator|=(auto&& _decl) & {
+		auto [decl] = convertArgsToSymRef(std::forward<decltype(_decl)>(_decl));
+		using Decl = RemSym<RemRef<decltype(decl)>>;
+		Sym<Empty>(SymDeclaration<T, Decl>(), Ref(*this), decl).compute();
+	}
+
+	template<typename T>
+	void Sym<T>::operator|=(auto&& _decl) && {
+		auto [decl] = convertArgsToSymRef(std::forward<decltype(_decl)>(_decl));
+		using Decl = RemSym<RemRef<decltype(decl)>>;
+		Sym<Empty>(SymDeclaration<T, Decl>(), makeManaged(*this), decl).compute();
+	}
 }

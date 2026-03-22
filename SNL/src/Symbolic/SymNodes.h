@@ -64,4 +64,12 @@ namespace snl {
 		using ArgsList = TypeList<Ref<Sym<Callable>>, Ref<Sym<Args>>...>;
 		using R = decltype(std::declval<Callable>()(std::declval<Sym<Args>>()...));
 	};
+
+	template<typename A, typename B> requires requires(A a, B b) { a |= b; }
+	struct SymDeclaration : SymOpType<Empty(Ref<Sym<A>>, Ref<Sym<B>>)> {
+		Empty eval(Ref<Sym<A>> a, Ref<Sym<B>> b) {
+			a.get().computeGet() |= b.get();
+			return {};
+		}
+	};
 }

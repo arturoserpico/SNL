@@ -24,13 +24,23 @@ int main() {
 
 	snl::Sym<snl::Function<double(double)>> g;
 
+	snl::Index<2> indx;
+
+	snl::Sym<snl::Vector<double, 2>> vec;
+
 	snl::Function<double(double, snl::Function<double(double)>)> f;
 	
-	f(x, g) |= g(x);
+	y = g(x);
 
-	f1(x) |= snl::pow(x, 4);
+	g.set();
+	g(x) |= x * 2;
 
-	std::cout << f(3, f1) << std::endl;
+	x = 2;
+
+	vec.set();
+	vec(indx) |= indx * 2;
+
+	std::cout << vec(1) << std::endl;
 
 	snl::Index<100> i, j, k;
 
