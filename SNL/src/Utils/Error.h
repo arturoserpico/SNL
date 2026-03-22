@@ -9,6 +9,10 @@
 
 #include "../Metaprogramming/StaticString.h"
 
+#define SNLDebugLevel 0
+
+#define SNLDebugCall(LEVEL, CALL) if constexpr (::snl::debugLevel >= LEVEL) CALL;
+
 #define fail catch(::std::exception e) { throw e; }
 #define ignore catch(::std::exception e) {}
 #define ignoreLoudly catch(::std::exception e) { ::snl::debug << "exception ignored: " << e.what() << ::std::endl; }
@@ -16,7 +20,7 @@
 #define saveMsg(VAR) catch(::std::exception e) { VAR = e.what(); }
 
 namespace snl {
-	constexpr size_t debugLevel = 0;
+	constexpr size_t debugLevel = SNLDebugLevel;
 
 	struct DebugLogger : public std::ostream {
 		static const bool enabled = true;
@@ -71,6 +75,4 @@ namespace snl {
 			if (!condition)
 				throw Exception(msg);
 	}
-
-
 }

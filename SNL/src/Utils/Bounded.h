@@ -11,11 +11,11 @@ namespace snl {
 	public:
 		Bounded() requires (min <= T() && T() <= max) = default;
 		Bounded(T value) : value(value) {
-			expect(min <= value && value <= max, "value is out of bounds");
+			SNLDebugCall(1, expect(min <= value && value <= max, "value is out of bounds"));
 		}
 
 		Bounded<T, min, max>& operator=(T value) {
-			expect(min <= value && value <= max, "value is out of bounds");
+			SNLDebugCall(1, expect(min <= value && value <= max, "value is out of bounds"));
 			this->value = value;
 			return *this;
 		}

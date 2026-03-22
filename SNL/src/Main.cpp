@@ -21,8 +21,15 @@ constexpr double PI = 3.14159265358979323846;
 int main() {
 	snl::Sym<double> x, y;
 
-	snl::Function<double(double, double)> f;
-	f(x, y) = x * 2 + y;
+	snl::Sym<snl::Function<double(double)>> g;
+
+	snl::Function<double(double, snl::Function<double(double)>)> f;
+
+	snl::SymCall<snl::Function<double(double)>, snl::TypeList<double>> e;
+
+	g(x);
+
+	snl::Sym(e, std::tuple(snl::Ref(g), snl::Ref(x)));
 
 	snl::Index<100> i, j, k;
 

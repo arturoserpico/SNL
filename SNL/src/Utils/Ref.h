@@ -50,12 +50,12 @@ namespace snl {
 		}
 
 		operator T& () const {
-			expect(!empty(), "cannot access null snl::Ref");
+			SNLDebugCall(1, expect(!empty(), "cannot access null snl::Ref"));
 			return *inner;
 		}
 
 		T& get() const {
-			expect(!empty(), "cannot access null snl::Ref");
+			SNLDebugCall(1, expect(!empty(), "cannot access null snl::Ref"));
 			return *inner;
 		}
 
@@ -166,6 +166,15 @@ namespace snl {
 
 	template<typename T>
 	using RemRef = _RemRef<T>::Type;
+
+	template<typename T>
+	struct _SafeRemRef : TypeAlias<void> {};
+
+	template<typename T>
+	struct _SafeRemRef<Ref<T>> : TypeAlias<T> {};
+
+	template<typename T>
+	using SafeRemRef = _SafeRemRef<T>::Type;
 }
 
 namespace std {

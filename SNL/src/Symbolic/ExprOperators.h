@@ -25,15 +25,17 @@ namespace snl {
 
 	template<typename I>
 	class Sum {
+		Ref<Sym<I>> oldIterator;
 		Ref<Sym<I>> iterator;
 		Ref<Sym<I>> min, max;
 	public:
 		Sum(Sym<I>& iterator, Sym<I>& min, Sym<I>& max) : 
-			iterator(iterator), min(min), max(max) {}
+			oldIterator(iterator), iterator(makeManaged<Sym<I>>()), min(min), max(max) {}
 
 		auto operator|(auto&& _expr) {
 			auto [expr] = convertArgsToSymRef(std::forward<decltype(_expr)>(_expr));
-			return Sym(SymSumOp<RemSym<RemRef<decltype(expr)>>, I>(), makeManaged(Sym(iterator)), min, max, makeManaged(Sym(expr)));
+			expr.get().substitute(oldIterator, iterator);
+			return Sym(SymSumOp<RemSym<RemRef<decltype(expr)>>, I>(), iterator, min, max, expr);
 		}
 	};
 

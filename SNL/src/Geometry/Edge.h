@@ -89,7 +89,7 @@ namespace snl {
 			meshVal(mesh),
 			boundaryVal(boundary)
 		{
-			expected(boundary.elements().size() == 2, "Edge must have exactly two nodes in its boundary.");
+			SNLDebugCall(1, expect(boundary.elements().size() == 2, "Edge must have exactly two nodes in its boundary."));
 		}
 
 		MeshElement(
@@ -99,7 +99,7 @@ namespace snl {
 			meshVal(mesh),
 			boundaryVal(mesh, boundary)
 		{
-			expected(boundary.size() == 2, "Edge must have exactly two nodes in its boundary.");
+			SNLDebugCall(1, expect(boundary.size() == 2, "Edge must have exactly two nodes in its boundary."));
 		}
 
 		MeshElement(

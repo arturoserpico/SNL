@@ -18,13 +18,13 @@ namespace snl {
 		Manifold(const ElementComplex<dimension, meshDimension>& cellComplex) :
 			ElementComplex<dimension, meshDimension>(cellComplex)
 		{
-			expect(this->isManifold(), "cannot create Manifold from non manifold CellComplex");
+			SNLDebugCall(1, expect(this->isManifold(), "cannot create Manifold from non manifold CellComplex"));
 		}
 
 		Manifold(Mesh<meshDimension>& mesh, const Set<Ref<MeshElement<dimension, meshDimension>>>& elements) :
 			ElementComplex<dimension, meshDimension>(mesh, elements)
 		{
-			expect(this->isManifold(), "cannot create Manifold from non manifold MeshElement set");
+			SNLDebugCall(1, expect(this->isManifold(), "cannot create Manifold from non manifold MeshElement set"));
 		}
 	};
 

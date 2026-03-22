@@ -8,11 +8,62 @@
 #include "../Utils/Error.h"
 #include "../Metaprogramming/Concepts.h"
 #include "../Metaprogramming/TypeList.h"
-#include "SymNodes.h"
+//#include "SymNodes.h"
 
 namespace snl {
+	template<typename Fn>
+	struct SymOpType;
+
+	template<typename _R, typename... Args>
+	struct SymOpType<_R(Args...)> {
+		using R = _R;
+		using ArgsList = TypeList<Args...>;
+
+		virtual R eval(Args...) = 0;
+	};
+
+	template<typename T>
+	concept IsSymOpType = requires(T t) {
+		typename T::R;
+		typename T::ArgsList;
+		t.eval;
+	};
+
 	template<typename T>
 	class Sym;
+
+	template<typename T>
+	constexpr bool isSym = false;
+
+	template<typename T>
+	constexpr bool isSym<Sym<T>> = true;
+
+	template<typename T>
+	concept IsSym = isSym<T>;
+
+	template<typename T>
+	concept IsSymMaybeConst = isSym<std::remove_const_t<T>>;
+
+	template<typename T>
+	concept IsSymIgnoreCVRef = isSym<std::remove_cvref_t<T>>;
+
+	template<typename T>
+	struct _RemSym;
+
+	template<typename T>
+	struct _RemSym<Sym<T>> : TypeAlias<T> {};
+
+	template<typename T>
+	using RemSym = _RemSym<std::remove_cvref_t<T>>::Type;
+
+	template<typename T>
+	struct _SafeRemSym : TypeAlias<void> {};
+
+	template<typename T>
+	struct _SafeRemSym<Sym<T>> : TypeAlias<T> {};
+
+	template<typename T>
+	using SafeRemSym = _SafeRemSym<std::remove_cvref_t<T>>::Type;
 
 	struct GenericSym {
 		virtual std::vector<Ref<void>>& rawDeps() = 0;
@@ -58,7 +109,7 @@ namespace snl {
 		void substitute(Ref<Sym<T>> target, Ref<Sym<T>> substitute) {
 			for (size_t i = 0; i < rawDeps().size(); i++) {
 				if (target.raw() == rawDeps()[i].as<Sym<T>>().raw()) {
-					expect(typeid(T) == *getDepsTypes()[i], "substitution target is not of correct type");
+					SNLDebugCall(1, expect(typeid(T) == *getDepsTypes()[i], "substitution target is not of correct type"));
 					rawDeps()[i] = substitute.as<void>();
 				}
 				else
@@ -84,7 +135,7 @@ namespace snl {
 		std::optional<T> value;
 		std::function<T(std::vector<Ref<void>>&)> fun;
 		const std::type_info* symOpType = nullptr;
-		std::vector<const std::type_info*> depsTypes;
+		std::conditional_t<(debugLevel > 0), std::vector<const std::type_info*>, Empty> depsTypes;
 		std::vector<Ref<void>> deps;
 	
 	public:
@@ -97,7 +148,10 @@ namespace snl {
 		}
 
 		std::vector<const std::type_info*> getDepsTypes() const {
-			return depsTypes;
+			if constexpr (debugLevel > 0)
+				return depsTypes;
+			else
+				return {};
 		}
 
 	private:
@@ -147,17 +201,19 @@ namespace snl {
 			}
 		}
 
-		template<typename First, typename... Rest>
-		static std::tuple<First, Rest...> computeDeps(Ref<Sym<First>> first, Ref<Sym<Rest>>... rest) {
-			first.get().compute();
+		template<size_t index, typename TargetList, typename... Deps>
+		static TypeListToTuple<TargetList> computeDeps(const std::tuple<Ref<Sym<Deps>>...>& deps) {
+			TypeListToTuple<TargetList> result;
 
-			if constexpr (sizeof...(rest) == 0) {
-				return std::make_tuple(first.get().get());
-			}
-			else {
-				std::tuple<Rest...> restResults = computeDeps<Rest...>(rest...);
-				return std::tuple_cat(std::make_tuple(first.get().get()), restResults);
-			}
+			if constexpr (index != sizeof...(Deps) - 1)
+				result = computeDeps<index + 1, TargetList, Deps...>(deps);
+			 
+			if constexpr (IsSym<SafeRemRef<Get<TargetList, index>>>)
+				std::get<index>(result) = std::get<index>(deps);
+			else
+				std::get<index>(result) = std::get<index>(deps).get().compute().get();
+
+			return result;
 		}
 
 		template<typename First, typename... Rest>
@@ -184,6 +240,7 @@ namespace snl {
 			return copy.as<void>();
 		}
 	public:
+		auto operator()(auto&&...);
 
 		Sym<T> deepCopy() const {
 			return rawDeepCopy().as<Sym<T>>();
@@ -198,7 +255,7 @@ namespace snl {
 			this->deps = deconcretizeDeps(deps...);
 			fun = [evalObj](std::vector<Ref<void>>& deps) {
 					auto concretizedDeps = concretizeDeps<Deps...>(deps);
-					auto computedDeps = std::apply(computeDeps<Deps...>, concretizedDeps);
+					auto computedDeps = computeDeps<0, typename SymOpType::ArgsList, Deps...>(concretizedDeps);
 					return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
 				};
 		}
@@ -255,8 +312,19 @@ namespace snl {
 		}
 
 		const T& get() const {
-			expect(value.has_value(), "Value not computed or assigned yet");
+			SNLDebugCall(1, expect(value.has_value(), "Value not computed or assigned yet"));
 			return value.value();
+		}
+
+		const T& computeGet() {
+			if(value.has_value())
+				return value.value();
+			else
+				return compute().get();
+		}
+
+		void set() {
+			value = T();
 		}
 
 		void set(T val) {
@@ -284,41 +352,11 @@ namespace snl {
 	template<typename SymOpType, typename... Deps>
 	Sym(SymOpType, Ref<Sym<Deps>>...) -> Sym<typename SymOpType::R>;
 
-	template<typename T>
-	constexpr bool isSym = false;
-
-	template<typename T>
-	constexpr bool isSym<Sym<T>> = true;
-
-	template<typename T>
-	concept IsSym = isSym<T>;
-
-	template<typename T>
-	concept IsSymMaybeConst = isSym<std::remove_const_t<T>>;
-
-	template<typename T>
-	concept IsSymIgnoreCVRef = isSym<std::remove_cvref_t<T>>;
-
-	template<typename T>
-	struct _RemSym;
-
-	template<typename T>
-	struct _RemSym<Sym<T>> : TypeAlias<T> {};
-
-	template<typename T>
-	using RemSym = _RemSym<std::remove_cvref_t<T>>::Type;
-
-	template<typename T>
-	struct _SafeRemSym : TypeAlias<void> {};
-
-	template<typename T>
-	struct _SafeRemSym<Sym<T>> : TypeAlias<T> {};
-
-	template<typename T>
-	using SafeRemSym = _SafeRemSym<std::remove_cvref_t<T>>::Type;
+	template<typename SymOpType, typename... Deps>
+	Sym(SymOpType, std::tuple<Ref<Sym<Deps>>...>) -> Sym<typename SymOpType::R>;
 
 	std::ostream& operator<<(std::ostream& stream, IsSym auto val) {
-		stream << val.compute().get();
+		stream << val.computeGet();
 		return stream;
 	}
 }

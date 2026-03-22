@@ -1,4 +1,5 @@
 #pragma once
+#include <unordered_map>
 #include "SymOperators.h"
 #include "Constants.h"
 
@@ -42,7 +43,7 @@ namespace snl {
 	using TupleDistanceT = decltype(distance<Ts...>(std::tuple<Ts...>(), std::tuple<Ts...>()));
 
 	template<typename R, typename... Args>
-	R idwlerp(std::map<std::tuple<Args...>, R> points, std::tuple<Args...> sample) {
+	R idwlerp(std::unordered_map<std::tuple<Args...>, R> points, std::tuple<Args...> sample) {
 		using Distance = TupleDistanceT<Args...>;
 		
 		R result = 0;
@@ -51,7 +52,7 @@ namespace snl {
 
 		Distance total = 0;
 
-		std::map<Distance, R> distanceMap;
+		std::unordered_map<Distance, R> distanceMap;
 
 		for (const auto& [point, value] : points)
 			distanceMap.emplace(distance<Args...>(sample, point), value);
@@ -74,9 +75,9 @@ namespace snl {
 
 	template<typename R, typename... Args>
 	class InterpolatedFunCall : SymOpType<R(Args...)> {
-		std::map<std::tuple<Args...>, R> points;
+		std::unordered_map<std::tuple<Args...>, R> points;
 	public:
-		InterpolatedFunCall(std::map<std::tuple<Args...>, R> points) : points(points) {}
+		InterpolatedFunCall(std::unordered_map<std::tuple<Args...>, R> points) : points(points) {}
 
 		R eval(Args... args) {
 			return idwlerp<R, Args...>(points, std::tuple(args...));
@@ -85,11 +86,15 @@ namespace snl {
 
 	template<typename R, typename... Args>
 	class FunctionCallProxy {
+		static constexpr bool canNumeric() {
+			return requires() { std::hash<std::tuple<Args...>>{}; };
+		}
+
 		CallType callType;
 		Ref<FunctionType> type;
 		Ref<Sym<R>> expr;
-		Ref<std::map<std::tuple<Args...>, R>> numeric;
-		std::function<R(std::map<std::tuple<Args...>, R>, std::tuple<Args...>)> interpolation;
+		std::conditional_t<canNumeric(), Ref<std::unordered_map<std::tuple<Args...>, R>>, Empty> numeric;
+		std::conditional_t<canNumeric(), std::function<R(std::unordered_map<std::tuple<Args...>, R>, std::tuple<Args...>)>, Empty> interpolation;
 		std::tuple<Ref<Sym<Args>>...> callVars;
 		Ref<std::tuple<Sym<Args>...>> funArgs;
 
@@ -126,8 +131,8 @@ namespace snl {
 			CallType callType,
 			FunctionType& type, 
 			Sym<R>& expr, 
-			Ref<std::map<std::tuple<Args...>, R>> numeric,
-			std::function<R(std::map<std::tuple<Args...>, R>, std::tuple<Args...>)> interpolation,
+			Ref<std::unordered_map<std::tuple<Args...>, R>> numeric,
+			std::function<R(std::unordered_map<std::tuple<Args...>, R>, std::tuple<Args...>)> interpolation,
 			std::tuple<Ref<Sym<Args>>...> declVars, 
 			std::tuple<Sym<Args>...>& funArgs
 		) :
@@ -148,13 +153,16 @@ namespace snl {
 			switch (callType)
 			{
 			case snl::CallType::Numeric: {
-				auto point = computeCallVars();
+				if constexpr (canNumeric()) {
+					auto point = computeCallVars();
 
-				numeric.get()[point] = expr.deepCopy().compute().get();
+					numeric.get()[point] = expr.deepCopy().compute().get();
 
-				type.get() = FunctionType::Numeric;
+					type.get() = FunctionType::Numeric;
 
-				return *this;
+					return *this;
+				} else
+					throw Exception("snl::Function cannot be numeric with given argument types");
 			}
 			case snl::CallType::Symbolic: {
 				this->expr.get() = expr.deepCopy();
@@ -257,10 +265,14 @@ namespace snl {
 	class Function<R(Args...)> {
 		using ArgsList = TypeList<Args...>;
 
+		static constexpr bool canNumeric() {
+			return requires() { std::hash<std::tuple<Args...>>{}; };
+		}
+
 		FunctionType type;
 		snl::Sym<R> expr;
-		std::map<std::tuple<Args...>, R> numeric;
-		std::function<R(std::map<std::tuple<Args...>, R>, std::tuple<Args...>)> interpolation;
+		std::conditional_t<canNumeric(), std::unordered_map<std::tuple<Args...>, R>, Empty> numeric;
+		std::conditional_t<canNumeric(), std::function<R(std::unordered_map<std::tuple<Args...>, R>, std::tuple<Args...>)>, Empty> interpolation;
 		std::tuple<Sym<Args>...> variables;
 
 		template<size_t index = sizeof...(Args) - 1>
@@ -273,7 +285,7 @@ namespace snl {
 	public:
 		Function() = default;
 		
-		Function(std::map<std::tuple<Args...>, R> points) : type(FunctionType::Numeric), numeric(points) {}
+		Function(std::unordered_map<std::tuple<Args...>, R> points) : type(FunctionType::Numeric), numeric(points) {}
 		//FunctionCallProxy<R, Args...> operator()(Sym<Args>&... vars) {
 		//	return FunctionCallProxy<R, Args...>(Ref(expr), { Ref(vars)... }, Ref(variables));
 		//}
@@ -282,9 +294,39 @@ namespace snl {
 			//requires CheckValidFunCall<Args...>::template Inner<sizeof...(Args) - 1, decltype(vars)...>::value
 		{
 			auto tuple = convertArgsToSymRef<ArgsList>(std::forward<decltype(vars)>(vars)...);
-			return FunctionCallProxy<R, Args...>(
-				getFunCallType(std::forward<decltype(vars)>(vars)...), 
-				type, expr, numeric, interpolation, tuple, variables);
+			
+			if constexpr (canNumeric()) 
+				return FunctionCallProxy<R, Args...>(
+					getFunCallType(std::forward<decltype(vars)>(vars)...), 
+					type, expr, numeric, interpolation, tuple, variables);
+			else
+				return FunctionCallProxy<R, Args...>(
+					getFunCallType(std::forward<decltype(vars)>(vars)...),
+					type, expr, nullptr, {}, tuple, variables);
 		}
+
+		friend struct std::hash<Function<R(Args...)>>;
 	};
 }
+
+//namespace std {
+//	template<typename F>
+//	struct hash<snl::Function<F>> {
+//		size_t operator()(const snl::Function<F>& f) const noexcept {
+//			//size_t seed = 0;
+//			//
+//			//auto hashCombine = [&seed](size_t v) {
+//			//	seed += v * 0x9e3779b97f4a7c15ULL;
+//			//	};
+//
+//			const unsigned char* data = reinterpret_cast<const unsigned char*>(&f);
+//
+//			size_t h = 0;
+//			
+//			for (size_t i = 0; i < sizeof(T); ++i)
+//				h = h * 31 + data[i];
+//			
+//			return h;
+//		}
+//	};
+//};

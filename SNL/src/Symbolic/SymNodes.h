@@ -1,53 +1,38 @@
 #pragma once
 #include <type_traits>
+#include "Sym.h"
 
 namespace snl {
-	template<typename Fn>
-	struct SymOpType;
-
-	template<typename _R, typename... Args>
-	struct SymOpType<_R(Args...)> {
-		using R = _R;
-		using ArgsList = TypeList<Args...>;
-
-		virtual R eval(Args...) = 0;
-	};
-
-	template<typename T>
-	concept IsSymOpType = requires(T t) {
-		t.eval;
-	};
-
 	template<typename A, typename B> requires requires (A a, B b) { a + b; }
-	struct SymAddOp : SymOpType<decltype(A() + B())(A, B)> {
-		decltype(A() + B()) eval(A a, B b) {
+	struct SymAddOp : SymOpType<decltype(std::declval<A>() + std::declval<B>())(A, B)> {
+		decltype(std::declval<A>() + std::declval<B>()) eval(A a, B b) {
 			return a + b;
 		}
 	};
 
 	template<typename A, typename B> requires requires (A a, B b) { a - b; }
-	struct SymSubOp : SymOpType<decltype(A() - B())(A, B)> {
-		decltype(A() - B()) eval(A a, B b) {
+	struct SymSubOp : SymOpType<decltype(std::declval<A>() - std::declval<B>())(A, B)> {
+		decltype(std::declval<A>() - std::declval<B>()) eval(A a, B b) {
 			return a - b;
 		}
 	};
 
 	template<typename A, typename B> requires requires (A a, B b) { a * b; }
-	struct SymMulOp : SymOpType<decltype(A() * B())(A, B)> {
-		decltype(A() * B()) eval(A a, B b) {
+	struct SymMulOp : SymOpType<decltype(std::declval<A>() + std::declval<B>())(A, B)> {
+		decltype(std::declval<A>() * std::declval<B>()) eval(A a, B b) {
 			return a * b;
 		}
 	};
 
 	template<typename A, typename B> requires requires (A a, B b) { a / b; }
-	struct SymDivOp : SymOpType<decltype(A() / B())(A, B)> {
-		decltype(A() / B()) eval(A a, B b) {
+	struct SymDivOp : SymOpType<decltype(std::declval<A>() / std::declval<B>())(A, B)> {
+		decltype(std::declval<A>() / std::declval<B>()) eval(A a, B b) {
 			return a / b;
 		}
 	};
 
 	template<typename A, typename B> requires requires (A a, B b) { std::pow(a, b); }
-	struct SymPowOp : SymOpType<decltype(std::pow(A(), B()))(A, B)> {
+	struct SymPowOp : SymOpType<decltype(std::pow(std::declval<A>(), std::declval<B>()))(A, B)> {
 		auto eval(A a, B b) {
 			return std::pow(a, b);
 		}
@@ -65,5 +50,18 @@ namespace snl {
 		T eval(A val) {
 			return static_cast<T>(val);
 		}
+	};
+
+	template<typename Callable, typename ArgsList>
+	struct SymCall;
+
+	template<typename Callable, typename... Args> requires std::invocable<Callable, Sym<Args>&...>
+	struct SymCall<Callable, TypeList<Args...>> {
+		auto eval(Callable f, Ref<Sym<Args>>... args) {
+			return f(args.get()...);
+		}
+
+		using ArgsList = TypeList<Callable, Ref<Sym<Args>>...>;
+		using R = decltype(std::declval<Callable>()(std::declval<Sym<Args>>()...));
 	};
 }

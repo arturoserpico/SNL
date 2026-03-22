@@ -10,6 +10,28 @@ namespace snl {
 
 
 
+	template<typename Tuple>
+	struct _TupleToTypeList;
+
+	template<typename... Ts>
+	struct _TupleToTypeList<std::tuple<Ts...>> : TypeAlias<TypeList<Ts...>> {};
+
+	template<typename Tuple>
+	using TupleToTypeList = typename _TupleToTypeList<Tuple>::Type;
+
+
+
+	template<typename List>
+	struct _TypeListToTuple;
+
+	template<typename... Ts>
+	struct _TypeListToTuple<TypeList<Ts...>> : TypeAlias<std::tuple<Ts...>> {};
+
+	template<typename List>
+	using TypeListToTuple = typename _TypeListToTuple<List>::Type;
+
+
+
 	template<typename List>
 	constexpr size_t lenght = 0;
 
@@ -100,4 +122,15 @@ namespace snl {
 
 	template<typename T>
 	constexpr size_t find<TypeList<>, T> = 0;
+
+
+
+	template<typename List, template<typename> typename Predicate>
+	struct _Transform;
+
+	template<template<typename> typename Predicate, typename... Ts>
+	struct _Transform<TypeList<Ts...>, Predicate> : TypeAlias<TypeList<Predicate<Ts>...>> {};
+
+	template<typename List, template<typename> typename Predicate>
+	using Transform = typename _Transform<List, Predicate>::Type;
 }

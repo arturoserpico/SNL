@@ -1,6 +1,11 @@
 #pragma once
 
 namespace snl {
+	struct Empty {
+		Empty() = default;
+		Empty(auto&&...) {}
+	};
+
 	template<typename... Ts>
 	struct TypeList;
 
