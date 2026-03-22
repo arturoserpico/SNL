@@ -1,7 +1,9 @@
 #pragma once
 #include <unordered_map>
-#include "SymOperators.h"
+#include "Sym.h"
+//#include "SymOperators.h"
 #include "Constants.h"
+#include "SymUtils.h"
 
 namespace snl {
 	enum class FunctionType {
@@ -190,7 +192,10 @@ namespace snl {
 				return result;
 			}
 			else {
-				return Sym<R>(InterpolatedFunCall<R, Args...>(numeric), callVars);
+				if constexpr (canNumeric())
+					return Sym<R>(InterpolatedFunCall<R, Args...>(numeric), callVars);
+				else
+					throw Exception("snl::Function cannot be numeric with given argument types");
 			}
 		}
 

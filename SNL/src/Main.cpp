@@ -12,7 +12,6 @@
 #include "Utils/Bounded.h"
 #include "Symbolic/Sym.h"
 #include "Symbolic/SymOperators.h"
-#include "Symbolic/Function.h"
 #include "Metaprogramming/TypeList.h"
 #include "Memory/ObjectManager.h"
 
@@ -25,11 +24,13 @@ int main() {
 
 	snl::Function<double(double, snl::Function<double(double)>)> f;
 
-	snl::SymCall<snl::Function<double(double)>, snl::TypeList<double>> e;
+	g.set();
 
-	g(x);
+	g.get()(x) = x * x;
 
-	snl::Sym(e, std::tuple(snl::Ref(g), snl::Ref(x)));
+	x.set(2);
+
+	std::cout << g(x) << std::endl;
 
 	snl::Index<100> i, j, k;
 

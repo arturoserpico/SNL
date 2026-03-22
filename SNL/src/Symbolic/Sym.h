@@ -253,11 +253,11 @@ namespace snl {
 		template<IsSymOpType SymOpType, typename... Deps>
 		Sym(SymOpType evalObj, Ref<Sym<Deps>>... deps) : symOpType(&typeid(SymOpType)), depsTypes({ &typeid(Deps)... }) {
 			this->deps = deconcretizeDeps(deps...);
-			fun = [evalObj](std::vector<Ref<void>>& deps) {
+			fun = std::function([evalObj](std::vector<Ref<void>>& deps) {
 					auto concretizedDeps = concretizeDeps<Deps...>(deps);
 					auto computedDeps = computeDeps<0, typename SymOpType::ArgsList, Deps...>(concretizedDeps);
 					return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
-				};
+				});
 		}
 
 	private:
@@ -311,13 +311,18 @@ namespace snl {
 			return *this;
 		}
 
+		T& get() {
+			SNLDebugCall(1, expect(value.has_value(), "Value not computed or assigned yet"));
+			return value.value();
+		}
+
 		const T& get() const {
 			SNLDebugCall(1, expect(value.has_value(), "Value not computed or assigned yet"));
 			return value.value();
 		}
 
-		const T& computeGet() {
-			if(value.has_value())
+		T& computeGet() {
+			if (value.has_value())
 				return value.value();
 			else
 				return compute().get();

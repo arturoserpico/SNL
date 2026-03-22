@@ -3,6 +3,7 @@
 #include "SymNodes.h"
 #include "Sym.h"
 #include "SymUtils.h"
+#include "Function.h"
 
 namespace snl {
 	auto operator+(auto&& _a, auto&& _b) requires IsSymCall<decltype(_a), decltype(_b)> {
@@ -44,16 +45,6 @@ namespace snl {
 	auto Sym<T>::operator()(auto&&... args) {
 		auto tuple = convertArgsToSymRef(std::forward<decltype(args)>(args)...);
 		using SymArgsList = Transform<Transform<TupleToTypeList<decltype(tuple)>, RemRef>, RemSym>;
-		std::cout << typeid(SymArgsList).name() << std::endl;
-		//return 0;
-		auto coso = std::tuple_cat(std::make_tuple(makeManaged(*this)), tuple);
-
-		std::cout << typeid(decltype(coso)).name() << std::endl;
-
-
-		std::cout << typeid(SymCall<T, SymArgsList>).name() << std::endl;
-
-		return 0;
-		//return Sym(SymCall<T, SymArgsList>(), coso);
+		return Sym<typename SymCall<T, SymArgsList>::R>(SymCall<T, SymArgsList>(), std::tuple_cat(std::make_tuple(Ref(*this)), tuple));
 	}
 }
