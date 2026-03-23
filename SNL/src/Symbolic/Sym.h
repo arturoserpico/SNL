@@ -69,6 +69,7 @@ namespace snl {
 		virtual std::vector<Ref<void>>& rawDeps() = 0;
 		virtual const std::vector<Ref<void>>& rawDeps() const = 0;
 		virtual std::vector<const std::type_info*> getDepsTypes() const = 0;
+		virtual void virtualCompute() = 0;
 		
 		std::string print() const {
 			std::stringstream str;
@@ -142,7 +143,7 @@ namespace snl {
 		const std::type_info* symOpType = nullptr;
 		std::conditional_t<(debugLevel > 0), std::vector<const std::type_info*>, Empty> depsTypes;
 		std::vector<Ref<void>> deps;
-	
+		std::vector<Ref<void>> executeDeps;
 	public:
 		std::vector<Ref<void>>& rawDeps() {
 			return deps;
@@ -244,12 +245,17 @@ namespace snl {
 
 			return copy.as<void>();
 		}
+
+		static void runExecuteDeps(std::vector<Ref<void>>& executeDeps) {
+			for (Ref<void> dep : executeDeps)
+				dep.as<GenericSym>().get().virtualCompute();
+		}
 	public:
 		auto operator()(auto&&...) &;
 		auto operator()(auto&&...) &&;
 
-		void operator|=(auto&&) &;
-		void operator|=(auto&&) &&;
+		auto operator|=(auto&&) &;
+		auto operator|=(auto&&) &&;
 
 		Sym<T> deepCopy() const {
 			return rawDeepCopy().as<Sym<T>>();
@@ -269,6 +275,15 @@ namespace snl {
 				});
 		}
 
+		template<IsSymOpType SymOpType, typename... Deps>
+		Sym(std::vector<Ref<void>> executeDeps, SymOpType evalObj, Ref<Sym<Deps>>... deps) : executeDeps(executeDeps), symOpType(&typeid(SymOpType)), depsTypes({ &typeid(Deps)... }) {
+			this->deps = deconcretizeDeps(deps...);
+			fun = std::function([evalObj](std::vector<Ref<void>>& deps) {
+				auto concretizedDeps = concretizeDeps<Deps...>(deps);
+				auto computedDeps = computeDeps<0, typename SymOpType::ArgsList, Deps...>(concretizedDeps);
+				return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
+				});
+		}
 	private:
 		template<int... seq, typename SymOpType, typename... Deps>
 		static Sym<T> constructFromTuple(
@@ -278,7 +293,6 @@ namespace snl {
 		) {
 			return Sym<T>(evalObj, std::get<seq>(deps)...);
 		}
-	
 	public:
 		template<typename SymOpType, typename... Deps>
 		Sym(SymOpType evalObj, std::tuple<Ref<Sym<Deps>>...> deps) {
@@ -291,6 +305,7 @@ namespace snl {
 			symOpType = other.symOpType;
 			depsTypes = other.depsTypes;
 			deps = other.deps;
+			executeDeps = other.executeDeps;
 		}
 
 		Sym<T>& operator=(const Sym<T>& other) {
@@ -299,6 +314,7 @@ namespace snl {
 			symOpType = other.symOpType;
 			depsTypes = other.depsTypes;
 			deps = other.deps;
+			executeDeps = other.executeDeps;
 
 			return *this;
 		}
@@ -312,7 +328,17 @@ namespace snl {
 			return *symOpType == typeid(SymOpType);
 		}
 
+		void virtualCompute() {
+			runExecuteDeps(executeDeps);
+
+			if (fun) {
+				value = fun(deps);
+			}
+		}
+
 		Sym<T>& compute() {
+			runExecuteDeps(executeDeps);
+
 			if (fun) {
 				value = fun(deps);
 			}
@@ -331,8 +357,9 @@ namespace snl {
 		}
 
 		T& computeGet() {
-			if (value.has_value())
-				return value.value();
+			if (value.has_value()) {
+				return get();
+			} 
 			else
 				return compute().get();
 		}
@@ -362,6 +389,18 @@ namespace snl {
 		template<typename A>
 		operator Sym<A>() {
 			return cast<A>();
+		}
+
+		template<typename A>
+		Sym<T>& addExecuteDep(Sym<A>& dep) {
+			executeDeps.push_back(Ref(dep).as<void>());
+			return *this;
+		}
+
+		template<typename A>
+		Sym<T>& addExecuteDep(const Sym<A>& dep) {
+			executeDeps.push_back(makeManaged(dep).as<void>());
+			return *this;
 		}
 	};
 

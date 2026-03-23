@@ -79,6 +79,7 @@ namespace snl {
 			}
 		}
 	public:
+		TensorIndexingProxy() = default;
 		TensorIndexingProxy(
 			Tensor<T, nCovariant, nContravariant, sizes...>& tensor,
 			std::tuple<Ref<Index<sizes>>...> indexs, 
@@ -101,38 +102,6 @@ namespace snl {
 		TensorIndexingProxy<T, nCovariant, nContravariant, sizes...>& operator|=(Sym<T> expr) {
 			assignTensor(expr);
 			return *this;
-		}
-	};
-
-	template<typename T>
-	class Tensor<T, 0, 0> {
-		T value;
-	public:
-		Tensor() = default;
-		Tensor(T value) : value(value) {}
-
-		T& get() {
-			return value;
-		}
-
-		const T& get() const {
-			return value;
-		}
-
-		operator T& () {
-			return value;
-		}
-
-		operator const T& () const {
-			return value;
-		}
-
-		T& operator[](const std::array<size_t, 0>&) {
-			return value;
-		}
-
-		const T& operator[](const std::array<size_t, 0>&) const {
-			return value;
 		}
 	};
 
@@ -193,12 +162,28 @@ namespace snl {
 				data.resize((first * ... * rest));
 		}
 
+		auto& raw() {
+			return data;
+		}
+
+		const auto& raw() const {
+			return data;
+		}
+
 		const T& operator[](const std::array<size_t, nCovariant + nContravariant>& indexs) const {
 			return data[flattenIndexs(indexs)];
 		}
 
 		T& operator[](const std::array<size_t, nCovariant + nContravariant>& indexs) {
 			return data[flattenIndexs(indexs)];
+		}
+
+		const T& operator[](size_t index) const {
+			return data[index];
+		}
+
+		T& operator[](size_t index) {
+			return data[index];
 		}
 
 		auto operator()(auto&&... indexs) {
@@ -245,7 +230,7 @@ namespace snl {
 	) {
 		Tensor<decltype(A() + B()), nCovariant, nContravariant, first, rest...> result;
 
-		for (size_t i = 0; i < first; i++)
+		for (size_t i = 0; i < result.raw().size(); i++)
 			result[i] = a[i] + b[i];
 
 		return result;
