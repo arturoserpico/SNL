@@ -3,7 +3,7 @@
 #include <fstream>
 #include <unordered_set>
 #include <filesystem>
-#include <Eigen/Dense>
+//#include <Eigen/Dense>
 //#include <Eigen/Sparse>
 //#include "Geometry/GridMesh2D.h"
 #include "Symbolic/ExprOperators.h"
@@ -18,23 +18,44 @@
 constexpr double PI = 3.14159265358979323846;
 
 int main() {
-	snl::Index<3> i, j, k;
+	snl::Sym<double> x, y;
+	snl::Index<3> i;
 
-	snl::Sym<snl::Vector<double, 3>> a, b, c;
+	snl::Sym<snl::Vector<double, 3>> a;
+	snl::Matrix11<double, 3> A;
 
-	a.set();
+	a(1) = 2;
+ 	
+	A(0, 2) = x + y;
 
-	auto task = a(j) |= b(j) * c(j);
-	
-	a.addExecuteDep(task);
+	x.set(2);
+	y.set(3);
 
-	b.set();
-	c.set();
+	x = a(i);
 
-	(b(i) |= i + 1).compute();
-	(c(i) |= i * 2).compute();
+	i.set(1);
 
-	std::cout << a.compute() << std::endl;
+	std::cout << x << " " << A(0, 2) << std::endl;
+
+	//snl::Index<3> i, j, k;
+	//
+	//snl::Sym<snl::Vector<double, 3>> a, b, c;
+	//
+	//a.set();
+	//
+	//std::cout << typeid(decltype(b(j) * c(j))).name();
+	//
+	//auto task = a(j) |= b(j) * c(j);
+	//
+	//b.set();
+	//c.set();
+	//
+	//(b(i) |= i + 1).compute();
+	//(c(i) |= i * 2).compute();
+	//
+	//task.compute();
+	//
+	//std::cout << a.compute() << std::endl;
 
 	//snl::Index<100> i, j, k;
 	//

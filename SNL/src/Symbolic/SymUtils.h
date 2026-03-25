@@ -99,7 +99,7 @@ namespace snl {
 		requires staticIf<std::is_same_v<TargetList, TypeList<>>, true, std::is_same_v<TensorIndexingProxyType<decltype(first)>, SafeGet<TargetList, index>>>
 	{
 		using T = TensorIndexingProxyType<decltype(first)>;
-		Ref<Sym<T>> result = makeManaged<Sym<T>>(first.sym());
+		Ref<Sym<T>> result = makeManaged<Sym<T>>(static_cast<T>(first));
 
 		if constexpr (sizeof...(rest) == 0) {
 			return std::tuple(result);

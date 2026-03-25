@@ -66,4 +66,12 @@ namespace snl {
 		using Return = R;
 		using ArgsList = TypeList<Args...>;
 	};
+
+
+
+	template<typename T, auto... vals>
+	using IdenticalTypePackFromValues = T;
+
+	template<typename T, typename... Ts>
+	using IdenticalTypePackFromTs = T;
 }

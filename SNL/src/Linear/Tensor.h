@@ -30,80 +30,84 @@ namespace snl {
 	template<size_t dim>
 	using Index = Sym<Bounded<size_t, 0, dim - 1>>;
 
-	template<typename T, size_t nCovariant, size_t nContravariant, size_t... sizes>
-		requires (sizeof...(sizes) == nCovariant + nContravariant)
-	class TensorIndexing : public SymOpType<T(Bounded<size_t, 0, sizes - 1>...)> {
-		Ref<Tensor<T, nCovariant, nContravariant, sizes...>> tensor;
-	public: 
-		TensorIndexing(Tensor<T, nCovariant, nContravariant, sizes...>& tensor) : tensor(tensor) {}
-
-		T eval(Bounded<size_t, 0, sizes - 1>... indexs) {
-			return tensor.get()[std::array<size_t, nCovariant + nContravariant>{indexs...}];
-		}
-	};
-
-	template<typename T, size_t nCovariant, size_t nContravariant, size_t... sizes>
-		requires (sizeof...(sizes) == nCovariant + nContravariant)
-	class TensorIndexingProxy {
-		std::tuple<Ref<Index<sizes>>...> indexs;
-		std::array<bool, nCovariant + nContravariant> varying;
-		Ref<Tensor<T, nCovariant, nContravariant, sizes...>> tensor;
-
-		static std::array<size_t, nCovariant + nContravariant> computeIndexs(std::tuple<Ref<Index<sizes>>...> indexs) {
-			std::array<size_t, nCovariant + nContravariant> result;
-			std::apply([&result](auto&&... indexs) {
-				size_t i = 0;
-				((result[i++] = indexs.get().compute().get()), ...);
-			}, indexs);
-			return result;
-		}
-	
-		template<size_t index = 0>
-		void assignTensor(Sym<T>& expr) {
-			if (varying[index]) {
-				//#pragma omp parallel for
-				for (size_t i = 0; i < std::array{ sizes... }[index]; i++) {
-					std::get<index>(indexs).get().set(i);
-
-					if constexpr (index == nCovariant + nContravariant - 1)
-						tensor.get()[computeIndexs(indexs)] = expr.compute().get();
-					else
-						assignTensor<index + 1>(expr);
-				}
-			}
-			else {
-				if constexpr (index == nCovariant + nContravariant - 1)
-					tensor.get()[computeIndexs(indexs)] = expr.compute().get();
-				else
-					assignTensor<index + 1>(expr);
-			}
-		}
-	public:
-		TensorIndexingProxy() = default;
-		TensorIndexingProxy(
-			Tensor<T, nCovariant, nContravariant, sizes...>& tensor,
-			std::tuple<Ref<Index<sizes>>...> indexs, 
-			std::array<bool, nCovariant + nContravariant> varying
-		) : tensor(tensor), indexs(indexs), varying(varying) {
-		}
-
-		Sym<T> sym() {
-			return Sym<T>(TensorIndexing<T, nCovariant, nContravariant, sizes...>(tensor), indexs);
-		}
-
-		operator Sym<T> () {
-			return sym();
-		}
-
-		operator T() {
-			return sym().compute().get();
-		}
-
-		TensorIndexingProxy<T, nCovariant, nContravariant, sizes...>& operator|=(Sym<T> expr) {
-			assignTensor(expr);
-			return *this;
-		}
-	};
+	//template<typename T, size_t nCovariant, size_t nContravariant, size_t... sizes>
+	//	requires (sizeof...(sizes) == nCovariant + nContravariant)
+	//class TensorIndexing : public SymOpType<T(Bounded<size_t, 0, sizes - 1>...)> {
+	//	Ref<Tensor<T, nCovariant, nContravariant, sizes...>> tensor;
+	//public: 
+	//	TensorIndexing(Tensor<T, nCovariant, nContravariant, sizes...>& tensor) : tensor(tensor) {}
+	//
+	//	T eval(Bounded<size_t, 0, sizes - 1>... indexs) {
+	//		return tensor.get()[std::array<size_t, nCovariant + nContravariant>{indexs...}];
+	//	}
+	//};
+	//
+	//template<typename T, size_t nCovariant, size_t nContravariant, size_t... sizes>
+	//	requires (sizeof...(sizes) == nCovariant + nContravariant)
+	//class TensorIndexingProxy {
+	//	std::tuple<Ref<Index<sizes>>...> indexs;
+	//	std::array<bool, nCovariant + nContravariant> varying;
+	//	Ref<Tensor<T, nCovariant, nContravariant, sizes...>> tensor;
+	//
+	//	static std::array<size_t, nCovariant + nContravariant> computeIndexs(std::tuple<Ref<Index<sizes>>...> indexs) {
+	//		std::array<size_t, nCovariant + nContravariant> result;
+	//		std::apply([&result](auto&&... indexs) {
+	//			size_t i = 0;
+	//			((result[i++] = indexs.get().compute().get()), ...);
+	//		}, indexs);
+	//		return result;
+	//	}
+	//
+	//	template<size_t index = 0>
+	//	void assignTensor(Sym<T>& expr) {
+	//		if (varying[index]) {
+	//			//#pragma omp parallel for
+	//			for (size_t i = 0; i < std::array{ sizes... }[index]; i++) {
+	//				std::get<index>(indexs).get().set(i);
+	//
+	//				if constexpr (index == nCovariant + nContravariant - 1)
+	//					tensor.get()[computeIndexs(indexs)] = expr.compute().get();
+	//				else
+	//					assignTensor<index + 1>(expr);
+	//			}
+	//		}
+	//		else {
+	//			if constexpr (index == nCovariant + nContravariant - 1)
+	//				tensor.get()[computeIndexs(indexs)] = expr.compute().get();
+	//			else
+	//				assignTensor<index + 1>(expr);
+	//		}
+	//	}
+	//
+	//	Sym<T> sym() {
+	//		return Sym<T>(TensorIndexing<T, nCovariant, nContravariant, sizes...>(tensor), indexs);
+	//	}
+	//public:
+	//	TensorIndexingProxy() = default;
+	//	TensorIndexingProxy(
+	//		Tensor<T, nCovariant, nContravariant, sizes...>& tensor,
+	//		std::tuple<Ref<Index<sizes>>...> indexs, 
+	//		std::array<bool, nCovariant + nContravariant> varying
+	//	) : tensor(tensor), indexs(indexs), varying(varying) {
+	//	}
+	//
+	//	//Sym<T> sym() {
+	//	//	return Sym<T>(TensorIndexing<T, nCovariant, nContravariant, sizes...>(tensor), indexs);
+	//	//}
+	//	//
+	//	//operator Sym<T> () {
+	//	//	return sym();
+	//	//}
+	//
+	//	operator T() {
+	//		return sym().compute().get();
+	//	}
+	//
+	//	TensorIndexingProxy<T, nCovariant, nContravariant, sizes...>& operator|=(Sym<T> expr) {
+	//		assignTensor(expr);
+	//		return *this;
+	//	}
+	//};
 
 	template<typename T, size_t nCovariant, size_t nContravariant, size_t first, size_t... rest>
 	class Tensor<T, nCovariant, nContravariant, first, rest...> {
@@ -125,23 +129,23 @@ namespace snl {
 
 		DataT data;
 
-		TensorIndexingProxy<T, nCovariant, nContravariant, first, rest...> 
-		indexTensor(auto&&... indexs) {
-			using Types = TypeList<Bounded<size_t, 0, first - 1>, Bounded<size_t, 0, rest - 1>...>;
-			auto tuple = convertArgsToSymRef<Types>(std::forward<decltype(indexs)>(indexs)...);
-			return TensorIndexingProxy<T, nCovariant, nContravariant, first, rest...>(*this, tuple, witchSymbolic(std::forward<decltype(indexs)>(indexs)...));
-		}
+		//TensorIndexingProxy<T, nCovariant, nContravariant, first, rest...> 
+		//indexTensor(auto&&... indexs) {
+		//	using Types = TypeList<Bounded<size_t, 0, first - 1>, Bounded<size_t, 0, rest - 1>...>;
+		//	auto tuple = convertArgsToSymRef<Types>(std::forward<decltype(indexs)>(indexs)...);
+		//	return TensorIndexingProxy<T, nCovariant, nContravariant, first, rest...>(*this, tuple, witchSymbolic(std::forward<decltype(indexs)>(indexs)...));
+		//}
 
-		template<size_t... indexs>
-		Sym<T> multilinearApplication(
-			std::index_sequence<indexs...> _,
-			VectorArg<indexs>&... vectors
-		) {
-			std::tuple<Ref<Index<first>>, Ref<Index<rest>>...> symIndexs =
-			{ makeManaged<Index<first>>(), makeManaged<Index<rest>>()... };
-
-			return sum(std::get<indexs>(symIndexs).get()...) | this->indexTensor(std::get<indexs>(symIndexs).get()...) * (vectors(std::get<indexs>(symIndexs).get()) * ...);
-		}
+		//template<size_t... indexs>
+		//Sym<T> multilinearApplication(
+		//	std::index_sequence<indexs...> _,
+		//	VectorArg<indexs>&... vectors
+		//) {
+		//	std::tuple<Ref<Index<first>>, Ref<Index<rest>>...> symIndexs =
+		//	{ makeManaged<Index<first>>(), makeManaged<Index<rest>>()... };
+		//
+		//	return sum(std::get<indexs>(symIndexs).get()...) | this->indexTensor(std::get<indexs>(symIndexs).get()...) * (vectors(std::get<indexs>(symIndexs).get()) * ...);
+		//}
 
 		size_t flattenIndexs(const std::array<size_t, nCovariant + nContravariant>& indexs) {
 			constexpr std::array<size_t, nCovariant + nContravariant> sizes{ first, rest... };
@@ -186,15 +190,12 @@ namespace snl {
 			return data[index];
 		}
 
-		auto operator()(auto&&... indexs) {
-			constexpr bool isMultilinearApplication = requires(decltype(indexs)... vals) {
-				multilinearApplication(std::make_index_sequence<nCovariant + nContravariant>(), vals...);
-			};
+		const T& operator()(size_t indexsFirst, IdenticalTypePackFromValues<size_t, rest>... indexsRest) const {
+			return (*this)[{ indexsFirst, indexsRest... }];
+		}
 
-			if constexpr (isMultilinearApplication)
-				return multilinearApplication(std::make_index_sequence<nCovariant + nContravariant>(), indexs...);
-			else
-				return indexTensor(std::forward<decltype(indexs)>(indexs)...);
+		T& operator()(size_t indexsFirst, IdenticalTypePackFromValues<size_t, rest>... indexsRest) {
+			return (*this)[{ indexsFirst, indexsRest... }];
 		}
 	};
 

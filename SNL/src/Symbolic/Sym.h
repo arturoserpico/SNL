@@ -143,7 +143,6 @@ namespace snl {
 		const std::type_info* symOpType = nullptr;
 		std::conditional_t<(debugLevel > 0), std::vector<const std::type_info*>, Empty> depsTypes;
 		std::vector<Ref<void>> deps;
-		std::vector<Ref<void>> executeDeps;
 	public:
 		std::vector<Ref<void>>& rawDeps() {
 			return deps;
@@ -245,11 +244,6 @@ namespace snl {
 
 			return copy.as<void>();
 		}
-
-		static void runExecuteDeps(std::vector<Ref<void>>& executeDeps) {
-			for (Ref<void> dep : executeDeps)
-				dep.as<GenericSym>().get().virtualCompute();
-		}
 	public:
 		auto operator()(auto&&...) &;
 		auto operator()(auto&&...) &&;
@@ -275,15 +269,6 @@ namespace snl {
 				});
 		}
 
-		template<IsSymOpType SymOpType, typename... Deps>
-		Sym(std::vector<Ref<void>> executeDeps, SymOpType evalObj, Ref<Sym<Deps>>... deps) : executeDeps(executeDeps), symOpType(&typeid(SymOpType)), depsTypes({ &typeid(Deps)... }) {
-			this->deps = deconcretizeDeps(deps...);
-			fun = std::function([evalObj](std::vector<Ref<void>>& deps) {
-				auto concretizedDeps = concretizeDeps<Deps...>(deps);
-				auto computedDeps = computeDeps<0, typename SymOpType::ArgsList, Deps...>(concretizedDeps);
-				return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
-				});
-		}
 	private:
 		template<int... seq, typename SymOpType, typename... Deps>
 		static Sym<T> constructFromTuple(
@@ -305,7 +290,6 @@ namespace snl {
 			symOpType = other.symOpType;
 			depsTypes = other.depsTypes;
 			deps = other.deps;
-			executeDeps = other.executeDeps;
 		}
 
 		Sym<T>& operator=(const Sym<T>& other) {
@@ -314,7 +298,6 @@ namespace snl {
 			symOpType = other.symOpType;
 			depsTypes = other.depsTypes;
 			deps = other.deps;
-			executeDeps = other.executeDeps;
 
 			return *this;
 		}
@@ -329,16 +312,12 @@ namespace snl {
 		}
 
 		void virtualCompute() {
-			runExecuteDeps(executeDeps);
-
 			if (fun) {
 				value = fun(deps);
 			}
 		}
 
 		Sym<T>& compute() {
-			runExecuteDeps(executeDeps);
-
 			if (fun) {
 				value = fun(deps);
 			}
@@ -389,18 +368,6 @@ namespace snl {
 		template<typename A>
 		operator Sym<A>() {
 			return cast<A>();
-		}
-
-		template<typename A>
-		Sym<T>& addExecuteDep(Sym<A>& dep) {
-			executeDeps.push_back(Ref(dep).as<void>());
-			return *this;
-		}
-
-		template<typename A>
-		Sym<T>& addExecuteDep(const Sym<A>& dep) {
-			executeDeps.push_back(makeManaged(dep).as<void>());
-			return *this;
 		}
 	};
 
