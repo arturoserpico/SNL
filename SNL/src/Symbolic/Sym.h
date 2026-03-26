@@ -4,6 +4,7 @@
 #include <vector>
 #include <functional>
 #include "../Memory/ObjectManager.h"
+#include "../Utils/Any.h"
 #include "../Utils/Ref.h"
 #include "../Utils/Error.h"
 #include "../Metaprogramming/Concepts.h"
@@ -19,7 +20,7 @@ namespace snl {
 		using R = _R;
 		using ArgsList = TypeList<Args...>;
 
-		virtual R eval(Args...) = 0;
+		//virtual R eval(Args...) = 0;
 	};
 
 	template<typename T>
@@ -28,6 +29,38 @@ namespace snl {
 		typename T::ArgsList;
 		t.eval;
 	};
+
+	template<typename T>
+	struct SymLabel : SymOpType<T()> {
+		static size_t lastLabelId;
+		size_t labelId = lastLabelId++;
+		T eval() = delete;
+	};
+
+	template<typename T>
+	size_t SymLabel<T>::lastLabelId = 0;
+
+	template<typename T>
+	bool operator==(const SymLabel<T>& a, const SymLabel<T>& b) {
+		return a.labelId == b.labelId;
+	}
+
+	template<typename T>
+	struct SymConstant : SymOpType<T()> {
+		T value;
+
+		SymConstant() = default;
+		SymConstant(T value) : value(value) {}
+
+		T eval() {
+			return value;
+		}
+	};
+
+	template<typename T>
+	bool operator==(const SymConstant<T>& a, const SymConstant<T>& b) {
+		return a.value == b.value;
+	}
 
 	template<typename T>
 	class Sym;
@@ -66,18 +99,23 @@ namespace snl {
 	using SafeRemSym = _SafeRemSym<std::remove_cvref_t<T>>::Type;
 
 	struct GenericSym {
-		virtual std::vector<Ref<void>>& rawDeps() = 0;
-		virtual const std::vector<Ref<void>>& rawDeps() const = 0;
+		static std::map<const std::type_info*, std::function<bool(const GenericSym&, const GenericSym&)>> comparators;
+
+		virtual bool isEvaluable() const = 0;
+		virtual const std::type_info& nodeType() const = 0;
+		virtual const std::type_info& symType() const = 0;
+		virtual std::vector<Ref<GenericSym>>& rawDeps() = 0;
+		virtual const std::vector<Ref<GenericSym>>& rawDeps() const = 0;
 		virtual std::vector<const std::type_info*> getDepsTypes() const = 0;
-		virtual void virtualCompute() = 0;
+		//virtual void virtualCompute() = 0;
 		
 		std::string print() const {
 			std::stringstream str;
 
 			str << "{\n";
 
-			for (Ref<void> dep : rawDeps())
-				str << '\t' << dep.as<GenericSym>().get().print();
+			for (Ref<GenericSym> dep : rawDeps())
+				str << '\t' << dep.get().print();
 
 			if (rawDeps().size() == 0)
 				str << this << '\n';
@@ -91,11 +129,11 @@ namespace snl {
 		size_t occurences(Ref<Sym<T>> target) {
 			size_t result = 0;
 
-			for (Ref<void> dep : rawDeps()) {
+			for (Ref<GenericSym> dep : rawDeps()) {
 				if (dep.raw() == target.as<void>().raw())
 					result++;
 				else
-					result += dep.as<GenericSym>().get().occurences(target);
+					result += dep.get().occurences(target);
 			}
 
 			return result;
@@ -111,10 +149,10 @@ namespace snl {
 			for (size_t i = 0; i < rawDeps().size(); i++) {
 				if (target.raw() == rawDeps()[i].as<Sym<T>>().raw()) {
 					SNLDebugCall(1, expect(typeid(T) == *getDepsTypes()[i], "substitution target is not of correct type"));
-					rawDeps()[i] = substitute.as<void>();
+					rawDeps()[i] = substitute.as<GenericSym>();
 				}
 				else
-					rawDeps()[i].as<GenericSym>().get().substitute(target, substitute);
+					rawDeps()[i].get().substitute(target, substitute);
 			}
 		}
 
@@ -133,22 +171,37 @@ namespace snl {
 			this->substitute(Ref(target), makeManaged(substitute));
 		}
 
-		virtual Ref<void> rawDeepCopy() const = 0;
+		virtual Ref<GenericSym> rawDeepCopy() const = 0;
 	};
+
+	std::map<const std::type_info*, std::function<bool(const GenericSym&, const GenericSym&)>> 
+		GenericSym::comparators;
+
+	bool operator==(const GenericSym& a, const GenericSym& b) {
+		if (a.symType() != b.symType())
+			return false;
+
+		return GenericSym::comparators.at(&a.symType())(a, b);
+	}
 
 	template<typename T>
 	class Sym : public GenericSym {
-		std::optional<T> value;
-		std::function<T(std::vector<Ref<void>>&)> fun;
-		const std::type_info* symOpType = nullptr;
+		bool isDefined = false;
+		Any<> evalObj;
+		//std::optional<T> value;
+		std::function<T(Any<>&, std::vector<Ref<GenericSym>>&)> fun;
 		std::conditional_t<(debugLevel > 0), std::vector<const std::type_info*>, Empty> depsTypes;
-		std::vector<Ref<void>> deps;
+		std::vector<Ref<GenericSym>> deps;
 	public:
-		std::vector<Ref<void>>& rawDeps() {
+		bool isEvaluable() const {
+			return isDefined;
+		}
+
+		std::vector<Ref<GenericSym>>& rawDeps() {
 			return deps;
 		}
 
-		const std::vector<Ref<void>>& rawDeps() const {
+		const std::vector<Ref<GenericSym>>& rawDeps() const {
 			return deps;
 		}
 
@@ -159,42 +212,49 @@ namespace snl {
 				return {};
 		}
 
+		const std::type_info& nodeType() const {
+			return evalObj.getType();
+		}
+
+		const std::type_info& symType() const {
+			return typeid(T);
+		}
 	private:
 		template<typename First, typename... Rest>
-		static std::vector<Ref<void>> copyDeps(Ref<Sym<First>> first, Ref<Sym<Rest>>... rest) {
-			Ref<void> result;
+		static std::vector<Ref<GenericSym>> copyDeps(Ref<Sym<First>> first, Ref<Sym<Rest>>... rest) {
+			Ref<GenericSym> result;
 
 			if (first.get().rawDeps().size() == 0)
 				result = first.as<void>();
 			else
-				result = makeManaged(first.get().copy()).as<void>();
+				result = makeManaged(first.get().copy()).as<GenericSym>();
 
 			if constexpr (sizeof...(rest) == 0) {
 				return { result };
 			}
 			else {
-				std::vector<Ref<void>> restDeps = copyDeps<Rest...>(rest...);
+				std::vector<Ref<GenericSym>> restDeps = copyDeps<Rest...>(rest...);
 				restDeps.insert(restDeps.begin(), result);
 				return restDeps;
 			}
 		}
 
 		template<typename First, typename... Rest>
-		static std::vector<Ref<void>> deconcretizeDeps(Ref<Sym<First>> first, Ref<Sym<Rest>>... rest) {
-			Ref<void> result = first.as<void>();
+		static std::vector<Ref<GenericSym>> deconcretizeDeps(Ref<Sym<First>> first, Ref<Sym<Rest>>... rest) {
+			Ref<GenericSym> result = first.as<GenericSym>();
 
 			if constexpr (sizeof...(rest) == 0) {
 				return { result };
 			}
 			else {
-				std::vector<Ref<void>> restDeps = deconcretizeDeps<Rest...>(rest...);
+				std::vector<Ref<GenericSym>> restDeps = deconcretizeDeps<Rest...>(rest...);
 				restDeps.insert(restDeps.begin(), result);
 				return restDeps;
 			}
 		}
 
 		template<typename First, typename... Rest>
-		static std::tuple<Ref<Sym<First>>, Ref<Sym<Rest>>...> concretizeDeps(std::vector<Ref<void>>& deps, size_t index = 0) {
+		static std::tuple<Ref<Sym<First>>, Ref<Sym<Rest>>...> concretizeDeps(std::vector<Ref<GenericSym>>& deps, size_t index = 0) {
 			Ref<Sym<First>> result = deps[index].as<Sym<First>>();
 
 			if constexpr (sizeof...(Rest) == 0) {
@@ -216,7 +276,7 @@ namespace snl {
 			if constexpr (IsSym<SafeRemRef<Get<TargetList, index>>>)
 				std::get<index>(result) = std::get<index>(deps);
 			else
-				std::get<index>(result) = std::get<index>(deps).get().compute().get();
+				std::get<index>(result) = std::get<index>(deps).get().eval();
 
 			return result;
 		}
@@ -229,46 +289,87 @@ namespace snl {
 				return { result };
 			}
 			else {
-				std::vector<Ref<void>> rest = getDepsTypes<Rest...>();
+				std::vector<Ref<GenericSym>> rest = getDepsTypes<Rest...>();
 				rest.insert(rest.begin(), result);
 				return rest;
 			}
 		}
 
-		Ref<void> rawDeepCopy() const {
+		Ref<GenericSym> rawDeepCopy() const {
 			Ref<Sym<T>> copy = makeManaged(*this);
 
 			for (size_t i = 0; i < rawDeps().size(); i++)
 				if (rawDeps()[i].as<GenericSym>().get().rawDeps().size() != 0)
 					copy.get().rawDeps()[i] = rawDeps()[i].as<GenericSym>().get().rawDeepCopy();
 
-			return copy.as<void>();
+			return copy.as<GenericSym>();
+		}
+
+		static bool comparator(const GenericSym& a, const GenericSym& b) {
+			return Ref(a).as<const Sym<T>>() == Ref(b).as<const Sym<T>>();
 		}
 	public:
 		auto operator()(auto&&...) &;
 		auto operator()(auto&&...) &&;
 
-		auto operator|=(auto&&) &;
-		auto operator|=(auto&&) &&;
+		//auto operator|=(auto&&) &;
+		//auto operator|=(auto&&) &&;
 
 		Sym<T> deepCopy() const {
 			return rawDeepCopy().as<Sym<T>>();
 		}
 
-		Sym() = default;
+		template<IsSymOpType SymOpType>
+		Sym(SymOpType evalObj) : evalObj(evalObj) {
+			if (!comparators.count(&typeid(T)))
+				comparators[&typeid(T)] = comparator;
+			
+			constexpr bool isEvaluable = requires(SymOpType evalObj) {
+				evalObj.eval();
+			};
 
-		Sym(T val) : value(val) {}
+			this->isDefined = isEvaluable;
 
-		template<IsSymOpType SymOpType, typename... Deps>
-		Sym(SymOpType evalObj, Ref<Sym<Deps>>... deps) : symOpType(&typeid(SymOpType)), depsTypes({ &typeid(Deps)... }) {
-			this->deps = deconcretizeDeps(deps...);
-			fun = std::function([evalObj](std::vector<Ref<void>>& deps) {
-					auto concretizedDeps = concretizeDeps<Deps...>(deps);
-					auto computedDeps = computeDeps<0, typename SymOpType::ArgsList, Deps...>(concretizedDeps);
-					return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
+			fun = std::function([](Any<>& _evalObj, std::vector<Ref<GenericSym>>& deps) -> T {
+					if constexpr (isEvaluable) {
+						auto& evalObj = _evalObj.get<SymOpType>();
+						return std::apply(&SymOpType::eval, std::tuple(evalObj));
+					} else
+						throw Exception("attempted to evaluate an unevaluable snl::Sym");
 				});
 		}
 
+		template<IsSymOpType SymOpType, typename... Deps>
+		Sym(SymOpType evalObj, Ref<Sym<Deps>>... deps) : evalObj(evalObj), depsTypes({ &typeid(Deps)... }) {
+			if (!comparators.count(&typeid(T)))
+				comparators[&typeid(T)] = comparator;
+			
+			constexpr bool isEvaluable = requires(SymOpType evalObj, Deps... deps) {
+				evalObj.eval(deps...);
+			};
+
+			this->isDefined = isEvaluable;
+			
+			this->deps = deconcretizeDeps(deps...);
+			fun = std::function([](Any<>& _evalObj, std::vector<Ref<GenericSym>>& deps) -> T {
+					if constexpr (isEvaluable) {
+						auto& evalObj = _evalObj.get<SymOpType>();
+						auto concretizedDeps = concretizeDeps<Deps...>(deps);
+						auto computedDeps = computeDeps<0, typename SymOpType::ArgsList, Deps...>(concretizedDeps);
+						return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
+					}
+					else
+						throw Exception("attempted to evaluate an unevaluable snl::Sym");
+				});
+		}
+
+		Sym() : Sym<T>(SymLabel<T>()) {}
+		Sym(T value) : Sym<T>(SymConstant<T>(value)) {}
+
+		Sym<T>& operator=(T value) {
+			*this = Sym<T>(value);
+			return *this;
+		}
 	private:
 		template<int... seq, typename SymOpType, typename... Deps>
 		static Sym<T> constructFromTuple(
@@ -285,17 +386,15 @@ namespace snl {
 		}
 
 		Sym(const Sym<T>& other) {
-			value = other.value;
+			evalObj = other.evalObj;
 			fun = other.fun;
-			symOpType = other.symOpType;
 			depsTypes = other.depsTypes;
 			deps = other.deps;
 		}
 
 		Sym<T>& operator=(const Sym<T>& other) {
-			value = other.value;
+			evalObj = other.evalObj;
 			fun = other.fun;
-			symOpType = other.symOpType;
 			depsTypes = other.depsTypes;
 			deps = other.deps;
 
@@ -308,53 +407,45 @@ namespace snl {
 
 		template<typename SymOpType>
 		bool isOpType() {
-			return *symOpType == typeid(SymOpType);
+			return evalObj.getType() == typeid(SymOpType);
 		}
 
-		void virtualCompute() {
-			if (fun) {
-				value = fun(deps);
+		T eval() {
+			if (fun) { 
+				return fun(evalObj, deps);
 			}
 		}
 
-		Sym<T>& compute() {
-			if (fun) {
-				value = fun(deps);
-			}
+		//T& get() {
+		//	SNLDebugCall(1, expect(value.has_value(), "Value not computed or assigned yet"));
+		//	return value.value();
+		//}
+		//
+		//const T& get() const {
+		//	SNLDebugCall(1, expect(value.has_value(), "Value not computed or assigned yet"));
+		//	return value.value();
+		//}
 
-			return *this;
-		}
-
-		T& get() {
-			SNLDebugCall(1, expect(value.has_value(), "Value not computed or assigned yet"));
-			return value.value();
-		}
-
-		const T& get() const {
-			SNLDebugCall(1, expect(value.has_value(), "Value not computed or assigned yet"));
-			return value.value();
-		}
-
-		T& computeGet() {
-			if (value.has_value()) {
-				return get();
-			} 
-			else
-				return compute().get();
-		}
-
-		Sym<T>& set() {
-			value = T();
-			return *this;
-		}
-
-		Sym<T>& set(T val) {
-			value = val;
-			return *this;
-		}
+		//T& computeGet() {
+		//	if (value.has_value()) {
+		//		return get();
+		//	} 
+		//	else
+		//		return compute().get();
+		//}
+		//
+		//Sym<T>& set() {
+		//	value = T();
+		//	return *this;
+		//}
+		//
+		//Sym<T>& set(T val) {
+		//	value = val;
+		//	return *this;
+		//}
 
 		operator T () {
-			return compute().get();
+			return eval();
 		}
 
 		template<typename A>
@@ -369,7 +460,18 @@ namespace snl {
 		operator Sym<A>() {
 			return cast<A>();
 		}
+
+		template<typename T>
+		friend bool operator==(const snl::Sym<T>& a, const snl::Sym<T>& b);
 	};
+
+	template<typename T>
+	bool operator==(const snl::Sym<T>& a, const snl::Sym<T>& b) {
+		return
+			a.evalObj == b.evalObj &&
+			a.depsTypes == b.depsTypes &&
+			a.deps == b.deps;
+	}
 
 	template<typename SymOpType, typename... Deps>
 	Sym(SymOpType, Ref<Sym<Deps>>...) -> Sym<typename SymOpType::R>;
@@ -378,7 +480,7 @@ namespace snl {
 	Sym(SymOpType, std::tuple<Ref<Sym<Deps>>...>) -> Sym<typename SymOpType::R>;
 
 	std::ostream& operator<<(std::ostream& stream, IsSym auto val) {
-		stream << val.computeGet();
+		stream << val.eval();
 		return stream;
 	}
 }

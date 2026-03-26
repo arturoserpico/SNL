@@ -55,17 +55,17 @@ namespace snl {
 		return Sym<typename SymCall<T, SymArgsList>::R>(SymCall<T, SymArgsList>(), std::tuple_cat(std::make_tuple(makeManaged(*this)), tuple));
 	}
 
-	template<typename T>
-	auto Sym<T>::operator|=(auto&& _decl) & {
-		auto [decl] = convertArgsToSymRef(std::forward<decltype(_decl)>(_decl));
-		using Decl = RemSym<RemRef<decltype(decl)>>;
-		return Sym<Empty>(SymDeclaration<T, Decl>(), Ref(*this), decl);
-	}
-
-	template<typename T>
-	auto Sym<T>::operator|=(auto&& _decl) && {
-		auto [decl] = convertArgsToSymRef(std::forward<decltype(_decl)>(_decl));
-		using Decl = RemSym<RemRef<decltype(decl)>>;
-		return Sym<Empty>(SymDeclaration<T, Decl>(), makeManaged(*this), decl);
-	}
+	//template<typename T>
+	//auto Sym<T>::operator|=(auto&& _decl) & {
+	//	auto [decl] = convertArgsToSymRef(std::forward<decltype(_decl)>(_decl));
+	//	using Decl = RemSym<RemRef<decltype(decl)>>;
+	//	return Sym<Empty>(SymDeclaration<T, Decl>(), Ref(*this), decl);
+	//}
+	//
+	//template<typename T>
+	//auto Sym<T>::operator|=(auto&& _decl) && {
+	//	auto [decl] = convertArgsToSymRef(std::forward<decltype(_decl)>(_decl));
+	//	using Decl = RemSym<RemRef<decltype(decl)>>;
+	//	return Sym<Empty>(SymDeclaration<T, Decl>(), makeManaged(*this), decl);
+	//}
 }

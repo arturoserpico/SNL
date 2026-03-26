@@ -6,11 +6,81 @@
 
 namespace snl {
 	void addObjectRef(const auto*);
+	void removeObjectRef(const auto*);
+
+	template<typename T>
+	class Ref;
+
+	template<>
+	class Ref<void> {
+		bool managed;
+		void* inner;
+	public:
+		Ref() = default;
+
+		Ref(void* val, bool managed = false) : managed(managed), inner(val) {
+			if (managed)
+				addObjectRef(inner);
+		}
+
+		Ref(const Ref<void>& other) : managed(other.managed), inner(other.inner) {
+			if (managed)
+				addObjectRef(inner);
+		}
+
+		Ref<void>& operator=(const Ref<void>& other) {
+			managed = other.managed;
+
+			if (managed) {
+				if(inner != nullptr)
+					removeObjectRef(inner);
+				addObjectRef(other.inner);
+			}
+
+			inner = other.inner;
+
+			return *this;
+		}
+
+		~Ref() {
+			if (managed)
+				removeObjectRef(inner);
+		}
+
+		void* raw() const {
+			return inner;
+		}
+
+		bool empty() const {
+			return inner == nullptr;
+		}
+
+		void bind(void* val) {
+			inner = val;
+		}
+
+		bool isManaged() {
+			return managed;
+		}
+
+		template<typename T>
+		Ref<T> as() const {
+			return Ref<T>(std::launder(reinterpret_cast<T*>(inner)), managed);
+		}
+
+		template<>
+		Ref<void> as<void>() const {
+			return Ref<void>(reinterpret_cast<void*>(inner), managed);
+		}
+
+		template<typename T>
+		Ref(const Ref<T>& other) : Ref<void>(other.as<void>()) {}
+	};
 
 	template<typename T>
 	class Ref {
-		bool managed = false;
-		T* inner = nullptr;
+		bool managed;
+		T* inner;
 	public:
 		Ref() = default;
 
@@ -29,14 +99,21 @@ namespace snl {
 				addObjectRef(inner);
 		}
 
-		~Ref();
+		~Ref() {
+			if (managed)
+				removeObjectRef(inner);
+		}
 
 		Ref<T>& operator=(const Ref<T>& other) {
-			inner = other.inner;
 			managed = other.managed;
 
-			if (managed)
-				addObjectRef(inner);
+			if (managed) {
+				if (inner != nullptr)
+					removeObjectRef(inner);
+				addObjectRef(other.inner);
+			}
+
+			inner = other.inner;
 
 			return *this;
 		}
@@ -59,13 +136,13 @@ namespace snl {
 			return *inner;
 		}
 
-		void bind(T* val) {
-			inner = val;
-		}
-
-		void bind(T& val) {
-			inner = &val;
-		}
+		//void bind(T* val) {
+		//	inner = val;
+		//}
+		//
+		//void bind(T& val) {
+		//	inner = &val;
+		//}
 
 		bool isManaged() {
 			return managed;
@@ -76,90 +153,25 @@ namespace snl {
 		}
 
 		template<typename A>
-		Ref<A> as() {
-			return Ref<A>(std::launder(reinterpret_cast<T*>(inner)), managed);
+		Ref<A> as() const {
+			return Ref<A>(std::launder(reinterpret_cast<A*>(inner)), managed);
+		}
+
+		template<>
+		Ref<void> as<void>() const {
+			return Ref<void>(reinterpret_cast<void*>(inner), managed);
 		}
 
 		template<typename A>
-		Ref<const A> as() const {
-			return Ref<const A>(std::launder(reinterpret_cast<const A*>(inner)), managed);
-		}
-
-		template<typename A>
-		Ref<A> dyn() {
+		Ref<A> dyn() const {
 			return Ref<A>(dynamic_cast<A*>(inner), managed);
-		}
-
-		template<typename A>
-		Ref<const A> dyn() const {
-			return Ref<const A>(dynamic_cast<const A*>(inner), managed);
 		}
 
 		operator Ref<const T>() const {
 			return Ref<const T>(inner, managed);
 		}
-	};
 
-	template<>
-	class Ref<void> {
-		bool managed = false;
-		void* inner = nullptr;
-	public:
-		Ref() = default;
-		
-		Ref(void* val, bool managed = false) : managed(managed), inner(val) {
-			if (managed)
-				addObjectRef(inner);
-		}
-
-		template<typename T>
-		Ref(const Ref<T>& other) : managed(other.managed), inner(reinterpret_cast<void*>(other.inner)) {
-			if (managed)
-				addObjectRef(inner);
-		}
-
-		Ref(const Ref<void>& other) : managed(other.managed), inner(other.inner) {
-			if (managed)
-				addObjectRef(inner);
-		}
-
-		Ref<void>& operator=(const Ref<void>& other) {
-			inner = other.inner;
-			managed = other.managed;
-
-			if (managed)
-				addObjectRef(inner);
-
-			return *this;
-		}
-		
-		~Ref();
-
-		void* raw() const {
-			return inner;
-		}
-
-		bool empty() const {
-			return inner == nullptr;
-		}
-
-		void bind(void* val) {
-			inner = val;
-		}
-
-		bool isManaged() {
-			return managed;
-		}
-
-		template<typename T>
-		Ref<T> as() {
-			return Ref<T>(std::launder(reinterpret_cast<T*>(inner)), managed);
-		}
-
-		template<typename T>
-		Ref<const T> as() const {
-			return Ref<const T>(std::launder(reinterpret_cast<const T*>(inner)), managed);
-		}
+		friend class Ref<void>;
 	};
 
 	template<typename T>

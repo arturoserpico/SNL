@@ -111,5 +111,11 @@
     <ClInclude Include="src\Symbolic\Random.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Symbolic\MathScope.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\Any.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

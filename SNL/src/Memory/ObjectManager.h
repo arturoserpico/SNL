@@ -9,14 +9,14 @@ namespace snl {
 		template<typename T>
 		Ref<T> create(const T& val) {
 			T* obj = new T(val);
-			objectRegister[obj] = 1;
+			objectRegister[obj] = 0;
 			return Ref<T>(*obj, true);
 		}
 
 		template<typename T, typename... Args>
 		Ref<T> create(Args&&... args) {
 			T* obj = new T(std::forward<Args>(args)...);
-			objectRegister[obj] = 1;
+			objectRegister[obj] = 0;
 			return Ref<T>(*obj, true);
 		}
 
@@ -43,6 +43,10 @@ namespace snl {
 
 	static ObjectManager objManager;
 	
+	void removeObjectRef(const auto* obj) {
+		objManager.release(obj);
+	}
+
 	void addObjectRef(const auto* obj) {
 		objManager.addRef(obj);
 	}
@@ -57,14 +61,14 @@ namespace snl {
 		return objManager.create<T>(std::forward<Args>(args)...);
 	}
 
-	template<typename T>
-	Ref<T>::~Ref() {
-		if (managed)
-			objManager.release(inner);
-	}
-
-	Ref<void>::~Ref() {
-		if (managed)
-			objManager.release(inner);
-	}
+	//template<typename T>
+	//Ref<T>::~Ref() {
+	//	if (managed)
+	//		objManager.release(inner);
+	//}
+	//
+	//Ref<void>::~Ref() {
+	//	if (managed)
+	//		objManager.release(inner);
+	//}
 }

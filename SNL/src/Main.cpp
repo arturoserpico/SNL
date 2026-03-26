@@ -8,7 +8,8 @@
 //#include "Geometry/GridMesh2D.h"
 #include "Symbolic/ExprOperators.h"
 #include "Symbolic/Random.h"
-#include "Linear/Tensor.h"
+//#include "Linear/Tensor.h"
+#include "Utils/Any.h"
 #include "Utils/Bounded.h"
 #include "Symbolic/Sym.h"
 #include "Symbolic/SymOperators.h"
@@ -21,41 +22,14 @@ int main() {
 	snl::Sym<double> x, y;
 	snl::Index<3> i;
 
-	snl::Sym<snl::Vector<double, 3>> a;
-	snl::Matrix11<double, 3> A;
+	x = 3;
+	y = 3;
 
-	a(1) = 2;
- 	
-	A(0, 2) = x + y;
+	snl::Ref<snl::GenericSym>
+		a = snl::Ref(x).as<snl::GenericSym>(),
+		b = snl::Ref(y).as<snl::GenericSym>();
 
-	x.set(2);
-	y.set(3);
-
-	x = a(i);
-
-	i.set(1);
-
-	std::cout << x << " " << A(0, 2) << std::endl;
-
-	//snl::Index<3> i, j, k;
-	//
-	//snl::Sym<snl::Vector<double, 3>> a, b, c;
-	//
-	//a.set();
-	//
-	//std::cout << typeid(decltype(b(j) * c(j))).name();
-	//
-	//auto task = a(j) |= b(j) * c(j);
-	//
-	//b.set();
-	//c.set();
-	//
-	//(b(i) |= i + 1).compute();
-	//(c(i) |= i * 2).compute();
-	//
-	//task.compute();
-	//
-	//std::cout << a.compute() << std::endl;
+	std::cout << (a == b) << std::endl;
 
 	//snl::Index<100> i, j, k;
 	//
