@@ -346,8 +346,10 @@ namespace snl {
 			if (!comparators.count(&typeid(T)))
 				comparators[&typeid(T)] = comparator;
 			
-			constexpr bool isEvaluable = requires(SymOpType evalObj, Deps... deps) {
-				evalObj.eval(deps...);
+			using InvokeTypes = FunctionTypeInfo<decltype(&SymOpType::eval)>::ArgsList;
+
+			constexpr bool isEvaluable = requires(SymOpType evalObj, TypeListToTuple<InvokeTypes> args) {
+				std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), args));
 			};
 
 			this->isDefined = isEvaluable;
@@ -388,6 +390,7 @@ namespace snl {
 		}
 
 		Sym(const Sym<T>& other) {
+			isDefined = other.isDefined;
 			evalObj = other.evalObj;
 			fun = other.fun;
 			depsTypes = other.depsTypes;
@@ -395,6 +398,7 @@ namespace snl {
 		}
 
 		Sym<T>& operator=(const Sym<T>& other) {
+			isDefined = other.isDefined;
 			evalObj = other.evalObj;
 			fun = other.fun;
 			depsTypes = other.depsTypes;

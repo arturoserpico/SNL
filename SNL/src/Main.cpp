@@ -6,6 +6,10 @@
 //#include <Eigen/Dense>
 //#include <Eigen/Sparse>
 //#include "Geometry/GridMesh2D.h"
+
+#define SNLDebugLevel 2
+#define SNLObjectManagerDebugLogging true
+
 #include "Symbolic/ExprOperators.h"
 #include "Symbolic/Random.h"
 //#include "Linear/Tensor.h"
@@ -20,32 +24,20 @@ constexpr double PI = 3.14159265358979323846;
 
 int main() {
 	{
-	snl::Sym<double> x, y, z, a;
-	snl::Sym<int> i, j;
+		snl::Sym<double> x, y, z, a;
+		snl::Index<11> i, j, k;
 
-	y = i.cast<double>();
+		y = snl::sum(i) | i * x;
+		z = x * (snl::sum(i) | i.cast<int>());
 
-	x = z + 2;
+		x = 2;
 
-	x.substitute(z, a);
-
-	auto test = j + 2;
-
-	y.substitute(i, j + 2);
-
-	//auto test = snl::Sum<snl::Bounded<size_t, 0, 2>>(i,)
-
-	a = 3;
-
-	j = 1;
-
-	std::cout << y << std::endl;
-
-	snl::Ref<int> ref = snl::makeManaged(2);
-
-	//snl::Ref<int> e(ref.raw());
+		std::cout << (y.eval() == z.eval()) << std::endl;
 	}
 	std::cout << snl::objManager.count() << std::endl;
+
+	for(auto [location, count] : snl::objManager.getObjects())
+		std::cout << location << ": " << count << std::endl;
 
 	//snl::Index<100> i, j, k;
 	//

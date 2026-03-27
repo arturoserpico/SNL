@@ -39,13 +39,13 @@ namespace snl {
 		}
 
 		Ref<void>& operator=(const Ref<void>& other) {
+			if (inner != nullptr && managed)
+				removeObjectRef(inner);
+
 			managed = other.managed;
 
-			if (managed) {
-				if(inner != nullptr)
-					removeObjectRef(inner);
+			if (managed)
 				addObjectRef(other.inner);
-			}
 
 			inner = other.inner;
 
@@ -128,13 +128,13 @@ namespace snl {
 		}
 
 		Ref<T>& operator=(const Ref<T>& other) {
+			if (inner != nullptr && managed)
+				removeObjectRef(inner);
+
 			managed = other.managed;
 
-			if (managed) {
-				if (inner != nullptr)
-					removeObjectRef(inner);
+			if (managed)
 				addObjectRef(other.inner);
-			}
 
 			inner = other.inner;
 
@@ -231,6 +231,10 @@ namespace snl {
 	Ref<T> ObjectManager::create(const T& val) {
 		T* obj = new T(val);
 		objectRegister[obj] = 0;
+
+		if constexpr (debugLogging)
+			debug << "creating object at: " << obj << formatReferenceCount(obj) << std::endl;
+
 		return Ref<T>(*obj, true);
 	}
 
@@ -238,6 +242,10 @@ namespace snl {
 	Ref<T> ObjectManager::create(Args&&... args) {
 		T* obj = new T(std::forward<Args>(args)...);
 		objectRegister[obj] = 0;
+
+		if constexpr (debugLogging)
+			debug << "creating object at: " << obj << formatReferenceCount(obj) << std::endl;
+
 		return Ref<T>(*obj, true);
 	}
 }
