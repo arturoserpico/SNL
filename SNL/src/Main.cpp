@@ -19,17 +19,33 @@
 constexpr double PI = 3.14159265358979323846;
 
 int main() {
-	snl::Sym<double> x, y;
-	snl::Index<3> i;
+	{
+	snl::Sym<double> x, y, z, a;
+	snl::Sym<int> i, j;
 
-	x = 3;
-	y = 3;
+	y = i.cast<double>();
 
-	snl::Ref<snl::GenericSym>
-		a = snl::Ref(x).as<snl::GenericSym>(),
-		b = snl::Ref(y).as<snl::GenericSym>();
+	x = z + 2;
 
-	std::cout << (a == b) << std::endl;
+	x.substitute(z, a);
+
+	auto test = j + 2;
+
+	y.substitute(i, j + 2);
+
+	//auto test = snl::Sum<snl::Bounded<size_t, 0, 2>>(i,)
+
+	a = 3;
+
+	j = 1;
+
+	std::cout << y << std::endl;
+
+	snl::Ref<int> ref = snl::makeManaged(2);
+
+	//snl::Ref<int> e(ref.raw());
+	}
+	std::cout << snl::objManager.count() << std::endl;
 
 	//snl::Index<100> i, j, k;
 	//

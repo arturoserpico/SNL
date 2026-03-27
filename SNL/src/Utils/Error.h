@@ -9,7 +9,7 @@
 
 #include "../Metaprogramming/StaticString.h"
 
-#define SNLDebugLevel 1
+#define SNLDebugLevel 2
 
 #define SNLDebugCall(LEVEL, CALL) if constexpr (::snl::debugLevel >= LEVEL) CALL;
 

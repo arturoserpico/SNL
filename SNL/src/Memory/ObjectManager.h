@@ -1,24 +1,21 @@
 #pragma once
 
-#include "../Utils/Ref.h"
+#include <map>
+
+//#include "../Utils/Ref.h"
 
 namespace snl {
+	template<typename T>
+	class Ref;
+
 	class ObjectManager {
 		std::map<const void*, size_t> objectRegister;
 	public:
 		template<typename T>
-		Ref<T> create(const T& val) {
-			T* obj = new T(val);
-			objectRegister[obj] = 0;
-			return Ref<T>(*obj, true);
-		}
+		Ref<T> create(const T&);
 
 		template<typename T, typename... Args>
-		Ref<T> create(Args&&... args) {
-			T* obj = new T(std::forward<Args>(args)...);
-			objectRegister[obj] = 0;
-			return Ref<T>(*obj, true);
-		}
+		Ref<T> create(Args&&...);
 
 		void addRef(const auto* obj) {
 			objectRegister.at(reinterpret_cast<const void*>(obj))++;
@@ -49,16 +46,6 @@ namespace snl {
 
 	void addObjectRef(const auto* obj) {
 		objManager.addRef(obj);
-	}
-
-	template<typename T>
-	Ref<T> makeManaged(const T& val) {
-		return objManager.create<T>(val);
-	}
-
-	template<typename T, typename... Args>
-	Ref<T> makeManaged(Args&&... args) {
-		return objManager.create<T>(std::forward<Args>(args)...);
 	}
 
 	//template<typename T>

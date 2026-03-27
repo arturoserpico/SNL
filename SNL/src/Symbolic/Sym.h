@@ -298,9 +298,11 @@ namespace snl {
 		Ref<GenericSym> rawDeepCopy() const {
 			Ref<Sym<T>> copy = makeManaged(*this);
 
-			for (size_t i = 0; i < rawDeps().size(); i++)
-				if (rawDeps()[i].as<GenericSym>().get().rawDeps().size() != 0)
-					copy.get().rawDeps()[i] = rawDeps()[i].as<GenericSym>().get().rawDeepCopy();
+			std::vector<Ref<GenericSym>> deps = rawDeps();
+
+			for (size_t i = 0; i < deps.size(); i++)
+				if (deps[i].get().rawDeps().size() != 0)
+					copy.get().rawDeps()[i] = deps[i].get().rawDeepCopy();
 
 			return copy.as<GenericSym>();
 		}
@@ -453,7 +455,7 @@ namespace snl {
 			if constexpr (std::is_same_v<A, T>)
 				return *this;
 			else
-				return Sym<A>(SymCast<A, T>(), makeManaged(dep().deepCopy()));
+				return Sym<A>(SymCast<A, T>(), makeManaged(dep()));
 		}
 
 		template<typename A>

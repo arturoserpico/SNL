@@ -2,6 +2,7 @@
 #include <map>
 #include <type_traits>
 #include "../Metaprogramming/Utils.h"
+#include "../Memory/ObjectManager.h"
 #include "Error.h"
 
 namespace snl {
@@ -15,15 +16,24 @@ namespace snl {
 	class Ref<void> {
 		bool managed;
 		void* inner;
+
+		void checkManagmentState() {
+			if (objManager.find(inner) && !managed)
+				debug << "unmanaged snl::Ref has been created pointing to managed object at: " << inner << std::endl;
+		}
 	public:
 		Ref() = default;
 
 		Ref(void* val, bool managed = false) : managed(managed), inner(val) {
+			SNLDebugCall(2, checkManagmentState());
+
 			if (managed)
 				addObjectRef(inner);
 		}
 
 		Ref(const Ref<void>& other) : managed(other.managed), inner(other.inner) {
+			SNLDebugCall(2, checkManagmentState());
+
 			if (managed)
 				addObjectRef(inner);
 		}
@@ -38,6 +48,8 @@ namespace snl {
 			}
 
 			inner = other.inner;
+
+			SNLDebugCall(2, checkManagmentState());
 
 			return *this;
 		}
@@ -81,20 +93,31 @@ namespace snl {
 	class Ref {
 		bool managed;
 		T* inner;
+
+		void checkManagmentState() {
+			if (objManager.find(inner) && !managed)
+				debug << "unmanaged snl::Ref has been created pointing to managed object at: " << inner << std::endl;
+		}
 	public:
 		Ref() = default;
 
 		Ref(T& val, bool managed = false) : inner(&val), managed(managed) {
+			SNLDebugCall(2, checkManagmentState());
+
 			if (managed)
 				addObjectRef(inner);
 		}
 		
 		Ref(T* val, bool managed = false) : inner(val), managed(managed) {
+			SNLDebugCall(2, checkManagmentState());
+
 			if (managed)
 				addObjectRef(inner);
 		}
 
 		Ref(const Ref<T>& other) : inner(other.inner), managed(other.managed) {
+			SNLDebugCall(2, checkManagmentState());
+
 			if (managed)
 				addObjectRef(inner);
 		}
@@ -114,6 +137,8 @@ namespace snl {
 			}
 
 			inner = other.inner;
+
+			SNLDebugCall(2, checkManagmentState());
 
 			return *this;
 		}
@@ -191,6 +216,30 @@ namespace snl {
 
 	template<typename T>
 	using SafeRemRef = _SafeRemRef<T>::Type;
+
+	template<typename T>
+	Ref<T> makeManaged(const T& val) {
+		return objManager.create<T>(val);
+	}
+
+	template<typename T, typename... Args>
+	Ref<T> makeManaged(Args&&... args) {
+		return objManager.create<T>(std::forward<Args>(args)...);
+	}
+
+	template<typename T>
+	Ref<T> ObjectManager::create(const T& val) {
+		T* obj = new T(val);
+		objectRegister[obj] = 0;
+		return Ref<T>(*obj, true);
+	}
+
+	template<typename T, typename... Args>
+	Ref<T> ObjectManager::create(Args&&... args) {
+		T* obj = new T(std::forward<Args>(args)...);
+		objectRegister[obj] = 0;
+		return Ref<T>(*obj, true);
+	}
 }
 
 namespace std {

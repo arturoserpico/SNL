@@ -8,20 +8,25 @@ namespace snl {
 		T eval(Ref<Sym<I>> iter, I min, I max, Ref<Sym<T>> expr) {
 			T result = 0;
 
-			iter.get().set(min);
+			iter.get() = min;
 
 			while (true) {
-				result += expr.get().compute().get();
+				result += expr.get().eval();
 
-				if (iter.get().get() == max)
+				if (iter.get().eval() == max)
 					break;
 
-				iter.get().set(iter.get().get() + 1);
+				iter.get() = iter.get().eval() + 1;
 			}
 
 			return result;
 		}
 	};
+
+	template<typename T, typename I>
+	bool operator==(const SymSumOp<T, I>& a, const SymSumOp<T, I>& b) {
+		return true;
+	}
 
 	template<typename I>
 	class Sum {
@@ -29,7 +34,7 @@ namespace snl {
 		Ref<Sym<I>> iterator;
 		Ref<Sym<I>> min, max;
 	public:
-		Sum(Sym<I>& iterator, Sym<I>& min, Sym<I>& max) : 
+		Sum(Ref<Sym<I>> iterator, Ref<Sym<I>> min, Ref<Sym<I>> max) : 
 			oldIterator(iterator), iterator(makeManaged<Sym<I>>()), min(min), max(max) {}
 
 		auto operator|(auto&& _expr) {
@@ -69,18 +74,18 @@ namespace snl {
 	};
 
 	template<typename I> 
-	Sum<I> sum(Sym<I>& iterator, Sym<I>& min, Sym<I>& max) {
-		return Sum<I>(iterator, min, max);
+	Sum<I> sum(Sym<I> iterator, Sym<I>& min, Sym<I>& max) {
+		return Sum<I>(Ref(iterator), min, max);
 	}
 
 	template<typename I>
-	Sum<I> sum(Sym<I>& iterator, Sym<I> min, Sym<I> max) {
-		return Sum<I>(iterator, makeManaged(min), makeManaged(max));
+	Sum<I> sum(Sym<I>& iterator, const Sym<I>& min, const Sym<I>& max) {
+		return Sum<I>(Ref(iterator), makeManaged(min), makeManaged(max));
 	}
 
 	template<typename I>
 	Sum<I> sum(Sym<I>& iterator, I min, I max) {
-		return Sum<I>(iterator, makeManaged<Sym<I>>(min), makeManaged<Sym<I>>(max));
+		return Sum<I>(Ref(iterator), makeManaged<Sym<I>>(min), makeManaged<Sym<I>>(max));
 	}
 
 	template<IsBounded I>
