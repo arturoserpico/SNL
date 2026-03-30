@@ -8,12 +8,12 @@
 #include "Ref.h"
 
 namespace snl {
-	template<typename R, size_t argsCount = 1>
+	template<typename R, typename Erased = void, size_t argsCount = 1>
 	class ErasedFunction {
-		std::map<std::array<const std::type_info*, argsCount>, std::function<R(std::array<Ref<void>, argsCount>)>> functions;
+		std::map<std::array<const std::type_info*, argsCount>, std::function<R(std::array<Ref<Erased>, argsCount>)>> functions;
 	
 		template<typename... Args> requires (sizeof...(Args) == argsCount)
-		static std::tuple<Args&...> caster(const std::array<Ref<void>, argsCount>& args)
+		static std::tuple<Args&...> caster(const std::array<Ref<Erased>, argsCount>& args)
 		{
 			return[&]<std::size_t... Is>(std::index_sequence<Is...>) {
 				return std::tuple<Args&...>{
@@ -23,11 +23,11 @@ namespace snl {
 		}
 	public:
 		template<typename... Args> requires (sizeof...(Args) == argsCount)
-		void addVariant(std::function<R(Args...)> variant) {
+		void addVariant(std::function<R(Args&...)> variant) {
 			std::array types{ &typeid(Args)... };
 			
 			if (!functions.count(types))
-				functions[types] = [variant](const std::array<Ref<void>, argsCount>& args) {
+				functions[types] = [variant](const std::array<Ref<Erased>, argsCount>& args) {
 					auto tuple = caster<Args...>(args);
 					return std::apply(variant, tuple);
 				};
@@ -35,9 +35,17 @@ namespace snl {
 
 		R call(
 			const std::array<const std::type_info*, argsCount>& type,
-			const std::array<Ref<void>, argsCount>& args
+			const std::array<Ref<Erased>, argsCount>& args
 		) {
 			return functions.at(type)(args);
 		}
+
+		template<typename... Args> requires (sizeof...(Args) == argsCount)
+		R call(Args... args) {
+			return call({ &typeid(Args)... }, { Ref(args).as<Erased>()... });
+		}
 	};
+
+	static ErasedFunction<void, const void> globalErasedDestructors;
+	static ErasedFunction<bool, const void, 2> globalErasedComparators;
 }

@@ -41,10 +41,6 @@ int main() {
 	for(auto [location, count] : snl::objManager.getObjects())
 		std::cout << location << ": " << count.second << std::endl;
 
-	snl::ErasedFunction<int> test;
-
-	test.addVariant<int>([](int val) { return val; });
-
 	//snl::Index<100> i, j, k;
 	//
 	//snl::Vector<double, 100> v, w, c;
