@@ -4,7 +4,7 @@
 #include <sstream>
 #include "../Utils/Error.h"
 
-//#include "../Utils/Ref.h"
+#include "../Utils/Ref.h"
 
 #ifndef SNLObjectManagerDebugLogging
 	#define SNLObjectManagerDebugLogging false
@@ -40,10 +40,30 @@ namespace snl {
 		static constexpr bool debugLogging = SNLObjectManagerDebugLogging;
 
 		template<typename T>
-		Ref<T> create(const T&);
+		Ref<T> create(const T& val) {
+			addDestructor<T>();
+
+			T* obj = new T(val);
+			objectRegister[obj] = { &typeid(T), 0 };
+
+			if constexpr (debugLogging)
+				debug << "creating object at: " << obj << formatReferenceCount(obj) << std::endl;
+
+			return Ref<T>(*obj, true);
+		}
 
 		template<typename T, typename... Args>
-		Ref<T> create(Args&&...);
+		Ref<T> create(Args&&... args) {
+			addDestructor<T>();
+
+			T* obj = new T(std::forward<Args>(args)...);
+			objectRegister[obj] = { &typeid(T), 0 };
+
+			if constexpr (debugLogging)
+				debug << "creating object at: " << obj << formatReferenceCount(obj) << std::endl;
+
+			return Ref<T>(*obj, true);
+		}
 
 		void addRef(const auto* obj) {
 			if constexpr (debugLogging)
@@ -94,6 +114,27 @@ namespace snl {
 
 	void addObjectRef(const auto* obj) {
 		objManager.addRef(obj);
+	}
+
+	template<typename T>
+	Ref<T> makeManaged(const T& val) {
+		return objManager.create<T>(val);
+	}
+
+	template<typename T, typename... Args>
+	Ref<T> makeManaged(Args&&... args) {
+		return objManager.create<T>(std::forward<Args>(args)...);
+	}
+
+	template<typename T>
+	void Ref<T>::checkManagmentState() {
+		if (objManager.find(inner) && !managed)
+			debug << "unmanaged snl::Ref has been created pointing to managed object at: " << inner << std::endl;
+	}
+
+	void Ref<void>::checkManagmentState() {
+		if (objManager.find(inner) && !managed)
+			debug << "unmanaged snl::Ref has been created pointing to managed object at: " << inner << std::endl;
 	}
 
 	//template<typename T>

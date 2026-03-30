@@ -188,6 +188,7 @@
     <ClInclude Include="src\Symbolic\SymOperators.h" />
     <ClInclude Include="src\Utils\Any.h" />
     <ClInclude Include="src\Utils\Bounded.h" />
+    <ClInclude Include="src\Utils\ErasedFunction.h" />
     <ClInclude Include="src\Utils\Error.h" />
     <ClInclude Include="src\Memory\ObjectManager.h" />
     <ClInclude Include="src\Utils\Ref.h" />

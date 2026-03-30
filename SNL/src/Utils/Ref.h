@@ -2,7 +2,7 @@
 #include <map>
 #include <type_traits>
 #include "../Metaprogramming/Utils.h"
-#include "../Memory/ObjectManager.h"
+//#include "../Memory/ObjectManager.h"
 #include "Error.h"
 
 namespace snl {
@@ -17,10 +17,7 @@ namespace snl {
 		bool managed;
 		void* inner;
 
-		void checkManagmentState() {
-			if (objManager.find(inner) && !managed)
-				debug << "unmanaged snl::Ref has been created pointing to managed object at: " << inner << std::endl;
-		}
+		void checkManagmentState();
 	public:
 		Ref() = default;
 
@@ -94,10 +91,7 @@ namespace snl {
 		bool managed;
 		T* inner;
 
-		void checkManagmentState() {
-			if (objManager.find(inner) && !managed)
-				debug << "unmanaged snl::Ref has been created pointing to managed object at: " << inner << std::endl;
-		}
+		void checkManagmentState();
 	public:
 		Ref() = default;
 
@@ -216,42 +210,6 @@ namespace snl {
 
 	template<typename T>
 	using SafeRemRef = _SafeRemRef<T>::Type;
-
-	template<typename T>
-	Ref<T> makeManaged(const T& val) {
-		return objManager.create<T>(val);
-	}
-
-	template<typename T, typename... Args>
-	Ref<T> makeManaged(Args&&... args) {
-		return objManager.create<T>(std::forward<Args>(args)...);
-	}
-
-	template<typename T>
-	Ref<T> ObjectManager::create(const T& val) {
-		addDestructor<T>();
-
-		T* obj = new T(val);
-		objectRegister[obj] = { &typeid(T), 0 };
-
-		if constexpr (debugLogging)
-			debug << "creating object at: " << obj << formatReferenceCount(obj) << std::endl;
-
-		return Ref<T>(*obj, true);
-	}
-
-	template<typename T, typename... Args>
-	Ref<T> ObjectManager::create(Args&&... args) {
-		addDestructor<T>();
-
-		T* obj = new T(std::forward<Args>(args)...);
-		objectRegister[obj] = { &typeid(T), 0};
-
-		if constexpr (debugLogging)
-			debug << "creating object at: " << obj << formatReferenceCount(obj) << std::endl;
-
-		return Ref<T>(*obj, true);
-	}
 }
 
 namespace std {
