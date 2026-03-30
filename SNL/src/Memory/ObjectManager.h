@@ -15,14 +15,26 @@ namespace snl {
 	class Ref;
 
 	class ObjectManager {
-		std::map<const void*, size_t> objectRegister;
+		std::map<const void*, std::pair<const std::type_info*, size_t>> objectRegister;
+		static std::map<const std::type_info*, std::function<void(const void*)>> destructors;
 
 		std::string formatReferenceCount(const auto* obj) {
 			std::stringstream str;
 
-			str << ", reference count: " << objectRegister.at(reinterpret_cast<const void*>(obj));
+			str << ", reference count: " << objectRegister.at(reinterpret_cast<const void*>(obj)).second;
 
 			return str.str();
+		}
+
+		template<typename T>
+		static void destructor(const void* obj) {
+			reinterpret_cast<const T*>(obj)->~T();
+		}
+
+		template<typename T>
+		void addDestructor() {
+			if (!destructors.count(&typeid(T)))
+				destructors[&typeid(T)] = destructor<T>;
 		}
 	public:
 		static constexpr bool debugLogging = SNLObjectManagerDebugLogging;
@@ -37,19 +49,24 @@ namespace snl {
 			if constexpr (debugLogging)
 				debug << "adding reference to object at: " << obj << formatReferenceCount(obj) << std::endl;
 
-			objectRegister.at(reinterpret_cast<const void*>(obj))++;
+			objectRegister.at(reinterpret_cast<const void*>(obj)).second++;
 		}
 
 		void release(const auto* obj) {
 			if constexpr (debugLogging)
 				debug << "releasing reference to object at: " << obj << formatReferenceCount(obj) << std::endl;
 
-			objectRegister.at(reinterpret_cast<const void*>(obj))--;
-			if (objectRegister.at(reinterpret_cast<const void*>(obj)) == 0) {
+			auto& objInfo = objectRegister.at(reinterpret_cast<const void*>(obj));
+
+			objInfo.second--;
+			if (objInfo.second == 0) {
 				if constexpr (debugLogging)
 					debug << "deleting object at: " << obj << std::endl;
 
+				destructors.at(objInfo.first)(obj);
+				
 				objectRegister.erase(reinterpret_cast<const void*>(obj));
+
 				delete obj;
 			}
 		}
@@ -66,6 +83,8 @@ namespace snl {
 			return objectRegister;
 		}
 	};
+
+	std::map<const std::type_info*, std::function<void(const void*)>> ObjectManager::destructors;
 
 	static ObjectManager objManager;
 	

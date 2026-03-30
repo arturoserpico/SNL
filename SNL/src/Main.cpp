@@ -8,7 +8,7 @@
 //#include "Geometry/GridMesh2D.h"
 
 #define SNLDebugLevel 2
-#define SNLObjectManagerDebugLogging true
+//#define SNLObjectManagerDebugLogging true
 
 #include "Symbolic/ExprOperators.h"
 #include "Symbolic/Random.h"
@@ -27,17 +27,18 @@ int main() {
 		snl::Sym<double> x, y, z, a;
 		snl::Index<11> i, j, k;
 
-		y = snl::sum(i) | i * x;
-		z = x * (snl::sum(i) | i.cast<int>());
+		y = snl::sum(i) | i + x;
+
+		i = 1;
 
 		x = 2;
 
-		std::cout << (y.eval() == z.eval()) << std::endl;
+		std::cout << y / x << std::endl;
 	}
 	std::cout << snl::objManager.count() << std::endl;
 
 	for(auto [location, count] : snl::objManager.getObjects())
-		std::cout << location << ": " << count << std::endl;
+		std::cout << location << ": " << count.second << std::endl;
 
 	//snl::Index<100> i, j, k;
 	//

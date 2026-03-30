@@ -229,8 +229,10 @@ namespace snl {
 
 	template<typename T>
 	Ref<T> ObjectManager::create(const T& val) {
+		addDestructor<T>();
+
 		T* obj = new T(val);
-		objectRegister[obj] = 0;
+		objectRegister[obj] = { &typeid(T), 0 };
 
 		if constexpr (debugLogging)
 			debug << "creating object at: " << obj << formatReferenceCount(obj) << std::endl;
@@ -240,8 +242,10 @@ namespace snl {
 
 	template<typename T, typename... Args>
 	Ref<T> ObjectManager::create(Args&&... args) {
+		addDestructor<T>();
+
 		T* obj = new T(std::forward<Args>(args)...);
-		objectRegister[obj] = 0;
+		objectRegister[obj] = { &typeid(T), 0};
 
 		if constexpr (debugLogging)
 			debug << "creating object at: " << obj << formatReferenceCount(obj) << std::endl;
