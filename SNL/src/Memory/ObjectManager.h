@@ -15,6 +15,9 @@ namespace snl {
 	template<typename T>
 	class Ref;
 
+	using UnmanagedRefToManagedObjWarning =
+		Warning<"unmanaged snl::Ref has been created pointing to managed object at: {}", const void*>;
+
 	class ObjectManager {
 		std::map<const void*, std::pair<const std::type_info*, size_t>> objectRegister;
 
@@ -69,6 +72,8 @@ namespace snl {
 
 			objInfo.second--;
 			if (objInfo.second == 0) {
+				ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+
 				if constexpr (debugLogging)
 					debug << "deleting object at: " << obj << std::endl;
 
@@ -112,9 +117,6 @@ namespace snl {
 	Ref<T> makeManaged(Args&&... args) {
 		return objManager.create<T>(std::forward<Args>(args)...);
 	}
-
-	using UnmanagedRefToManagedObjWarning =
-		Warning<"unmanaged snl::Ref has been created pointing to managed object at: {}", const void*>;
 
 	template<typename T>
 	void Ref<T>::checkManagmentState() {

@@ -76,13 +76,13 @@ namespace snl {
 
 		template<typename U = T> requires !std::is_void_v<T>
 		operator U&() const {
-			SNLDebugCall(1, expect(!empty(), "cannot access null snl::Ref"));
+			SNLDebugCall(1, expect<NullRefError>(!empty()));
 			return *inner;
 		}
 
 		template<typename U = T> requires !std::is_void_v<T>
 		U& get() const {
-			SNLDebugCall(1, expect(!empty(), "cannot access null snl::Ref"));
+			SNLDebugCall(1, expect<NullRefError>(!empty()));
 			return *inner;
 		}
 
