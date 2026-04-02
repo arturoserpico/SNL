@@ -5,6 +5,7 @@
 #include "../Utils/Error.h"
 
 #include "../Utils/Ref.h"
+#include "../Utils/Error.h"
 
 #ifndef SNLObjectManagerDebugLogging
 	#define SNLObjectManagerDebugLogging false
@@ -136,15 +137,4 @@ namespace snl {
 		if (objManager.find(inner) && !managed)
 			debug << "unmanaged snl::Ref has been created pointing to managed object at: " << inner << std::endl;
 	}
-
-	//template<typename T>
-	//Ref<T>::~Ref() {
-	//	if (managed)
-	//		objManager.release(inner);
-	//}
-	//
-	//Ref<void>::~Ref() {
-	//	if (managed)
-	//		objManager.release(inner);
-	//}
 }

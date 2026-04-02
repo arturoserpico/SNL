@@ -28,7 +28,7 @@ int main() {
 		snl::Sym<double> x, y, z, a;
 		snl::Index<11> i, j, k;
 
-		y = snl::sum(i) | i + x;
+		y = snl::sum(i) | i * x;
 
 		i = 1;
 
@@ -40,10 +40,6 @@ int main() {
 
 	for(auto [location, count] : snl::objManager.getObjects())
 		std::cout << location << ": " << count.second << std::endl;
-
-	snl::ErasedFunction<int> test;
-
-	test.addVariant<int>([](int val) { return val; });
 
 	//snl::Index<100> i, j, k;
 	//
