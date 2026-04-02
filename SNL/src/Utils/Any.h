@@ -6,6 +6,8 @@
 #include "../Memory/ObjectManager.h"
 
 namespace snl {
+	using AnyInvalidCastError = Error<"Casted snl::Any to invalid type">;
+
 	template<bool enableTypeInfo = true, size_t maxStack = 8>
 	class Any {
 		static std::map<const std::type_info*, std::function<bool(const Any&, const Any&)>> comparators;
@@ -64,7 +66,7 @@ namespace snl {
 		template<typename T>
 		T& get() {
 			if constexpr (enableTypeInfo)
-				SNLDebugCall(1, expect(typeid(T) == *type, "casted snl::Any to invalid type"));
+				SNLDebugCall(1, expect<AnyInvalidCastError>(typeid(T) == *type));
 
 			if constexpr (sizeof(T) <= 8)
 				return Ref(smallStorage).as<T>().get();
@@ -75,7 +77,7 @@ namespace snl {
 		template<typename T>
 		const T& get() const {
 			if constexpr (enableTypeInfo)
-				SNLDebugCall(1, expect(typeid(T) == *type, "casted snl::Any to invalid type"));
+				SNLDebugCall(1, expect<AnyInvalidCastError>(typeid(T) == *type));
 
 			if constexpr (sizeof(T) <= 8)
 				return Ref(smallStorage).as<const T>().get();

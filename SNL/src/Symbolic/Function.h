@@ -86,6 +86,9 @@ namespace snl {
 		}
 	};
 
+	using InvalidTypesForNumericFunctionError =
+		Error<"snl::Function cannot be numeric with given argument types">;
+
 	template<typename R, typename... Args>
 	class FunctionCallProxy {
 		static constexpr bool canNumeric() {
@@ -167,7 +170,7 @@ namespace snl {
 
 					return *this;
 				} else
-					throw Exception("snl::Function cannot be numeric with given argument types");
+					throwError<InvalidTypesForNumericFunctionError>();
 			}
 			case snl::CallType::Symbolic: {
 				this->expr.get() = expr.get().deepCopy();
@@ -179,7 +182,8 @@ namespace snl {
 				return *this;
 			}
 			case snl::CallType::Mixed:
-				throw Exception("snl::Function declaration cannot be mixed");
+				//throw Exception("snl::Function declaration cannot be mixed");
+				break;
 			}
 		}
 
@@ -198,7 +202,7 @@ namespace snl {
 				if constexpr (canNumeric())
 					return Sym<R>(InterpolatedFunCall<R, Args...>(numeric), callVars);
 				else
-					throw Exception("snl::Function cannot be numeric with given argument types");
+					throwError<InvalidTypesForNumericFunctionError>();
 			}
 		}
 

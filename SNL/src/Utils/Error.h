@@ -18,6 +18,13 @@
 
 #define SNLDebugCall(LEVEL, CALL) if constexpr (::snl::debugLevel >= LEVEL) CALL;
 
+
+#ifdef _MSC_VER
+	#define SNLMSVCCall(CALL) CALL
+#else
+	#define SNLMSVCCall(CALL) 
+#endif
+
 #define fail catch(::std::exception e) { throw e; }
 #define ignore catch(::std::exception e) {}
 #define ignoreLoudly catch(::std::exception e) { ::snl::debug << "exception ignored: " << e.what() << ::std::endl; }
@@ -51,22 +58,22 @@ namespace snl {
 
 	DebugLogger debug;
 
-	struct Exception : std::exception {
-		const std::string msg;
-
-		inline Exception(const std::string& msg) : msg("SNL encountered an error: " + msg) {
-			debug << "SNL exception generated: " + msg << std::endl;
-		}
-
-		const char* what() {
-			return msg.c_str();
-		}
-	};
-
-	template<StaticString exceptionClass>
-	struct ClassedException : Exception {
-		inline ClassedException(const std::string& msg) : Exception(msg + ", exception class: " + (std::string)exceptionClass) {}
-	};
+	//struct Exception : std::exception {
+	//	const std::string msg;
+	//
+	//	inline Exception(const std::string& msg) : msg("SNL encountered an error: " + msg) {
+	//		debug << "SNL exception generated: " + msg << std::endl;
+	//	}
+	//
+	//	const char* what() {
+	//		return msg.c_str();
+	//	}
+	//};
+	//
+	//template<StaticString exceptionClass>
+	//struct ClassedException : Exception {
+	//	inline ClassedException(const std::string& msg) : Exception(msg + ", exception class: " + (std::string)exceptionClass) {}
+	//};
 
 	enum class ErrorLevel {
 		ERROR,
@@ -116,21 +123,21 @@ namespace snl {
 	struct Error : ErrorBase<msgFormat, Ts...> {
 		using ErrorBase<msgFormat, Ts...>::ErrorBase;
 
-		static ErrorLevel level;
+		static constexpr ErrorLevel level = ErrorLevel::ERROR;
 	};
-
-	template<StaticString msgFormat, typename... Ts>
-	ErrorLevel Error<msgFormat, Ts...>::level = ErrorLevel::ERROR;
 
 	template<StaticString msgFormat, typename... Ts>
 	struct Warning : ErrorBase<msgFormat, Ts...> {
 		using ErrorBase<msgFormat, Ts...>::ErrorBase;
 
-		static ErrorLevel level;
+		static constexpr ErrorLevel level = ErrorLevel::WARNING;
 	};
 
-	template<StaticString msgFormat, typename... Ts>
-	ErrorLevel Warning<msgFormat, Ts...>::level = ErrorLevel::WARNING;
+	template<typename ErrorClass>
+	concept IsError = ErrorClass::level == ErrorLevel::ERROR;
+
+	template<typename ErrorClass>
+	concept IsWarning = ErrorClass::level == ErrorLevel::WARNING;
 
 	class ErrorRegister {
 	public:
@@ -185,7 +192,7 @@ namespace snl {
 				break;
 			}
 
-			if (ErrorClass::level == ErrorLevel::ERROR)
+			if constexpr (IsError<ErrorClass>)
 				throw error;
 		}
 
@@ -213,6 +220,11 @@ namespace snl {
 				registerError(error);
 		}
 
+		template<typename ErrorClass>
+		void forceThrow(const ErrorClass& error) {
+			registerError(error);
+		}
+
 		bool hasError() {
 			return !toHandle.empty();
 		}
@@ -231,9 +243,30 @@ namespace snl {
 		errorRegister.throwError<ErrorClass>(error);
 	}
 
-	template<typename ErrorClass>
+	template<IsError ErrorClass>
+	[[noreturn]] void throwError(auto... args) {
+		errorRegister.throwError<ErrorClass>(ErrorClass(args...));
+	}
+
+	template<IsError ErrorClass>
+	[[noreturn]] void forceThrow(const ErrorClass& error) {
+		errorRegister.forceThrow<ErrorClass>(error);
+	}
+
+	template<IsWarning ErrorClass>
 	inline void throwError(auto... args) {
 		errorRegister.throwError<ErrorClass>(ErrorClass(args...));
+	}
+
+	template<IsWarning ErrorClass>
+	inline void forceThrow(const ErrorClass& error) {
+		errorRegister.forceThrow<ErrorClass>(error);
+		throw 0;
+	}
+
+	template<typename ErrorClass>
+	inline void forceThrow(auto... args) {
+		errorRegister.forceThrow<ErrorClass>(ErrorClass(args...));
 	}
 
 	template<typename ErrorClass>
@@ -265,13 +298,13 @@ namespace snl {
 	}
 
 	template<typename ErrorClass>
-	inline void expExpect(bool condition, const ErrorClass& error) {
+	inline void expect(bool condition, const ErrorClass& error) {
 		if (!condition)
 			throwError<ErrorClass>(error);
 	}
 
 	template<typename ErrorClass>
-	inline void expExpect(bool condition, auto... args) {
+	inline void expect(bool condition, auto... args) {
 		if (!condition)
 			throwError<ErrorClass>(args...);
 	}
@@ -310,16 +343,16 @@ namespace snl {
 		}
 	};
 
-	inline void expect(bool condition, const char* msg) {
-		if constexpr (debugLevel > 0)
-			if (!condition)
-				throw Exception(msg);
-	}
-
-	template<typename Exception>
-	inline void expect(bool condition, const char* msg) {
-		if constexpr (debugLevel > 0)
-			if (!condition)
-				throw Exception(msg);
-	}
+	//inline void expect(bool condition, const char* msg) {
+	//	if constexpr (debugLevel > 0)
+	//		if (!condition)
+	//			throw Exception(msg);
+	//}
+	//
+	//template<typename Exception>
+	//inline void expect(bool condition, const char* msg) {
+	//	if constexpr (debugLevel > 0)
+	//		if (!condition)
+	//			throw Exception(msg);
+	//}
 }

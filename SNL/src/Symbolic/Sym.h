@@ -98,6 +98,9 @@ namespace snl {
 	template<typename T>
 	using SafeRemSym = _SafeRemSym<std::remove_cvref_t<T>>::Type;
 
+	using SymSubstitutionTypeMismatchError =
+		Error<"tried substituting snl::Sym with another type">;
+
 	struct GenericSym {
 		static std::map<const std::type_info*, std::function<bool(const GenericSym&, const GenericSym&)>> comparators;
 
@@ -148,7 +151,7 @@ namespace snl {
 		void substitute(Ref<const Sym<T>> target, Ref<Sym<T>> substitute) {
 			for (size_t i = 0; i < rawDeps().size(); i++) {
 				if (target.raw() == rawDeps()[i].as<Sym<T>>().raw()) {
-					SNLDebugCall(1, expect(typeid(T) == *getDepsTypes()[i], "substitution target is not of correct type"));
+					SNLDebugCall(1, expect<SymSubstitutionTypeMismatchError>(typeid(T) == *getDepsTypes()[i]));
 					rawDeps()[i] = substitute.as<GenericSym>();
 				}
 				else
@@ -183,6 +186,8 @@ namespace snl {
 
 		return GenericSym::comparators.at(&a.symType())(a, b);
 	}
+
+	using UnevaulableSymEvalError = Error<"tried to evaluate unevaluable snl::Sym">;
 
 	template<typename T>
 	class Sym : public GenericSym {
@@ -336,8 +341,11 @@ namespace snl {
 					if constexpr (isEvaluable) {
 						auto& evalObj = _evalObj.get<SymOpType>();
 						return std::apply(&SymOpType::eval, std::tuple(evalObj));
-					} else
-						throw Exception("attempted to evaluate an unevaluable snl::Sym");
+					}
+					else {
+						forceThrow<UnevaulableSymEvalError>();
+						SNLMSVCCall(__assume(false));
+					}
 				});
 		}
 
@@ -362,8 +370,10 @@ namespace snl {
 						auto computedDeps = computeDeps<0, typename SymOpType::ArgsList, Deps...>(concretizedDeps);
 						return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
 					}
-					else
-						throw Exception("attempted to evaluate an unevaluable snl::Sym");
+					else {
+						forceThrow<UnevaulableSymEvalError>();
+						SNLMSVCCall(__assume(false));
+					}
 				});
 		}
 

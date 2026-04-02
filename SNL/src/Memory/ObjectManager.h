@@ -127,14 +127,18 @@ namespace snl {
 		return objManager.create<T>(std::forward<Args>(args)...);
 	}
 
+	using UnmanagedRefToManagedObjWarning =
+		Warning<"unmanaged snl::Ref has been created pointing to managed object at: {}", const void*>;
+
 	template<typename T>
 	void Ref<T>::checkManagmentState() {
 		if (objManager.find(inner) && !managed)
-			debug << "unmanaged snl::Ref has been created pointing to managed object at: " << inner << std::endl;
+			throwError<UnmanagedRefToManagedObjWarning>(inner);
+			
 	}
 
 	void Ref<void>::checkManagmentState() {
 		if (objManager.find(inner) && !managed)
-			debug << "unmanaged snl::Ref has been created pointing to managed object at: " << inner << std::endl;
+			throwError<UnmanagedRefToManagedObjWarning>(inner);
 	}
 }

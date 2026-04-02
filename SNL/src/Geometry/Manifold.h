@@ -3,6 +3,9 @@
 #include "ElementComplex.h"
 
 namespace snl {
+	using NonManifoldManifoldInitializationError =
+		Error<"cannot create snl::Manifold from non manifold snl::CellComplex">;
+
 	template<size_t dimension, size_t meshDimension>
 	struct Manifold : public ElementComplex<dimension, meshDimension> {
 		Manifold<dimension - 1, meshDimension> boundary() {
@@ -18,13 +21,13 @@ namespace snl {
 		Manifold(const ElementComplex<dimension, meshDimension>& cellComplex) :
 			ElementComplex<dimension, meshDimension>(cellComplex)
 		{
-			SNLDebugCall(1, expect(this->isManifold(), "cannot create Manifold from non manifold CellComplex"));
+			SNLDebugCall(1, expect<NonManifoldManifoldInitializationError>(this->isManifold()));
 		}
 
 		Manifold(Mesh<meshDimension>& mesh, const Set<Ref<MeshElement<dimension, meshDimension>>>& elements) :
 			ElementComplex<dimension, meshDimension>(mesh, elements)
 		{
-			SNLDebugCall(1, expect(this->isManifold(), "cannot create Manifold from non manifold MeshElement set"));
+			SNLDebugCall(1, expect<NonManifoldManifoldInitializationError>(this->isManifold()));
 		}
 	};
 

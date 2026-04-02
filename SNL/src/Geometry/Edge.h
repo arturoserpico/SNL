@@ -6,6 +6,9 @@ namespace snl {
 	template<size_t meshDimension>
 	using Edge = MeshElement<1, meshDimension>;
 
+	using InvalidEdgePointCountError =
+		Error<"snl::Edge must have exactly 2 points">;
+
 	template<size_t meshDimension>
 	class MeshElement<1, meshDimension> {
 		PointCloud<meshDimension> boundaryVal = {};
@@ -89,7 +92,7 @@ namespace snl {
 			meshVal(mesh),
 			boundaryVal(boundary)
 		{
-			SNLDebugCall(1, expect(boundary.elements().size() == 2, "Edge must have exactly two nodes in its boundary."));
+			SNLDebugCall(1, expect<InvalidEdgePointCountError>(boundary.elements().size() == 2));
 		}
 
 		MeshElement(
@@ -99,7 +102,7 @@ namespace snl {
 			meshVal(mesh),
 			boundaryVal(mesh, boundary)
 		{
-			SNLDebugCall(1, expect(boundary.size() == 2, "Edge must have exactly two nodes in its boundary."));
+			SNLDebugCall(1, expect<InvalidEdgePointCountError>(boundary.elements().size() == 2));
 		}
 
 		MeshElement(

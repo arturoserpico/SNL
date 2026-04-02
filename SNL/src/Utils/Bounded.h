@@ -5,17 +5,20 @@
 #include "../Metaprogramming/Utils.h"
 
 namespace snl {
+	using BoundedInvalidInitializationValueError = 
+		Error<"snl::Bounded initialization is out of bounds">;
+
 	template<typename T, T min, T max>
 	class Bounded {
 		T value;
 	public:
 		Bounded() requires (min <= T() && T() <= max) = default;
 		Bounded(T value) : value(value) {
-			SNLDebugCall(1, expect(min <= value && value <= max, "value is out of bounds"));
+			SNLDebugCall(1, expect<BoundedInvalidInitializationValueError>(min <= value && value <= max));
 		}
 
 		Bounded<T, min, max>& operator=(T value) {
-			SNLDebugCall(1, expect(min <= value && value <= max, "value is out of bounds"));
+			SNLDebugCall(1, expect<BoundedInvalidInitializationValueError>(min <= value && value <= max));
 			this->value = value;
 			return *this;
 		}

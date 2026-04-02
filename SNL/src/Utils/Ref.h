@@ -8,6 +8,8 @@
 namespace snl {
 	void addObjectRef(const auto*);
 	void removeObjectRef(const auto*);
+	
+	using NullRefError = Error<"tried derefercing null snl::Ref">;
 
 	template<typename T>
 	class Ref;
@@ -146,12 +148,12 @@ namespace snl {
 		}
 
 		operator T& () const {
-			SNLDebugCall(1, expect(!empty(), "cannot access null snl::Ref"));
+			SNLDebugCall(1, expect<NullRefError>(!empty()));
 			return *inner;
 		}
 
 		T& get() const {
-			SNLDebugCall(1, expect(!empty(), "cannot access null snl::Ref"));
+			SNLDebugCall(1, expect<NullRefError>(!empty()));
 			return *inner;
 		}
 
