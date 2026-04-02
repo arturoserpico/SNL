@@ -4,13 +4,18 @@
 #include "../Metaprogramming/Utils.h"
 #include "Ref.h"
 #include "../Memory/ObjectManager.h"
+#include "../Utils/ErasedFunction.h"
+#include <initializer_list>
 
 namespace snl {
 	using AnyInvalidCastError = Error<"Casted snl::Any to invalid type">;
 
 	template<bool enableTypeInfo = true, size_t maxStack = 8>
 	class Any {
-		static std::map<const std::type_info*, std::function<bool(const Any&, const Any&)>> comparators;
+		using DefaultString = std::string;
+
+		template<typename T>
+		using DefaultList = std::vector<T>;
 
 		std::conditional_t<enableTypeInfo, const std::type_info*, Empty> type;
 
@@ -35,6 +40,11 @@ namespace snl {
 			}
 		}
 
+		Any(const char* str) : Any(DefaultString(str)) {}
+		
+		template<typename T>
+		Any(std::initializer_list<T> list) : Any(DefaultList<T>(list)) {}
+
 		Any& operator=(const Any& other) {
 			type = other.type;
 			storageType = other.storageType;
@@ -50,17 +60,6 @@ namespace snl {
 			}
 
 			return *this;
-		}
-
-		~Any() {
-			switch (storageType)
-			{
-			case SMALL:
-				break;
-			case BIG:
-				bigStorage.~Ref();
-				break;
-			}
 		}
 
 		template<typename T>
@@ -89,17 +88,16 @@ namespace snl {
 			return *type;
 		}
 
-	private:
-		template<typename T>
-		static bool comparator(const Any& a, const Any& b) {
-			return a.get<T>() == b.get<T>();
+		Ref<const void> raw() const {
+			return storageType == SMALL ? Ref(smallStorage).as<const void>() : bigStorage.as<const void>();
 		}
-	public:
+
 		template<typename T>
 		Any(const T& value) : type(&typeid(T)) {
-			if constexpr (enableTypeInfo)
-				if (!comparators.count(&typeid(T)))
-					comparators[&typeid(T)] = comparator<T>;
+			if constexpr (enableTypeInfo) {
+				globalErasedDestructors.addVariant<const T>([](const T& obj) { obj.~T(); });
+				globalErasedComparators.addVariant<const T, const T>([](const T& a, const T& b) { return a == b; });
+			}
 
 			if constexpr (sizeof(T) <= 8) {
 				storageType = SMALL;
@@ -111,15 +109,15 @@ namespace snl {
 			}
 		}
 
+		~Any() {
+			globalErasedDestructors.call({ type }, { raw() });
+		}
+
 		friend bool operator==(const Any& a, const Any& b) requires enableTypeInfo {
 			if (a.getType() != b.getType())
 				return false;
 
-			return comparators.at(&a.getType())(a, b);
+			return globalErasedComparators.call({ &a.getType(), &b.getType() }, { a.raw(), b.raw() });
 		}
 	};
-
-	template<bool enableTypeInfo, size_t maxStack>
-	std::map<const std::type_info*, std::function<bool(const Any<enableTypeInfo, maxStack>&, const Any<enableTypeInfo, maxStack>&)>> 
-		Any<enableTypeInfo, maxStack>::comparators = {};
 }

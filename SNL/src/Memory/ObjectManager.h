@@ -3,7 +3,7 @@
 #include <map>
 #include <sstream>
 #include "../Utils/Error.h"
-
+#include "../Utils/ErasedFunction.h"
 #include "../Utils/Ref.h"
 #include "../Utils/Error.h"
 
@@ -17,7 +17,6 @@ namespace snl {
 
 	class ObjectManager {
 		std::map<const void*, std::pair<const std::type_info*, size_t>> objectRegister;
-		static std::map<const std::type_info*, std::function<void(const void*)>> destructors;
 
 		std::string formatReferenceCount(const auto* obj) {
 			std::stringstream str;
@@ -26,23 +25,12 @@ namespace snl {
 
 			return str.str();
 		}
-
-		template<typename T>
-		static void destructor(const void* obj) {
-			reinterpret_cast<const T*>(obj)->~T();
-		}
-
-		template<typename T>
-		void addDestructor() {
-			if (!destructors.count(&typeid(T)))
-				destructors[&typeid(T)] = destructor<T>;
-		}
 	public:
 		static constexpr bool debugLogging = SNLObjectManagerDebugLogging;
 
 		template<typename T>
 		Ref<T> create(const T& val) {
-			addDestructor<T>();
+			globalErasedDestructors.addVariant<const T>([](const T& obj) { obj.~T(); });
 
 			T* obj = new T(val);
 			objectRegister[obj] = { &typeid(T), 0 };
@@ -55,7 +43,7 @@ namespace snl {
 
 		template<typename T, typename... Args>
 		Ref<T> create(Args&&... args) {
-			addDestructor<T>();
+			globalErasedDestructors.addVariant<const T>([](const T& obj) { obj.~T(); });
 
 			T* obj = new T(std::forward<Args>(args)...);
 			objectRegister[obj] = { &typeid(T), 0 };
@@ -84,7 +72,7 @@ namespace snl {
 				if constexpr (debugLogging)
 					debug << "deleting object at: " << obj << std::endl;
 
-				destructors.at(objInfo.first)(obj);
+				globalErasedDestructors.call({ objInfo.first }, { Ref<const void>(obj) });
 				
 				objectRegister.erase(reinterpret_cast<const void*>(obj));
 
@@ -104,8 +92,6 @@ namespace snl {
 			return objectRegister;
 		}
 	};
-
-	std::map<const std::type_info*, std::function<void(const void*)>> ObjectManager::destructors;
 
 	static ObjectManager objManager;
 	

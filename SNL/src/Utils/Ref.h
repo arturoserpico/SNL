@@ -12,83 +12,6 @@ namespace snl {
 	using NullRefError = Error<"tried derefercing null snl::Ref">;
 
 	template<typename T>
-	class Ref;
-
-	template<>
-	class Ref<void> {
-		bool managed;
-		void* inner;
-
-		void checkManagmentState();
-	public:
-		Ref() = default;
-
-		Ref(void* val, bool managed = false) : managed(managed), inner(val) {
-			SNLDebugCall(2, checkManagmentState());
-
-			if (managed)
-				addObjectRef(inner);
-		}
-
-		Ref(const Ref<void>& other) : managed(other.managed), inner(other.inner) {
-			SNLDebugCall(2, checkManagmentState());
-
-			if (managed)
-				addObjectRef(inner);
-		}
-
-		Ref<void>& operator=(const Ref<void>& other) {
-			if (inner != nullptr && managed)
-				removeObjectRef(inner);
-
-			managed = other.managed;
-
-			if (managed)
-				addObjectRef(other.inner);
-
-			inner = other.inner;
-
-			SNLDebugCall(2, checkManagmentState());
-
-			return *this;
-		}
-
-		~Ref() {
-			if (managed)
-				removeObjectRef(inner);
-		}
-
-		void* raw() const {
-			return inner;
-		}
-
-		bool empty() const {
-			return inner == nullptr;
-		}
-
-		void bind(void* val) {
-			inner = val;
-		}
-
-		bool isManaged() {
-			return managed;
-		}
-
-		template<typename T>
-		Ref<T> as() const {
-			return Ref<T>(std::launder(reinterpret_cast<T*>(inner)), managed);
-		}
-
-		template<>
-		Ref<void> as<void>() const {
-			return Ref<void>(reinterpret_cast<void*>(inner), managed);
-		}
-
-		template<typename T>
-		Ref(const Ref<T>& other) : Ref<void>(other.as<void>()) {}
-	};
-
-	template<typename T>
 	class Ref {
 		bool managed;
 		T* inner;
@@ -97,7 +20,8 @@ namespace snl {
 	public:
 		Ref() = default;
 
-		Ref(T& val, bool managed = false) : inner(&val), managed(managed) {
+		template<typename U = T> requires (!std::is_void_v<T>&& std::is_convertible_v<U*, T*>)
+		Ref(U& val, bool managed = false) : inner(&val), managed(managed) {
 			SNLDebugCall(2, checkManagmentState());
 
 			if (managed)
@@ -117,6 +41,9 @@ namespace snl {
 			if (managed)
 				addObjectRef(inner);
 		}
+
+		template<typename A> requires std::is_void_v<T>
+		Ref(const Ref<A>& other) : Ref<A>(other.as<A>()) {}
 
 		~Ref() {
 			if (managed)
@@ -147,29 +74,23 @@ namespace snl {
 			return inner == nullptr;
 		}
 
-		operator T& () const {
-			SNLDebugCall(1, expect<NullRefError>(!empty()));
+		template<typename U = T> requires !std::is_void_v<T>
+		operator U&() const {
+			SNLDebugCall(1, expect(!empty(), "cannot access null snl::Ref"));
 			return *inner;
 		}
 
-		T& get() const {
-			SNLDebugCall(1, expect<NullRefError>(!empty()));
+		template<typename U = T> requires !std::is_void_v<T>
+		U& get() const {
+			SNLDebugCall(1, expect(!empty(), "cannot access null snl::Ref"));
 			return *inner;
 		}
-
-		//void bind(T* val) {
-		//	inner = val;
-		//}
-		//
-		//void bind(T& val) {
-		//	inner = &val;
-		//}
 
 		bool isManaged() {
 			return managed;
 		}
 
-		friend bool operator==(Ref<T> a, Ref<T> b) {
+		friend bool operator==(Ref<T> a, Ref<T> b) requires !std::is_void_v<T> {
 			return a.get() == b.get();
 		}
 
@@ -178,9 +99,9 @@ namespace snl {
 			return Ref<A>(std::launder(reinterpret_cast<A*>(inner)), managed);
 		}
 
-		template<>
-		Ref<void> as<void>() const {
-			return Ref<void>(reinterpret_cast<void*>(inner), managed);
+		template<typename A> requires std::is_void_v<A>
+		Ref<A> as() const {
+			return Ref<A>(reinterpret_cast<A*>(inner), managed);
 		}
 
 		template<typename A>
@@ -191,9 +112,10 @@ namespace snl {
 		operator Ref<const T>() const {
 			return Ref<const T>(inner, managed);
 		}
-
-		friend class Ref<void>;
 	};
+
+	template<typename T>
+	Ref(T&) -> Ref<T>;
 
 	template<typename T>
 	struct _RemRef;
