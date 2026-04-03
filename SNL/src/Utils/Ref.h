@@ -86,7 +86,7 @@ namespace snl {
 			return *inner;
 		}
 
-		bool isManaged() {
+		bool isManaged() const {
 			return managed;
 		}
 
@@ -116,6 +116,9 @@ namespace snl {
 
 	template<typename T>
 	Ref(T&) -> Ref<T>;
+
+	template<typename T>
+	Ref(T&, bool) -> Ref<T>;
 
 	template<typename T>
 	struct _RemRef;
