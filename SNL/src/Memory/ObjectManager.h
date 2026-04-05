@@ -6,6 +6,7 @@
 #include "../Utils/ErasedFunction.h"
 #include "../Utils/Ref.h"
 #include "../Utils/Error.h"
+#include <set>
 
 #ifndef SNLObjectManagerDebugLogging
 	#define SNLObjectManagerDebugLogging false
@@ -20,6 +21,7 @@ namespace snl {
 
 	class ObjectManager {
 		std::map<const void*, std::pair<const std::type_info*, size_t>> objectRegister;
+		Debug<1, std::set<const void*>> tracked;
 
 		std::string formatReferenceCount(const auto* obj) {
 			std::stringstream str;
@@ -27,6 +29,13 @@ namespace snl {
 			str << ", reference count: " << objectRegister.at(reinterpret_cast<const void*>(obj)).second;
 
 			return str.str();
+		}
+
+		bool isTracked(const void* obj) {
+			if constexpr (debugLevel >= 1)
+				return tracked.count(obj);
+			else
+				return false;
 		}
 	public:
 		static constexpr bool debugLogging = SNLObjectManagerDebugLogging;
@@ -58,15 +67,15 @@ namespace snl {
 		}
 
 		void addRef(const auto* obj) {
-			if constexpr (debugLogging)
-				debug << "adding reference to object at: " << obj << formatReferenceCount(obj) << std::endl;
+			if (debugLogging || isTracked(obj))
+				debug << isTracked(obj) ? "TRACKED " : "" << "adding reference to object at: " << obj << formatReferenceCount(obj) << std::endl;
 
 			objectRegister.at(reinterpret_cast<const void*>(obj)).second++;
 		}
 
 		void release(const auto* obj) {
-			if constexpr (debugLogging)
-				debug << "releasing reference to object at: " << obj << formatReferenceCount(obj) << std::endl;
+			if (debugLogging || isTracked(obj))
+				debug << isTracked(obj) ? "TRACKED " : "" << "releasing reference to object at: " << obj << formatReferenceCount(obj) << std::endl;
 
 			auto& objInfo = objectRegister.at(reinterpret_cast<const void*>(obj));
 
@@ -74,8 +83,8 @@ namespace snl {
 			if (objInfo.second == 0) {
 				ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
 
-				if constexpr (debugLogging)
-					debug << "deleting object at: " << obj << std::endl;
+				if (debugLogging || isTracked(obj))
+					debug << isTracked(obj) ? "TRACKED " : "" << "deleting object at: " << obj << std::endl;
 
 				globalErasedDestructors.call({ objInfo.first }, { Ref<const void>(obj) });
 				

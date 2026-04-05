@@ -88,6 +88,10 @@ namespace snl {
 			return *type;
 		}
 
+		Ref<void> raw() {
+			return storageType == SMALL ? Ref(smallStorage).as<void>() : bigStorage;
+		}
+
 		Ref<const void> raw() const {
 			return storageType == SMALL ? Ref(smallStorage).as<const void>() : bigStorage.as<const void>();
 		}
@@ -120,4 +124,10 @@ namespace snl {
 			return globalErasedComparators.call({ &a.getType(), &b.getType() }, { a.raw(), b.raw() });
 		}
 	};
+
+	template<typename R, typename Erased, size_t argsCount>
+	template<IsAny... Args> requires (sizeof...(Args) == argsCount)
+	R ErasedFunction<R, Erased, argsCount>::call(Args&&... args) {
+		return call({ &args.getType()... }, { args.raw().as<Erased>()... });
+	}
 }

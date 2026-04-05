@@ -10,6 +10,7 @@
 #include <map>
 #include <stack>
 
+#include "../Metaprogramming/Utils.h"
 #include "../Metaprogramming/StaticString.h"
 
 #ifndef SNLDebugLevel
@@ -57,23 +58,6 @@ namespace snl {
 	};
 
 	DebugLogger debug;
-
-	//struct Exception : std::exception {
-	//	const std::string msg;
-	//
-	//	inline Exception(const std::string& msg) : msg("SNL encountered an error: " + msg) {
-	//		debug << "SNL exception generated: " + msg << std::endl;
-	//	}
-	//
-	//	const char* what() {
-	//		return msg.c_str();
-	//	}
-	//};
-	//
-	//template<StaticString exceptionClass>
-	//struct ClassedException : Exception {
-	//	inline ClassedException(const std::string& msg) : Exception(msg + ", exception class: " + (std::string)exceptionClass) {}
-	//};
 
 	enum class ErrorLevel {
 		ERROR,
@@ -238,11 +222,6 @@ namespace snl {
 
 	static ErrorRegister errorRegister;
 
-	template<typename ErrorClass>
-	inline void throwError(const ErrorClass& error) {
-		errorRegister.throwError<ErrorClass>(error);
-	}
-
 	template<IsError ErrorClass>
 	[[noreturn]] void throwError(auto... args) {
 		errorRegister.throwError<ErrorClass>(ErrorClass(args...));
@@ -256,6 +235,11 @@ namespace snl {
 	template<IsWarning ErrorClass>
 	inline void throwError(auto... args) {
 		errorRegister.throwError<ErrorClass>(ErrorClass(args...));
+	}
+
+	template<IsWarning ErrorClass>
+	inline void throwError(const ErrorClass& error) {
+		errorRegister.throwError<ErrorClass>(error);
 	}
 
 	template<IsWarning ErrorClass>
@@ -343,16 +327,6 @@ namespace snl {
 		}
 	};
 
-	//inline void expect(bool condition, const char* msg) {
-	//	if constexpr (debugLevel > 0)
-	//		if (!condition)
-	//			throw Exception(msg);
-	//}
-	//
-	//template<typename Exception>
-	//inline void expect(bool condition, const char* msg) {
-	//	if constexpr (debugLevel > 0)
-	//		if (!condition)
-	//			throw Exception(msg);
-	//}
+	template<size_t level, typename T>
+	using Debug = std::conditional_t<debugLevel >= level, T, Empty>;
 }

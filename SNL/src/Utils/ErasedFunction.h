@@ -8,6 +8,18 @@
 #include "Ref.h"
 
 namespace snl {
+	template<bool enableTypeInfo, size_t maxStack>
+	class Any;
+
+	template<typename T>
+	constexpr bool isAny = false;
+
+	template<bool enableTypeInfo, size_t maxStack>
+	constexpr bool isAny<Any<enableTypeInfo, maxStack>> = true;
+
+	template<typename T>
+	concept IsAny = isAny<T>;
+
 	template<typename R, typename Erased = void, size_t argsCount = 1>
 	class ErasedFunction {
 		std::map<std::array<const std::type_info*, argsCount>, std::function<R(std::array<Ref<Erased>, argsCount>)>> functions;
@@ -25,10 +37,22 @@ namespace snl {
 		template<typename... Args> requires (sizeof...(Args) == argsCount)
 		void addVariant(std::function<R(Args&...)> variant) {
 			std::array types{ &typeid(Args)... };
+
+			if (!functions.count(types))
+				functions[types] = [variant](const std::array<Ref<Erased>, argsCount>& args) {
+				auto tuple = caster<Args...>(args);
+				return std::apply(variant, tuple);
+				};
+		}
+
+		template<typename... Args, typename... FunArgs> 
+			requires (sizeof...(Args) == argsCount && sizeof...(FunArgs) == argsCount)
+		void addVariant(std::function<R(FunArgs&...)> variant) {
+			std::array types{ &typeid(Args)... };
 			
 			if (!functions.count(types))
 				functions[types] = [variant](const std::array<Ref<Erased>, argsCount>& args) {
-					auto tuple = caster<Args...>(args);
+					auto tuple = caster<FunArgs...>(args);
 					return std::apply(variant, tuple);
 				};
 		}
@@ -41,9 +65,12 @@ namespace snl {
 		}
 
 		template<typename... Args> requires (sizeof...(Args) == argsCount)
-		R call(Args... args) {
+		R call(Args&&... args) {
 			return call({ &typeid(Args)... }, { Ref(args).as<Erased>()... });
 		}
+
+		template<IsAny... Args> requires (sizeof...(Args) == argsCount)
+		R call(Args&&... args);
 	};
 
 	static ErasedFunction<void, const void> globalErasedDestructors;

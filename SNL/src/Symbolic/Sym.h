@@ -102,7 +102,7 @@ namespace snl {
 		Error<"tried substituting snl::Sym with another type">;
 
 	struct GenericSym {
-		static std::map<const std::type_info*, std::function<bool(const GenericSym&, const GenericSym&)>> comparators;
+		static ErasedFunction<bool, const GenericSym, 2> comparators;
 
 		virtual bool isEvaluable() const = 0;
 		virtual const std::type_info& nodeType() const = 0;
@@ -177,14 +177,13 @@ namespace snl {
 		virtual Ref<GenericSym> rawDeepCopy() const = 0;
 	};
 
-	std::map<const std::type_info*, std::function<bool(const GenericSym&, const GenericSym&)>> 
-		GenericSym::comparators;
+	ErasedFunction<bool, const GenericSym, 2> GenericSym::comparators;
 
 	bool operator==(const GenericSym& a, const GenericSym& b) {
 		if (a.symType() != b.symType())
 			return false;
 
-		return GenericSym::comparators.at(&a.symType())(a, b);
+		return GenericSym::comparators.call({ &a.symType(), &b.symType() }, std::array<Ref<const GenericSym>, 2>({ Ref(a), Ref(b) }));
 	}
 
 	using UnevaulableSymEvalError = Error<"tried to evaluate unevaluable snl::Sym">;
@@ -194,12 +193,17 @@ namespace snl {
 		bool isDefined = false;
 		Any<> evalObj;
 		//std::optional<T> value;
-		std::function<T(Any<>&, std::vector<Ref<GenericSym>>&)> fun;
+		std::function<T(bool, Any<>&, std::vector<Ref<GenericSym>>&)> fun;
 		std::conditional_t<(debugLevel > 0), std::vector<const std::type_info*>, Empty> depsTypes;
 		std::vector<Ref<GenericSym>> deps;
 	public:
 		bool isEvaluable() const {
-			return isDefined;
+			bool depsEvaluable = true;
+			
+			for (Ref<GenericSym> dep : deps)
+				depsEvaluable = depsEvaluable && dep.get().isEvaluable();
+
+			return isDefined; //&& depsEvaluable;
 		}
 
 		std::vector<Ref<GenericSym>>& rawDeps() {
@@ -311,10 +315,6 @@ namespace snl {
 
 			return copy.as<GenericSym>();
 		}
-
-		static bool comparator(const GenericSym& a, const GenericSym& b) {
-			return Ref(a).as<const Sym<T>>() == Ref(b).as<const Sym<T>>();
-		}
 	public:
 		auto operator()(auto&&...) &;
 		auto operator()(auto&&...) &&;
@@ -328,52 +328,56 @@ namespace snl {
 
 		template<IsSymOpType SymOpType>
 		Sym(SymOpType evalObj) : evalObj(evalObj) {
-			if (!comparators.count(&typeid(T)))
-				comparators[&typeid(T)] = comparator;
+			comparators.addVariant<T, T>(std::function([](const Sym<T>& a, const Sym<T>& b) -> bool {
+					return a == b;
+				}));
 			
-			constexpr bool isEvaluable = requires(SymOpType evalObj) {
+			constexpr bool isDefined = requires(SymOpType evalObj) {
 				evalObj.eval();
 			};
 
-			this->isDefined = isEvaluable;
+			this->isDefined = isDefined;
 
-			fun = std::function([](Any<>& _evalObj, std::vector<Ref<GenericSym>>& deps) -> T {
-					if constexpr (isEvaluable) {
-						auto& evalObj = _evalObj.get<SymOpType>();
-						return std::apply(&SymOpType::eval, std::tuple(evalObj));
+			fun = std::function([](bool isEvaluable, Any<>& _evalObj, std::vector<Ref<GenericSym>>& deps) -> T {
+					if constexpr (isDefined) {
+						if (isEvaluable) {
+							auto& evalObj = _evalObj.get<SymOpType>();
+							return std::apply(&SymOpType::eval, std::tuple(evalObj));
+						}
 					}
-					else {
-						forceThrow<UnevaulableSymEvalError>();
-						SNLMSVCCall(__assume(false));
-					}
+					
+					forceThrow<UnevaulableSymEvalError>();
+					SNLMSVCCall(__assume(false));
 				});
 		}
 
 		template<IsSymOpType SymOpType, typename... Deps>
-		Sym(SymOpType evalObj, Ref<Sym<Deps>>... deps) : evalObj(evalObj), depsTypes({ &typeid(Deps)... }) {
-			if (!comparators.count(&typeid(T)))
-				comparators[&typeid(T)] = comparator;
+		Sym(SymOpType evalObj, Ref<Sym<Deps>>... deps) : evalObj(evalObj), depsTypes({ &typeid(Deps)... }) {			
+			comparators.addVariant<T, T>(std::function([](const Sym<T>& a, const Sym<T>& b) -> bool {
+					return a == b;
+				}));
 			
 			using InvokeTypes = FunctionTypeInfo<decltype(&SymOpType::eval)>::ArgsList;
 
-			constexpr bool isEvaluable = requires(SymOpType evalObj, TypeListToTuple<InvokeTypes> args) {
+			constexpr bool isDefined = requires(SymOpType evalObj, TypeListToTuple<InvokeTypes> args) {
 				std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), args));
 			};
 
-			this->isDefined = isEvaluable;
+			this->isDefined = isDefined;
 			
 			this->deps = deconcretizeDeps(deps...);
-			fun = std::function([](Any<>& _evalObj, std::vector<Ref<GenericSym>>& deps) -> T {
-					if constexpr (isEvaluable) {
-						auto& evalObj = _evalObj.get<SymOpType>();
-						auto concretizedDeps = concretizeDeps<Deps...>(deps);
-						auto computedDeps = computeDeps<0, typename SymOpType::ArgsList, Deps...>(concretizedDeps);
-						return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
+			fun = std::function([](bool isEvaluable, Any<>& _evalObj, std::vector<Ref<GenericSym>>& deps) -> T {
+					if constexpr (isDefined) {
+						if (isEvaluable) {
+							auto& evalObj = _evalObj.get<SymOpType>();
+							auto concretizedDeps = concretizeDeps<Deps...>(deps);
+							auto computedDeps = computeDeps<0, typename SymOpType::ArgsList, Deps...>(concretizedDeps);
+							return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
+						}
 					}
-					else {
-						forceThrow<UnevaulableSymEvalError>();
-						SNLMSVCCall(__assume(false));
-					}
+
+					forceThrow<UnevaulableSymEvalError>();
+					SNLMSVCCall(__assume(false));
 				});
 		}
 
@@ -428,7 +432,7 @@ namespace snl {
 
 		T eval() {
 			if (fun) { 
-				return fun(evalObj, deps);
+				return fun(isEvaluable(), evalObj, deps);
 			}
 		}
 

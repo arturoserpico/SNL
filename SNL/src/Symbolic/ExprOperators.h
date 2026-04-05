@@ -4,8 +4,12 @@
 
 namespace snl {
 	template<typename T, typename I>
-	struct SymSumOp : SymOpType<T(Ref<Sym<I>>, I, I, Ref<Sym<T>>)> {
-		T eval(Ref<Sym<I>> iter, I min, I max, Ref<Sym<T>> expr) {
+	struct SymSumOp : SymOpType<T(I, I, Ref<Sym<T>>)> {
+		Ref<Sym<I>> iter;
+
+		SymSumOp(Ref<Sym<I>> iter) : iter(iter) {}
+
+		T eval(I min, I max, Ref<Sym<T>> expr) {
 			T result = 0;
 
 			iter.get() = min;
@@ -40,7 +44,7 @@ namespace snl {
 		auto operator|(auto&& _expr) {
 			auto [expr] = convertArgsToSymRef(std::forward<decltype(_expr)>(_expr));
 			expr.get().substitute(oldIterator, iterator);
-			return Sym(SymSumOp<RemSym<RemRef<decltype(expr)>>, I>(), iterator, min, max, expr);
+			return Sym(SymSumOp<RemSym<RemRef<decltype(expr)>>, I>(iterator), min, max, expr);
 		}
 	};
 

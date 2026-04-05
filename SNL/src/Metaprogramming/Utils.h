@@ -76,9 +76,9 @@ namespace snl {
 
 
 
-	template<typename T, auto... vals>
+	template<typename T, auto vals>
 	using IdenticalTypePackFromValues = T;
 
-	template<typename T, typename... Ts>
+	template<typename T, typename Ts>
 	using IdenticalTypePackFromTs = T;
 }
