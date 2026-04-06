@@ -21,7 +21,7 @@ namespace snl {
 
 	class ObjectManager {
 		std::map<const void*, std::pair<const std::type_info*, size_t>> objectRegister;
-		Debug<1, std::set<const void*>> tracked;
+		Debug<1, std::map<const void*, std::string>> tracked;
 
 		std::string formatReferenceCount(const auto* obj) {
 			std::stringstream str;
@@ -36,6 +36,13 @@ namespace snl {
 				return tracked.count(obj);
 			else
 				return false;
+		}
+
+		std::string trackedStr(const auto* obj) {
+			if (isTracked(obj))
+				return std::format("[tracked ref: {}] ", tracked.at(obj));
+			else
+				return "";
 		}
 	public:
 		static constexpr bool debugLogging = SNLObjectManagerDebugLogging;
@@ -66,25 +73,34 @@ namespace snl {
 			return Ref<T>(*obj, true);
 		}
 
-		void addRef(const auto* obj) {
-			if (debugLogging || isTracked(obj))
-				debug << isTracked(obj) ? "TRACKED " : "" << "adding reference to object at: " << obj << formatReferenceCount(obj) << std::endl;
+		Ref<void> createErased(const std::type_info& type, size_t size) {
+			void* obj = operator new(size);
+			objectRegister[obj] = { &type, 0 };
+			if constexpr (debugLogging)
+				debug << "creating object at: " << obj << formatReferenceCount(obj) << std::endl;
+			return Ref<void>(obj, true);
+		}
 
+		void addRef(const auto* obj) {
 			objectRegister.at(reinterpret_cast<const void*>(obj)).second++;
+
+			if (debugLogging || isTracked(obj))
+				debug << trackedStr(obj) << "adding reference to object at: " << obj << formatReferenceCount(obj) << std::endl;
 		}
 
 		void release(const auto* obj) {
-			if (debugLogging || isTracked(obj))
-				debug << isTracked(obj) ? "TRACKED " : "" << "releasing reference to object at: " << obj << formatReferenceCount(obj) << std::endl;
-
 			auto& objInfo = objectRegister.at(reinterpret_cast<const void*>(obj));
 
 			objInfo.second--;
+
+			if (debugLogging || isTracked(obj))
+				debug << trackedStr(obj) << "releasing reference to object at: " << obj << formatReferenceCount(obj) << std::endl;
+
 			if (objInfo.second == 0) {
 				ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
 
 				if (debugLogging || isTracked(obj))
-					debug << isTracked(obj) ? "TRACKED " : "" << "deleting object at: " << obj << std::endl;
+					debug << trackedStr(obj) << "deleting object at: " << obj << std::endl;
 
 				globalErasedDestructors.call({ objInfo.first }, { Ref<const void>(obj) });
 				
@@ -105,10 +121,21 @@ namespace snl {
 		auto getObjects() {
 			return objectRegister;
 		}
+
+		void track(const auto* obj, const std::string& name) {
+			if constexpr (debugLevel >= 1)
+				tracked[obj] = name;
+		}
 	};
 
 	static ObjectManager objManager;
 	
+	template<typename T>
+	Ref<T> track(Ref<T> ref, const std::string& name) {
+		objManager.track(ref.raw(), name);
+		return ref;
+	}
+
 	void removeObjectRef(const auto* obj) {
 		objManager.release(obj);
 	}
@@ -125,6 +152,10 @@ namespace snl {
 	template<typename T, typename... Args>
 	Ref<T> makeManaged(Args&&... args) {
 		return objManager.create<T>(std::forward<Args>(args)...);
+	}
+
+	Ref<void> makeManagedErased(const std::type_info& type, size_t size) {
+		return objManager.createErased(type, size);
 	}
 
 	template<typename T>

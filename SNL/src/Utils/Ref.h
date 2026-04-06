@@ -109,6 +109,12 @@ namespace snl {
 			return Ref<A>(dynamic_cast<A*>(inner), managed);
 		}
 
+		void release() {
+			removeObjectRef(inner);
+			managed = false;
+			inner = nullptr;
+		}
+
 		operator Ref<const T>() const {
 			return Ref<const T>(inner, managed);
 		}

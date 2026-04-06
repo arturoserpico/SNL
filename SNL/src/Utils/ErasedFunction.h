@@ -73,6 +73,9 @@ namespace snl {
 		R call(Args&&... args);
 	};
 
+	static ErasedFunction<std::function<void(void*)>, const void> globalErasedSizeof;
+	static ErasedFunction<std::function<void(void*)>, const void> globalErasedCopyAssignment;
+	static ErasedFunction<std::function<void(void*)>, const void> globalErasedCopyConstructor;
 	static ErasedFunction<void, const void> globalErasedDestructors;
 	static ErasedFunction<bool, const void, 2> globalErasedComparators;
 }

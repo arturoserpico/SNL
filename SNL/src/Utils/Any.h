@@ -17,27 +17,31 @@ namespace snl {
 		template<typename T>
 		using DefaultList = std::vector<T>;
 
-		std::conditional_t<enableTypeInfo, const std::type_info*, Empty> type;
+		std::conditional_t<enableTypeInfo, const std::type_info*, Empty> type = nullptr;
+		std::conditional_t<enableTypeInfo, size_t, Empty> typeSize = 0;
 
 		enum { SMALL, BIG } storageType;
 
 		union {
 			std::byte smallStorage[maxStack];
-			Ref<void> bigStorage;
+			Ref<void> bigStorage = nullptr;
 		};
 	public:
+		Ref<void> raw() {
+			return storageType == SMALL ? Ref(smallStorage).as<void>() : bigStorage;
+		}
+
+		Ref<const void> raw() const {
+			return storageType == SMALL ? Ref(smallStorage).as<const void>() : bigStorage.as<const void>();
+		}
+
 		Any() = default;
 
-		Any(const Any& other) : type(other.type), storageType(other.storageType) {
-			switch (storageType)
-			{
-			case SMALL:
-				std::memcpy(smallStorage, other.smallStorage, maxStack);
-				break;
-			case BIG:
-				bigStorage = other.bigStorage;
-				break;
-			}
+		Any(const Any& other) : type(other.type), typeSize(other.typeSize), storageType(other.storageType) {
+			if(storageType == BIG)
+				bigStorage = makeManagedErased(*type, typeSize);
+
+			globalErasedCopyConstructor.call({ type }, { other.raw() })(raw().raw());
 		}
 
 		Any(const char* str) : Any(DefaultString(str)) {}
@@ -46,17 +50,33 @@ namespace snl {
 		Any(std::initializer_list<T> list) : Any(DefaultList<T>(list)) {}
 
 		Any& operator=(const Any& other) {
-			type = other.type;
-			storageType = other.storageType;
+			if (type == nullptr) {
+				type = other.type;
+				typeSize = other.typeSize;
+				storageType = other.storageType;
 
-			switch (storageType)
-			{
-			case SMALL:
-				std::memcpy(smallStorage, other.smallStorage, maxStack);
-				break;
-			case BIG:
-				bigStorage = other.bigStorage;
-				break;
+				if (storageType == BIG)
+					bigStorage = makeManagedErased(*type, typeSize);
+
+				globalErasedCopyConstructor.call({ type }, { other.raw() })(raw().raw());
+
+				return *this;
+			}
+
+			if (type == other.type) {
+				globalErasedCopyAssignment.call({ type }, { other.raw() })(raw().raw());
+			}
+			else {
+				globalErasedDestructors.call({ type }, { raw() });
+
+				type = other.type;
+				typeSize = other.typeSize;
+				storageType = other.storageType;
+
+				if(storageType == BIG)
+					bigStorage = makeManagedErased(*type, typeSize);
+
+				globalErasedCopyConstructor.call({ type }, { other.raw() })(raw().raw());
 			}
 
 			return *this;
@@ -88,17 +108,16 @@ namespace snl {
 			return *type;
 		}
 
-		Ref<void> raw() {
-			return storageType == SMALL ? Ref(smallStorage).as<void>() : bigStorage;
-		}
-
-		Ref<const void> raw() const {
-			return storageType == SMALL ? Ref(smallStorage).as<const void>() : bigStorage.as<const void>();
-		}
-
 		template<typename T>
-		Any(const T& value) : type(&typeid(T)) {
+		Any(const T& value) : type(&typeid(T)), typeSize(sizeof(T)) {
 			if constexpr (enableTypeInfo) {
+				//globalErasedSizeof.addVariant<T>(std::function([]() -> size_t { return sizeof(T); }));
+				globalErasedCopyAssignment.addVariant<const T>([](const T& obj) { 
+					return std::function([obj](void* target) { 
+						Ref(target).as<T>().get() = obj; 
+					}); 
+				});
+				globalErasedCopyConstructor.addVariant<const T>([](const T& obj) { return std::function([obj](void* target) { new(target) T(obj); }); });
 				globalErasedDestructors.addVariant<const T>([](const T& obj) { obj.~T(); });
 				globalErasedComparators.addVariant<const T, const T>([](const T& a, const T& b) { return a == b; });
 			}
@@ -115,6 +134,9 @@ namespace snl {
 
 		~Any() {
 			globalErasedDestructors.call({ type }, { raw() });
+			
+			//if (storageType == BIG)
+				//bigStorage.~Ref();
 		}
 
 		friend bool operator==(const Any& a, const Any& b) requires enableTypeInfo {
