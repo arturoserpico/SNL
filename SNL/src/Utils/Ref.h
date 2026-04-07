@@ -48,6 +48,8 @@ namespace snl {
 		~Ref() {
 			if (managed)
 				removeObjectRef(inner);
+
+			inner = nullptr;
 		}
 
 		Ref<T>& operator=(const Ref<T>& other) {
@@ -116,6 +118,10 @@ namespace snl {
 		}
 
 		operator Ref<const T>() const {
+			return Ref<const T>(inner, managed);
+		}
+
+		Ref<const T> asConst() const {
 			return Ref<const T>(inner, managed);
 		}
 	};

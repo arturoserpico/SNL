@@ -39,7 +39,7 @@ namespace snl {
 		Ref<Sym<I>> min, max;
 	public:
 		Sum(Ref<Sym<I>> iterator, Ref<Sym<I>> min, Ref<Sym<I>> max) : 
-			oldIterator(iterator), iterator(track(makeManaged<Sym<I>>(), "paosolini")), min(min), max(max) {}
+			oldIterator(iterator), iterator(makeManaged<Sym<I>>()), min(min), max(max) {}
 
 		auto operator|(auto&& _expr) {
 			auto [expr] = convertArgsToSymRef(std::forward<decltype(_expr)>(_expr));

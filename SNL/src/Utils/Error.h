@@ -128,6 +128,7 @@ namespace snl {
 		struct ErrorSettings {
 			LogLevel logStatus;
 			SuppressionLevel suppressionStatus;
+			bool breakOnThrow = false;
 		};
 
 		template<typename ErrorClass>
@@ -176,6 +177,9 @@ namespace snl {
 				break;
 			}
 
+			if (errorStates.at(&typeid(ErrorClass)).breakOnThrow)
+				SNLMSVCCall(__debugbreak());
+
 			if constexpr (IsError<ErrorClass>)
 				throw error;
 		}
@@ -183,7 +187,7 @@ namespace snl {
 		void setSuppression(const std::type_info& errorClass, SuppressionLevel status) {
 			if (!errorStates.count(&errorClass))
 				errorStates[&errorClass] =
-				{ LogLevel::FULL, SuppressionLevel::ACTIVE };
+				{ LogLevel::FULL, SuppressionLevel::ACTIVE, false };
 
 				errorStates[&errorClass].suppressionStatus = status;
 		}
@@ -191,9 +195,25 @@ namespace snl {
 		void setLogLevel(const std::type_info& errorClass, LogLevel status) {
 			if (!errorStates.count(&errorClass))
 				errorStates[&errorClass] =
-				{ LogLevel::FULL, SuppressionLevel::ACTIVE };
+				{ LogLevel::FULL, SuppressionLevel::ACTIVE, false };
 
 			errorStates[&errorClass].logStatus = status;
+		}
+
+		void breakOnThrow(const std::type_info& errorClass) {
+			if (!errorStates.count(&errorClass))
+				errorStates[&errorClass] =
+			{ LogLevel::FULL, SuppressionLevel::ACTIVE, false };
+
+			errorStates[&errorClass].breakOnThrow = true;
+		}
+
+		void resetBreakOnThrow(const std::type_info& errorClass) {
+			if (!errorStates.count(&errorClass))
+				errorStates[&errorClass] =
+			{ LogLevel::FULL, SuppressionLevel::ACTIVE, false };
+
+			errorStates[&errorClass].breakOnThrow = false;
 		}
 
 		template<typename ErrorClass>
@@ -271,6 +291,16 @@ namespace snl {
 	template<typename ErrorClass>
 	inline void enableError() {
 		setSuppression<ErrorClass>(SuppressionLevel::ACTIVE);
+	}
+
+	template<typename ErrorClass>
+	inline void breakOnThrow() {
+		errorRegister.breakOnThrow(typeid(ErrorClass));
+	}
+
+	template<typename ErrorClass>
+	inline void resetBreakOnThrow() {
+		errorRegister.resetBreakOnThrow(typeid(ErrorClass));
 	}
 
 	inline bool hasError() {

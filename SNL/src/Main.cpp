@@ -25,28 +25,19 @@ constexpr double PI = 3.14159265358979323846;
 
 int main() {
 
+	snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
+
 	{
-		//snl::Any test = 2.5;
-		//test = snl::Any(10);
-
-
 		snl::Sym<double> x, y, z, a;
 		snl::Index<11> i, j, k;
-		
+
 		y = snl::sum(i) | i * x;
-		////z = snl::sum(i) | i * x;
+		z = snl::sum(i) | i * x;
+
+		x = 3;
 		
-		i = 1;
-		
-		x = 2;
-		
-		//std::cout << y.nodeType().name() << std::endl;
-		////std::cout << z.nodeType().name() << std::endl;
-		//
-		//std::cout << (y.nodeType() == z.nodeType()) << std::endl;
-		//
-		//std::cout << y / x << std::endl;
-		//std::cout << (y == z) << std::endl;
+		std::cout << y << std::endl;
+		std::cout << (z == y) << std::endl;
 	}
 	std::cout << snl::objManager.count() << std::endl;
 

@@ -39,7 +39,7 @@ namespace snl {
 
 		Any(const Any& other) : type(other.type), typeSize(other.typeSize), storageType(other.storageType) {
 			if(storageType == BIG)
-				bigStorage = makeManagedErased(*type, typeSize);
+				bigStorage = ::operator new(typeSize);
 
 			globalErasedCopyConstructor.call({ type }, { other.raw() })(raw().raw());
 		}
@@ -56,7 +56,7 @@ namespace snl {
 				storageType = other.storageType;
 
 				if (storageType == BIG)
-					bigStorage = makeManagedErased(*type, typeSize);
+					bigStorage = ::operator new(typeSize);
 
 				globalErasedCopyConstructor.call({ type }, { other.raw() })(raw().raw());
 
@@ -73,8 +73,11 @@ namespace snl {
 				typeSize = other.typeSize;
 				storageType = other.storageType;
 
-				if(storageType == BIG)
-					bigStorage = makeManagedErased(*type, typeSize);
+				if (storageType == BIG) {
+					delete bigStorage.raw();
+					bigStorage = nullptr;
+					bigStorage = ::operator new(typeSize);
+				}
 
 				globalErasedCopyConstructor.call({ type }, { other.raw() })(raw().raw());
 			}
@@ -122,21 +125,23 @@ namespace snl {
 				globalErasedComparators.addVariant<const T, const T>([](const T& a, const T& b) { return a == b; });
 			}
 
-			if constexpr (sizeof(T) <= 8) {
+			if constexpr (sizeof(T) <= 8)
 				storageType = SMALL;
-				new(smallStorage) T(value);
-			}
 			else {
 				storageType = BIG;
-				bigStorage = makeManaged<T>(value).as<void>();
+				bigStorage = ::operator new(typeSize);
 			}
+
+			new(raw().raw()) T(value);
 		}
 
 		~Any() {
 			globalErasedDestructors.call({ type }, { raw() });
 			
-			//if (storageType == BIG)
-				//bigStorage.~Ref();
+			if (storageType == BIG) {
+				delete bigStorage.raw();
+				bigStorage = nullptr;
+			}
 		}
 
 		friend bool operator==(const Any& a, const Any& b) requires enableTypeInfo {

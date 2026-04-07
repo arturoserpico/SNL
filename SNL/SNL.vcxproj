@@ -164,7 +164,7 @@
     <ClCompile Include="src\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="src\Old.txt" />
+    <Text Include="src\Notes.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Geometry\Edge.h" />

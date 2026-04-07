@@ -161,7 +161,7 @@ namespace snl {
 
 		template<typename T>
 		void substitute(Ref<Sym<T>> target, Ref<Sym<T>> substitute) {
-			this->substitute(static_cast<Ref<const Sym<T>>>(target), substitute);
+			this->substitute(target.asConst(), substitute);
 		}
 
 		template<typename T>
@@ -180,6 +180,8 @@ namespace snl {
 	ErasedFunction<bool, const GenericSym, 2> GenericSym::comparators;
 
 	bool operator==(const GenericSym& a, const GenericSym& b) {
+		snl::ErrorSuppressor<snl::UnmanagedRefToManagedObjWarning> _;
+
 		if (a.symType() != b.symType())
 			return false;
 
