@@ -8,6 +8,7 @@
 #include <initializer_list>
 
 namespace snl {
+	using NotHashableError = Error<"Tried to hash an snl::Any object containing a non-hashable type">;
 	using AnyInvalidCastError = Error<"Casted snl::Any to invalid type">;
 
 	template<bool enableTypeInfo = true, size_t maxStack = 8>
@@ -115,6 +116,15 @@ namespace snl {
 		Any(const T& value) : type(&typeid(T)), typeSize(sizeof(T)) {
 			if constexpr (enableTypeInfo) {
 				//globalErasedSizeof.addVariant<T>(std::function([]() -> size_t { return sizeof(T); }));
+				constexpr bool hashable = requires(const T val) {
+					std::hash<T>{}(val);
+				};
+				
+				if constexpr (hashable)
+					globalErasedHash.addVariant<const T>([](const T& obj) {
+						return std::hash<T>{}(obj);
+					});
+				
 				globalErasedCopyAssignment.addVariant<const T>([](const T& obj) { 
 					return std::function([obj](void* target) { 
 						Ref(target).as<T>().get() = obj; 
@@ -157,4 +167,14 @@ namespace snl {
 	R ErasedFunction<R, Erased, argsCount>::call(Args&&... args) {
 		return call({ &args.getType()... }, { args.raw().as<Erased>()... });
 	}
+}
+
+namespace std {
+	template<size_t maxStack>
+	struct hash<snl::Any<true, maxStack>> {
+		size_t operator()(const snl::Any<true, maxStack>& obj) {
+			snl::expect<snl::NotHashableError>(snl::globalErasedHash.find({ &obj.getType() }));
+			return snl::globalErasedHash.call({ &obj.getType() }, { obj.raw() });
+		}
+	};
 }

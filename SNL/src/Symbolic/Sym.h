@@ -7,6 +7,7 @@
 #include "../Utils/Any.h"
 #include "../Utils/Ref.h"
 #include "../Utils/Error.h"
+#include "../Utils/HashCombine.h"
 #include "../Metaprogramming/Concepts.h"
 #include "../Metaprogramming/TypeList.h"
 //#include "SymNodes.h"
@@ -110,6 +111,7 @@ namespace snl {
 		virtual std::vector<Ref<GenericSym>>& rawDeps() = 0;
 		virtual const std::vector<Ref<GenericSym>>& rawDeps() const = 0;
 		virtual std::vector<const std::type_info*> getDepsTypes() const = 0;
+		virtual size_t getHash() const = 0;
 		//virtual void virtualCompute() = 0;
 		
 		std::string print() const {
@@ -166,13 +168,14 @@ namespace snl {
 
 		template<typename T>
 		void substitute(const Sym<T>& target, Sym<T>& substitute) {
+			snl::ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
 			this->substitute(Ref(target), Ref(substitute));
 		}
 
-		template<typename T>
-		void substitute(const Sym<T>& target, const Sym<T>& substitute) {
-			this->substitute(Ref(target), makeManaged(substitute));
-		}
+		//template<typename T>
+		//void substitute(const Sym<T>& target, const Sym<T>& substitute) {
+		//	this->substitute(Ref(target), makeManaged(substitute));
+		//}
 
 		virtual Ref<GenericSym> rawDeepCopy() const = 0;
 	};
@@ -200,11 +203,11 @@ namespace snl {
 		std::vector<Ref<GenericSym>> deps;
 	public:
 		bool isEvaluable() const {
-			bool depsEvaluable = true;
-			
-			for (Ref<GenericSym> dep : deps)
-				depsEvaluable = depsEvaluable && dep.get().isEvaluable();
 
+			//for (Ref<GenericSym> dep : deps)
+			//	if (!dep.get().isEvaluable())
+			//		return false;
+			//
 			return isDefined; //&& depsEvaluable;
 		}
 
@@ -483,8 +486,12 @@ namespace snl {
 			return cast<A>();
 		}
 
+		size_t getHash() const;
+ 
 		template<typename T>
 		friend bool operator==(const snl::Sym<T>& a, const snl::Sym<T>& b);
+	
+		friend class std::hash<snl::Sym<T>>;
 	};
 
 	template<typename T>
@@ -504,5 +511,47 @@ namespace snl {
 	std::ostream& operator<<(std::ostream& stream, IsSym auto val) {
 		stream << val.eval();
 		return stream;
+	}
+}
+
+namespace std {
+	template<>
+	struct hash<snl::GenericSym> {
+		size_t operator()(const snl::GenericSym& sym) const {
+			return sym.getHash();
+		}
+	};
+
+	template<typename T>
+	struct hash<snl::Sym<T>> {
+		size_t operator()(const snl::Sym<T>& sym) const {
+			size_t seed = 0;
+
+			for (const snl::GenericSym& dep : sym.deps)
+				seed = snl::hashCombine(seed, hash<snl::GenericSym>{}(dep));
+
+			return snl::hashCombine(std::hash<snl::Any<>>{}(sym.evalObj), seed);
+		}
+	};
+
+	template<typename T>
+	struct hash<snl::SymLabel<T>> {
+		size_t operator()(const snl::SymLabel<T>& obj) {
+			return obj.labelId;
+		}
+	};
+
+	template<snl::IsSymOpType SymOpType>
+	struct hash<SymOpType> {
+		size_t operator()(const SymOpType&) {
+			return 0;
+		}
+	};
+}
+
+namespace snl {
+	template<typename T>
+	size_t Sym<T>::getHash() const {
+		return std::hash<Sym<T>>{}(*this);
 	}
 }

@@ -193,6 +193,7 @@
     <ClInclude Include="src\Utils\ErasedFunction.h" />
     <ClInclude Include="src\Utils\Error.h" />
     <ClInclude Include="src\Memory\ObjectManager.h" />
+    <ClInclude Include="src\Utils\HashCombine.h" />
     <ClInclude Include="src\Utils\Ref.h" />
     <ClInclude Include="src\Utils\Set.h" />
     <ClInclude Include="src\Utils\UniqueVector.h" />

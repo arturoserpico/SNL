@@ -20,24 +20,21 @@
 #include "Metaprogramming/TypeList.h"
 #include "Memory/ObjectManager.h"
 #include "Utils/ErasedFunction.h"
+#include "Symbolic/MathScope.h"
 
 constexpr double PI = 3.14159265358979323846;
 
 int main() {
-
-	snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
+	//snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
 
 	{
+		snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
+
 		snl::Sym<double> x, y, z, a;
-		snl::Index<11> i, j, k;
 
-		y = snl::sum(i) | i * x;
-		z = snl::sum(i) | i * x;
+		snl::MathRule test((x + 2) + x, x + 1 + 1, x);
 
-		x = 3;
-		
-		std::cout << y << std::endl;
-		std::cout << (z == y) << std::endl;
+		std::cout << test.match(((1 + y) + 2) + (1 + y)) << std::endl;
 	}
 	std::cout << snl::objManager.count() << std::endl;
 

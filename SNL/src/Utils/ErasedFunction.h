@@ -71,6 +71,15 @@ namespace snl {
 
 		template<IsAny... Args> requires (sizeof...(Args) == argsCount)
 		R call(Args&&... args);
+
+		bool find(const std::array<const std::type_info*, argsCount> types) {
+			return functions.count(types);
+		}
+
+		template<typename... Ts>
+		bool find() {
+			return find({ (&typeid(Ts))... });
+		}
 	};
 
 	static ErasedFunction<std::function<void(void*)>, const void> globalErasedSizeof;
@@ -78,4 +87,5 @@ namespace snl {
 	static ErasedFunction<std::function<void(void*)>, const void> globalErasedCopyConstructor;
 	static ErasedFunction<void, const void> globalErasedDestructors;
 	static ErasedFunction<bool, const void, 2> globalErasedComparators;
+	static ErasedFunction<size_t, const void> globalErasedHash;
 }

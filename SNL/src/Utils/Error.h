@@ -326,9 +326,13 @@ namespace snl {
 	template<typename ErrorClass>
 	class ErrorSuppressor {
 		ErrorRegister& errorRegister;
+		static size_t nestCount;
 	public:
 		ErrorSuppressor() : errorRegister(snl::errorRegister) {
-			errorRegister.setSuppression(typeid(ErrorClass), SuppressionLevel::SUPPRESSED);
+			nestCount++;
+			
+			if(nestCount == 1)
+				errorRegister.setSuppression(typeid(ErrorClass), SuppressionLevel::SUPPRESSED);
 		}
 
 		ErrorSuppressor(ErrorRegister& errorRegister) : errorRegister(errorRegister) {
@@ -336,26 +340,45 @@ namespace snl {
 		}
 
 		~ErrorSuppressor() {
-			errorRegister.setSuppression(typeid(ErrorClass), SuppressionLevel::ACTIVE);
+			nestCount--;
+
+			if (nestCount == 0)
+				errorRegister.setSuppression(typeid(ErrorClass), SuppressionLevel::ACTIVE);
 		}
 	};
 
 	template<typename ErrorClass>
+	size_t ErrorSuppressor<ErrorClass>::nestCount = 0;
+
+	template<typename ErrorClass>
 	class ErrorSilencer {
 		ErrorRegister& errorRegister;
+		static size_t nestCount;
 	public:
 		ErrorSilencer() : errorRegister(snl::errorRegister) {
-			errorRegister.setLogLevel(typeid(ErrorClass), LogLevel::SILENT);
+			nestCount++;
+
+			if (nestCount == 1)
+				errorRegister.setLogLevel(typeid(ErrorClass), LogLevel::SILENT);
 		}
 
 		ErrorSilencer(ErrorRegister& errorRegister) : errorRegister(errorRegister) {
-			errorRegister.setLogLevel(typeid(ErrorClass), LogLevel::SILENT);
+			nestCount++;
+
+			if (nestCount == 1)
+				errorRegister.setLogLevel(typeid(ErrorClass), LogLevel::SILENT);
 		}
 
 		~ErrorSilencer() {
-			errorRegister.setLogLevel(typeid(ErrorClass), LogLevel::FULL);
+			nestCount--;
+
+			if (nestCount == 0)
+				errorRegister.setLogLevel(typeid(ErrorClass), LogLevel::FULL);
 		}
 	};
+
+	template<typename ErrorClass>
+	size_t ErrorSilencer<ErrorClass>::nestCount = 0;
 
 	template<size_t level, typename T>
 	using Debug = std::conditional_t<debugLevel >= level, T, Empty>;
