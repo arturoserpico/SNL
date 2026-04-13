@@ -16,8 +16,10 @@ namespace snl {
 		bool managed;
 		T* inner;
 
-		void checkManagmentState();
+		void checkManagmentState() const;
 	public:
+		bool realManagmentState() const;
+
 		Ref() = default;
 
 		template<typename U = T> requires (!std::is_void_v<T>&& std::is_convertible_v<U*, T*>)
@@ -76,11 +78,11 @@ namespace snl {
 			return inner == nullptr;
 		}
 
-		template<typename U = T> requires !std::is_void_v<T>
-		operator U&() const {
-			SNLDebugCall(1, expect<NullRefError>(!empty()));
-			return *inner;
-		}
+		//template<typename U = T> requires !std::is_void_v<T>
+		//operator U&() const {
+		//	SNLDebugCall(1, expect<NullRefError>(!empty()));
+		//	return *inner;
+		//}
 
 		template<typename U = T> requires !std::is_void_v<T>
 		U& get() const {
@@ -90,10 +92,6 @@ namespace snl {
 
 		bool isManaged() const {
 			return managed;
-		}
-
-		friend bool operator==(Ref<T> a, Ref<T> b) requires !std::is_void_v<T> {
-			return a.get() == b.get();
 		}
 
 		template<typename A>
@@ -131,6 +129,11 @@ namespace snl {
 
 	template<typename T>
 	Ref(T&, bool) -> Ref<T>;
+
+	template<typename A, typename B> requires requires(A a, B b) { { a == b } -> std::same_as<bool>; }
+	bool operator==(Ref<A> a, Ref<B> b) {
+		return a.get() == b.get();
+	}
 
 	template<typename T>
 	struct _RemRef;

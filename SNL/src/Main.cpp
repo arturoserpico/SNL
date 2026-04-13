@@ -32,9 +32,13 @@ int main() {
 
 		snl::Sym<double> x, y, z, a;
 
-		snl::MathRule test((x + 2) + x, x + 1 + 1, x);
+		snl::MathRule test(x, snl::Sym<double>(2) + x, x);
 
-		std::cout << test.match(((1 + y) + 2) + (1 + y)) << std::endl;
+		auto expr = test.apply(snl::Sym<double>(3));
+
+		a = 3;
+
+		std::cout << expr << std::endl;
 	}
 	std::cout << snl::objManager.count() << std::endl;
 

@@ -159,14 +159,14 @@ namespace snl {
 	}
 
 	template<typename T>
-	void Ref<T>::checkManagmentState() {
+	void Ref<T>::checkManagmentState() const {
 		if (objManager.find(inner) && !managed)
 			throwError<UnmanagedRefToManagedObjWarning>(inner);
 			
 	}
 
-	void Ref<void>::checkManagmentState() {
-		if (objManager.find(inner) && !managed)
-			throwError<UnmanagedRefToManagedObjWarning>(inner);
+	template<typename T>
+	bool Ref<T>::realManagmentState() const {
+		return objManager.find(inner);
 	}
 }

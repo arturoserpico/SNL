@@ -28,21 +28,26 @@ namespace snl {
 		return a.labelId == b.labelId;
 	}
 
+	using RuleUnappliyableError = Error<"Can't apply rule to given GenericSym">;
+
 	class MathRule {
 	public:
 		std::vector<Ref<GenericSym>> variables;
 		size_t specificity;
 		Ref<GenericSym> original, substitute;
 
+		template<typename... Ts> requires (sizeof...(Ts) == 0)
+		void makeRuleVars() {}
+
 		template<typename First, typename... Rest>
-		void substituteAll(Sym<First>& first, Sym<Rest>&... rest) {
+		void makeRuleVars(Sym<First>& first, Sym<Rest>&... rest) {
 			variables.insert(variables.begin(), makeManaged<Sym<First>>(SymRuleVar<First>()).as<GenericSym>());
 			
 			original.get().substitute(first, variables[0].as<Sym<First>>().get());
 			substitute.get().substitute(first, variables[0].as<Sym<First>>().get());
 
 			if constexpr (sizeof...(rest) != 0)
-				substituteAll<Rest...>(rest...);
+				makeRuleVars<Rest...>(rest...);
 		}
 	public:
 
@@ -52,7 +57,7 @@ namespace snl {
 			substitute(makeManaged<Sym<T>>(substitute.deepCopy()).as<GenericSym>())
 		{
 			this->variables.reserve(sizeof...(variables));
-			substituteAll<Vars...>(variables...);
+			makeRuleVars<Vars...>(variables...);
 		}
 
 		static bool match(
@@ -65,9 +70,9 @@ namespace snl {
 			if (symRuleVarTypes.count(&node.symType())) {
 				if (other.nodeType() == *symRuleVarTypes.at(&node.symType())) {
 					if (varMap.count(other))
-						return varMap.at(other).get() == node;
+						return varMap.at(Ref(other)).get() == node;
 					else
-						varMap.emplace(other, node);
+						varMap.emplace(Ref(other), Ref(node, Ref(node).realManagmentState()));
 
 					return true;
 				}
@@ -86,9 +91,63 @@ namespace snl {
 			return true;
 		}
 
-		bool match(const GenericSym& node) {
+		bool match(const GenericSym& node) const {
 			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>> varMap;
-			return match(node, original, varMap);
+			return match(node, original.get(), varMap);
+		}
+
+		bool match(GenericSym& node) const {
+			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>> varMap;
+			return match(node, original.get(), varMap);
+		}
+
+		bool match(
+			const GenericSym& node, 
+			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>>& varMap
+		) const {
+			return match(node, original.get(), varMap);
+		}
+
+		bool match(
+			GenericSym& node,
+			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>>& varMap
+		) const {
+			return match(node, original.get(), varMap);
+		}
+
+		template<typename T>
+		Sym<T> apply(const Sym<T>& node) const {
+			ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+
+			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>> varMap;
+			expect<RuleUnappliyableError>(match(node, varMap));
+
+			Ref<GenericSym> substituteCopy = substitute.get().heapCopy();
+
+			for (auto [ruleVar, expr] : varMap)
+				substituteCopy.get().substitute(ruleVar, expr);
+
+			return substituteCopy.as<Sym<T>>().get();
+		}
+	};
+
+	class RuleSet {
+		std::vector<MathRule> rules;
+	public:
+		bool match(const GenericSym& node) {
+			for (const MathRule& rule : rules)
+				if (rule.match(node))
+					return true;
+
+			return false;
+		}
+
+		bool match(GenericSym& node) {
+			for (const MathRule& rule : rules)
+				if (rule.match(node))
+					return true;
+
+			return false;
 		}
 	};
 

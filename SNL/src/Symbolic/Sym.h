@@ -102,18 +102,31 @@ namespace snl {
 	using SymSubstitutionTypeMismatchError =
 		Error<"tried substituting snl::Sym with another type">;
 
-	struct GenericSym {
-		static ErasedFunction<bool, const GenericSym, 2> comparators;
+	struct GenericSym;
 
+	bool operator==(const GenericSym& a, const GenericSym& b);
+
+	struct GenericSym {
+		static ErasedFunction<bool, const GenericSym, 2> erasedComparator;
+		static ErasedFunction<std::function<void(GenericSym&)>, const GenericSym> erasedCopyAssignment;
+
+		virtual Ref<GenericSym> heapCopy() const = 0;
 		virtual bool isEvaluable() const = 0;
 		virtual const std::type_info& nodeType() const = 0;
 		virtual const std::type_info& symType() const = 0;
 		virtual std::vector<Ref<GenericSym>>& rawDeps() = 0;
 		virtual const std::vector<Ref<GenericSym>>& rawDeps() const = 0;
 		virtual std::vector<const std::type_info*> getDepsTypes() const = 0;
+		virtual Ref<GenericSym> rawDeepCopy() const = 0;
 		virtual size_t getHash() const = 0;
+		virtual Ref<GenericSym> rawDep() = 0;
 		//virtual void virtualCompute() = 0;
 		
+		GenericSym& operator=(const GenericSym& other) {
+			erasedCopyAssignment.call({ &other.symType() }, { Ref(other) })(*this);
+			return *this;
+		}
+
 		std::string print() const {
 			std::stringstream str;
 
@@ -149,21 +162,54 @@ namespace snl {
 			return occurences(Ref(target));
 		}
 
-		template<typename T>
-		void substitute(Ref<const Sym<T>> target, Ref<Sym<T>> substitute) {
+		void substitute(Ref<const GenericSym> target, Ref<const GenericSym> substitute) {
+			if (target.get() == *this) {
+				*this = substitute.get();
+				return;
+			}
+
 			for (size_t i = 0; i < rawDeps().size(); i++) {
-				if (target.raw() == rawDeps()[i].as<Sym<T>>().raw()) {
-					SNLDebugCall(1, expect<SymSubstitutionTypeMismatchError>(typeid(T) == *getDepsTypes()[i]));
-					rawDeps()[i] = substitute.as<GenericSym>();
+				if (target == rawDeps()[i]) {
+					SNLDebugCall(1, expect<SymSubstitutionTypeMismatchError>(target.get().symType() == *getDepsTypes()[i]));
+					rawDeps()[i] = substitute.get().heapCopy();
 				}
 				else
 					rawDeps()[i].get().substitute(target, substitute);
 			}
 		}
 
+		void substitute(Ref<const GenericSym> target, Ref<GenericSym> substitute) {
+			if (target.get() == *this) {
+				*this = substitute.get();
+				return;
+			}
+
+			for (size_t i = 0; i < rawDeps().size(); i++) {
+				if (target == rawDeps()[i]) {
+					SNLDebugCall(1, expect<SymSubstitutionTypeMismatchError>(target.get().symType() == *getDepsTypes()[i]));
+					rawDeps()[i] = substitute;
+				}
+				else
+					rawDeps()[i].get().substitute(target, substitute);
+			}
+		}
+
+		void substitute(const GenericSym& target, const GenericSym& substitute) {
+			return this->substitute(Ref(target), Ref(substitute));
+		}
+
+		void substitute(const GenericSym& target, GenericSym& substitute) {
+			return this->substitute(Ref(target), Ref(substitute).asConst());
+		}
+
 		template<typename T>
-		void substitute(Ref<Sym<T>> target, Ref<Sym<T>> substitute) {
-			this->substitute(target.asConst(), substitute);
+		void substitute(Ref<const Sym<T>> target, Ref<const Sym<T>> substitute) {
+			this->substitute(target.as<const GenericSym>(), substitute.as<const GenericSym>());
+		}
+
+		template<typename T>
+		void substitute(Ref<const Sym<T>> target, Ref<Sym<T>> substitute) {
+			this->substitute(target.as<const GenericSym>(), substitute.as<GenericSym>());
 		}
 
 		template<typename T>
@@ -172,15 +218,15 @@ namespace snl {
 			this->substitute(Ref(target), Ref(substitute));
 		}
 
-		//template<typename T>
-		//void substitute(const Sym<T>& target, const Sym<T>& substitute) {
-		//	this->substitute(Ref(target), makeManaged(substitute));
-		//}
-
-		virtual Ref<GenericSym> rawDeepCopy() const = 0;
+		template<typename T>
+		void substitute(const Sym<T>& target, const Sym<T>& substitute) {
+			snl::ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+			this->substitute(Ref(target), Ref(substitute));
+		}
 	};
 
-	ErasedFunction<bool, const GenericSym, 2> GenericSym::comparators;
+	ErasedFunction<bool, const GenericSym, 2> GenericSym::erasedComparator;
+	ErasedFunction<std::function<void(GenericSym&)>, const GenericSym> GenericSym::erasedCopyAssignment;
 
 	bool operator==(const GenericSym& a, const GenericSym& b) {
 		snl::ErrorSuppressor<snl::UnmanagedRefToManagedObjWarning> _;
@@ -188,7 +234,7 @@ namespace snl {
 		if (a.symType() != b.symType())
 			return false;
 
-		return GenericSym::comparators.call({ &a.symType(), &b.symType() }, std::array<Ref<const GenericSym>, 2>({ Ref(a), Ref(b) }));
+		return GenericSym::erasedComparator.call({ &a.symType(), &b.symType() }, std::array<Ref<const GenericSym>, 2>({ Ref(a), Ref(b) }));
 	}
 
 	using UnevaulableSymEvalError = Error<"tried to evaluate unevaluable snl::Sym">;
@@ -308,7 +354,7 @@ namespace snl {
 				return rest;
 			}
 		}
-
+	public:
 		Ref<GenericSym> rawDeepCopy() const {
 			Ref<Sym<T>> copy = makeManaged(*this);
 
@@ -320,7 +366,7 @@ namespace snl {
 
 			return copy.as<GenericSym>();
 		}
-	public:
+
 		auto operator()(auto&&...) &;
 		auto operator()(auto&&...) &&;
 
@@ -328,13 +374,19 @@ namespace snl {
 		//auto operator|=(auto&&) &&;
 
 		Sym<T> deepCopy() const {
-			return rawDeepCopy().as<Sym<T>>();
+			return rawDeepCopy().as<Sym<T>>().get();
 		}
 
 		template<IsSymOpType SymOpType>
 		Sym(SymOpType evalObj) : evalObj(evalObj) {
-			comparators.addVariant<T, T>(std::function([](const Sym<T>& a, const Sym<T>& b) -> bool {
+			erasedComparator.addVariant<T, T>(std::function([](const Sym<T>& a, const Sym<T>& b) -> bool {
 					return a == b;
+				}));
+
+			erasedCopyAssignment.addVariant<T>(std::function([](const Sym<T>& other) {
+					return std::function([other](GenericSym& target) {
+							Ref(target).as<Sym<T>>().get() = other;
+						});
 				}));
 			
 			constexpr bool isDefined = requires(SymOpType evalObj) {
@@ -358,7 +410,7 @@ namespace snl {
 
 		template<IsSymOpType SymOpType, typename... Deps>
 		Sym(SymOpType evalObj, Ref<Sym<Deps>>... deps) : evalObj(evalObj), depsTypes({ &typeid(Deps)... }) {			
-			comparators.addVariant<T, T>(std::function([](const Sym<T>& a, const Sym<T>& b) -> bool {
+			erasedComparator.addVariant<T, T>(std::function([](const Sym<T>& a, const Sym<T>& b) -> bool {
 					return a == b;
 				}));
 			
@@ -394,6 +446,10 @@ namespace snl {
 			return *this;
 		}
 	private:
+		Ref<GenericSym> heapCopy() const {
+			return makeManaged<Sym<T>>(deepCopy()).as<GenericSym>();
+		}
+
 		template<int... seq, typename SymOpType, typename... Deps>
 		static Sym<T> constructFromTuple(
 			std::index_sequence<seq...> sequence,
@@ -427,7 +483,11 @@ namespace snl {
 		}
 
 		Sym<T> dep() {
-			return Sym<T>(SymIdentity<T>(), Ref(*this));
+			return Sym<T>(SymIdentity<T>(), Ref(*this, Ref(*this).realManagmentState()));
+		}
+
+		Ref<GenericSym> rawDep() {
+			return makeManaged<Sym<T>>(dep()).as<GenericSym>();
 		}
 
 		template<typename SymOpType>
@@ -527,8 +587,8 @@ namespace std {
 		size_t operator()(const snl::Sym<T>& sym) const {
 			size_t seed = 0;
 
-			for (const snl::GenericSym& dep : sym.deps)
-				seed = snl::hashCombine(seed, hash<snl::GenericSym>{}(dep));
+			for (snl::Ref<const snl::GenericSym> dep : sym.deps)
+				seed = snl::hashCombine(seed, hash<snl::GenericSym>{}(dep.get()));
 
 			return snl::hashCombine(std::hash<snl::Any<>>{}(sym.evalObj), seed);
 		}

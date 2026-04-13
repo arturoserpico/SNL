@@ -173,7 +173,7 @@ namespace std {
 	template<size_t maxStack>
 	struct hash<snl::Any<true, maxStack>> {
 		size_t operator()(const snl::Any<true, maxStack>& obj) {
-			snl::expect<snl::NotHashableError>(snl::globalErasedHash.find({ &obj.getType() }));
+			SNLDebugCall(1, snl::expect<snl::NotHashableError>(snl::globalErasedHash.find({ &obj.getType() })));
 			return snl::globalErasedHash.call({ &obj.getType() }, { obj.raw() });
 		}
 	};
