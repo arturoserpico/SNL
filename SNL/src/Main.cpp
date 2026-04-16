@@ -20,30 +20,23 @@
 #include "Metaprogramming/TypeList.h"
 #include "Memory/ObjectManager.h"
 #include "Utils/ErasedFunction.h"
-#include "Symbolic/MathScope.h"
+#include "Symbolic/MathContext.h"
 
 constexpr double PI = 3.14159265358979323846;
 
 int main() {
-	//snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
+	snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
 
-	{
-		snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
+	snl::Sym<double> x, y;
 
-		snl::Sym<double> x, y, z, a;
+	snl::defineRule(x - x, snl::Sym<double>(0), x);
 
-		snl::MathRule test(x, snl::Sym<double>(2) + x, x);
-
-		auto expr = test.apply(snl::Sym<double>(3));
-
-		a = 3;
-
-		std::cout << expr << std::endl;
-	}
-	std::cout << snl::objManager.count() << std::endl;
-
-	for(auto [location, count] : snl::objManager.getObjects())
-		std::cout << location << ": " << count.second << std::endl;
+	std::cout << (x - x) + (y - y) << std::endl;
+	
+	//std::cout << snl::objManager.count() << std::endl;
+	//
+	//for(auto [location, count] : snl::objManager.getObjects())
+	//	std::cout << location << ": " << count.second << std::endl;
 
 	//snl::Index<100> i, j, k;
 	//

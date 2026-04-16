@@ -109,7 +109,7 @@ namespace snl {
 	struct GenericSym {
 		static ErasedFunction<bool, const GenericSym, 2> erasedComparator;
 		static ErasedFunction<std::function<void(GenericSym&)>, const GenericSym> erasedCopyAssignment;
-
+	 
 		virtual Ref<GenericSym> heapCopy() const = 0;
 		virtual bool isEvaluable() const = 0;
 		virtual const std::type_info& nodeType() const = 0;
@@ -120,9 +120,16 @@ namespace snl {
 		virtual Ref<GenericSym> rawDeepCopy() const = 0;
 		virtual size_t getHash() const = 0;
 		virtual Ref<GenericSym> rawDep() = 0;
+
+		bool isLeaf() const {
+			return rawDeps().empty();
+		}
 		//virtual void virtualCompute() = 0;
 		
+
+
 		GenericSym& operator=(const GenericSym& other) {
+			snl::ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
 			erasedCopyAssignment.call({ &other.symType() }, { Ref(other) })(*this);
 			return *this;
 		}
@@ -141,6 +148,22 @@ namespace snl {
 			str << "}\n";
 
 			return str.str();
+		}
+
+		void unevaluableLeafCount(std::unordered_set<Ref<const GenericSym>>& traversed) const {
+			ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+
+			if (isLeaf() && !isEvaluable())
+				traversed.insert(Ref(*this));
+
+			for (Ref<const GenericSym> dep : rawDeps())
+				dep.get().unevaluableLeafCount(traversed);
+		}
+
+		size_t unevaluableLeafCount() const {
+			std::unordered_set<Ref<const GenericSym>> traversed;
+			unevaluableLeafCount(traversed);
+			return traversed.size();
 		}
 
 		template<typename T>
@@ -249,12 +272,11 @@ namespace snl {
 		std::vector<Ref<GenericSym>> deps;
 	public:
 		bool isEvaluable() const {
-
-			//for (Ref<GenericSym> dep : deps)
-			//	if (!dep.get().isEvaluable())
-			//		return false;
-			//
-			return isDefined; //&& depsEvaluable;
+			for (Ref<GenericSym> dep : deps)
+				if (!dep.get().isEvaluable())
+					return false;
+			
+			return isDefined;
 		}
 
 		std::vector<Ref<GenericSym>>& rawDeps() {
@@ -495,11 +517,7 @@ namespace snl {
 			return evalObj.getType() == typeid(SymOpType);
 		}
 
-		T eval() {
-			if (fun) { 
-				return fun(isEvaluable(), evalObj, deps);
-			}
-		}
+		T eval();
 
 		//T& get() {
 		//	SNLDebugCall(1, expect(value.has_value(), "Value not computed or assigned yet"));
@@ -551,7 +569,7 @@ namespace snl {
 		template<typename T>
 		friend bool operator==(const snl::Sym<T>& a, const snl::Sym<T>& b);
 	
-		friend class std::hash<snl::Sym<T>>;
+		friend struct std::hash<snl::Sym<T>>;
 	};
 
 	template<typename T>

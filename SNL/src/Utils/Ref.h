@@ -96,12 +96,12 @@ namespace snl {
 
 		template<typename A>
 		Ref<A> as() const {
-			return Ref<A>(std::launder(reinterpret_cast<A*>(inner)), managed);
+			return Ref<A>(std::launder(reinterpret_cast<A*const>(inner)), managed);
 		}
 
 		template<typename A> requires std::is_void_v<A>
 		Ref<A> as() const {
-			return Ref<A>(reinterpret_cast<A*>(inner), managed);
+			return Ref<A>(reinterpret_cast<A*const>(inner), managed);
 		}
 
 		template<typename A>

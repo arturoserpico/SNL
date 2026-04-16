@@ -180,7 +180,7 @@
     <ClInclude Include="src\Metaprogramming\TypeList.h" />
     <ClInclude Include="src\Metaprogramming\Utils.h" />
     <ClInclude Include="src\Symbolic\ExprOperators.h" />
-    <ClInclude Include="src\Symbolic\MathScope.h" />
+    <ClInclude Include="src\Symbolic\MathContext.h" />
     <ClInclude Include="src\Symbolic\Random.h" />
     <ClInclude Include="src\Symbolic\SymUtils.h" />
     <ClInclude Include="src\Symbolic\Constants.h" />

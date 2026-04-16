@@ -23,7 +23,7 @@ namespace snl {
 	};
 
 	template<typename A, typename B>
-	bool operator==(const SymSubOp<A, B>& a, const SymAddOp<A, B>& b) {
+	bool operator==(const SymSubOp<A, B>& a, const SymSubOp<A, B>& b) {
 		return true;
 	}
 
