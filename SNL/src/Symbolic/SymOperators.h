@@ -55,6 +55,16 @@ namespace snl {
 		return Sym<typename SymCall<T, SymArgsList>::R>(SymCall<T, SymArgsList>(), std::tuple_cat(std::make_tuple(makeManaged(*this)), tuple));
 	}
 
+	template<typename T>
+	auto Sym<T>::operator-() & {
+		return Sym(SymNegOp<T>(), Ref(*this));
+	}
+
+	template<typename T>
+	auto Sym<T>::operator-() && {
+		return Sym(SymNegOp<T>(), makeManaged<Sym<T>>(*this));
+	}
+
 	//template<typename T>
 	//auto Sym<T>::operator|=(auto&& _decl) & {
 	//	auto [decl] = convertArgsToSymRef(std::forward<decltype(_decl)>(_decl));

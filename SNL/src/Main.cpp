@@ -27,11 +27,16 @@ constexpr double PI = 3.14159265358979323846;
 int main() {
 	snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
 
-	snl::Sym<double> x, y;
+	snl::Sym<double> x, y, z;
 
 	snl::defineRule(x - x, snl::Sym<double>(0), x);
+	snl::defineRule(y + x, x + y, x, y);
+	snl::defineRule(x + y, snl::Sym<double>(2));
+	snl::defineRule((x + y) + z, x + (y + z), x, y, z);
 
-	std::cout << (x - x) + (y - y) << std::endl;
+	z = 3;
+
+	std::cout << y + z + x << std::endl;
 	
 	//std::cout << snl::objManager.count() << std::endl;
 	//

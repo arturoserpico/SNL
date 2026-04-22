@@ -142,6 +142,20 @@ namespace snl {
 	public:
 		RuleSet() = default;
 		RuleSet(std::vector<MathRule> rules) : rules(rules) {}
+		RuleSet(const RuleSet& other) : rules(other.rules) {}
+
+		template<std::three_way_comparable T>
+		RuleSet sort(const std::function<T(const MathRule&)>& fun, const auto& comp = std::less()) const {
+			auto comparator = [fun, comp](const MathRule& a, const MathRule& b) {
+					return  comp(fun(a), fun(b));
+				};
+
+			RuleSet result = *this;
+
+			std::sort(result.rules.begin(), result.rules.end(), comparator);
+
+			return result;
+		}
 
 		void add(const MathRule& rule) {
 			rules.push_back(rule);
@@ -328,33 +342,65 @@ namespace snl {
 	};
 
 	class MakeEvaluableSimplifier : public Simplifier {
-		void recursiveSimplify(GenericSym& sym) {
-			for (Ref<GenericSym> dep : sym.rawDeps())
-				recursiveSimplify(dep.get());
+		Ref<GenericSym> recursiveSimplify(const GenericSym& sym, std::set<size_t>& visited) {
+			auto original = sym.heapCopy();
+			
+			if (visited.count(std::hash<GenericSym>()(sym)))
+				return original;
 
-			if (sym.isEvaluable())
-				return;
+			visited.insert(std::hash<GenericSym>()(sym));
 
-			for(const MathRule& rule : context.get().getRules())
-				if (rule.match(sym)) {
-					auto applied = rule.genericApply(sym);
+			if (original.get().isEvaluable())
+				return original;
 
-					if (applied.get().unevaluableLeafCount() < sym.unevaluableLeafCount()) {
-						sym = applied.get();
-						return;
-					}
+			for (Ref<GenericSym>& dep : original.get().rawDeps())
+				dep = recursiveSimplify(dep.get());
+
+			if (original.get().isEvaluable())
+				return original;
+
+			auto orderer = [original](const MathRule& rule) -> size_t {
+					if (!rule.match(original.get()))
+						return 0;
+
+					auto applied = rule.genericApply(original.get());
+					return original.get().unevaluableLeafCount() - applied.get().unevaluableLeafCount();
+				};
+
+			RuleSet rules = context.get().getRules();
+
+			rules = rules.sort(std::function(orderer), std::greater());
+
+			for(const MathRule& rule : rules)
+				if (rule.match(original.get())) {
+					auto copy = rule.genericApply(original.get());
+					
+					if (copy.get().isEvaluable())
+						return copy;
+
+					copy = recursiveSimplify(copy.get(), visited);
+
+					if (copy.get().isEvaluable())
+						return copy;
 				}
+
+			return original;
+		}
+
+		Ref<GenericSym> recursiveSimplify(const GenericSym& sym) {
+			std::set<size_t> visited;
+			return recursiveSimplify(sym, visited);
 		}
 
 		Ref<GenericSym> genericSimplify(const GenericSym& sym) {
 			Ref<GenericSym> result = sym.heapCopy();
-			Ref<GenericSym> last = result.get().heapCopy();
-			recursiveSimplify(result.get());
+			Ref<GenericSym> last = sym.heapCopy();
+			result = recursiveSimplify(result.get());
 
 			while (last.get() != result.get()) {
 				last = result.get().heapCopy();
-				recursiveSimplify(result.get());
-			}
+				result = recursiveSimplify(result.get());
+			} 
 
 			return result;
 		}

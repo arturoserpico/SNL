@@ -105,6 +105,18 @@ namespace snl {
 		return true;
 	}
 
+	template<typename T> requires requires (T a) { -a; }
+	struct SymNegOp : SymOpType<decltype(-std::declval<T>())(T)> {
+		decltype(-std::declval<T>()) eval(T val) {
+			return -val;
+		}
+	};
+
+	template<typename T>
+	bool operator==(const SymNegOp<T>& a, const SymNegOp<T>& b) {
+		return true;
+	}
+
 	//template<typename A, typename B> requires requires(A a, B b) { a |= b; }
 	//struct SymDeclaration : SymOpType<Empty(Ref<Sym<A>>, Ref<Sym<B>>)> {
 	//	Empty eval(Ref<Sym<A>> a, Ref<Sym<B>> b) {

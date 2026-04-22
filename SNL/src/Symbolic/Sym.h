@@ -392,6 +392,9 @@ namespace snl {
 		auto operator()(auto&&...) &;
 		auto operator()(auto&&...) &&;
 
+		auto operator-() &;
+		auto operator-() &&;
+
 		//auto operator|=(auto&&) &;
 		//auto operator|=(auto&&) &&;
 
