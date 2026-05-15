@@ -2,3 +2,113 @@ TODO:
 investigate why the fuck static_cast<Ref<const T>>([Ref<T>]) and Ref<const T>([Ref<T>]) create a null ref
 
 
+partial matching
+
+minusToPlus x - y -> x + (-y)
+deleteZero x + 0 -> x
+subSelf x - x -> 0
+assoc (x + y) + z -> x + (y + z)
+commut x + y -> y + x
+rule1 n*x + x -> (n + 1)*x
+
+n*x + y + x
+
+((n * x) + y) + x
+
+matching Mul(n, x)
+inner partial matching with rule1:
+p = n*x
+needs
+p+x
+partial matching resuliution attempt
+check rules rewriting to p + x
+found:
+assoc(([] + p) + x) -> [] + (p + x)
+assoc(p + (x + [])) -> (p + x) + []
+commut(x + p) -> p + x
+no direct match
+tring candites by difference from expr
+tring rule assoc(([] + p) + x)
+partial matching with assoc(([] + p) + x)
+needs p + y -> [] + p
+partial matching resuliution attempt
+check rules rewriting from p + y
+found:
+commut(p + y) -> y + p
+tring candidates by difference from [] + p
+tring rule commut(p + y)
+direct match
+rewriting ((n * x) + y) + x -> (y + (n * x)) + x
+partial matching resolved
+rewriting (y + (n * x)) + x -> y + ((n * x) + x)
+partial matching resolved
+rewriting y + ((n * x) + x) -> y + ((n + 1) * x)
+
+
+
+
+
+
+((y + x) + z) - x
+
+matching scope: make as evaluable as possible
+checking rules diminishing unevaluable nodes
+subSelf
+tring rules by unevaluable nodes difference from rewrite
+tring subSelf
+matching expr
+no match
+matching (y + x) + z
+no match
+matching (y + x)
+no match
+matching y
+partial inner matching 
+p = y
+needs
+p - p
+partial matching resulution attempt
+checking rules rewriting to p - p
+found:
+assoc(([] + p) - p) -> [] + (p - p)
+assoc(p - (p + [])) -> (p - p) + []
+subToAdd(p + (-p)) -> p - p
+deleteZero((p - p) + 0) -> p - p
+tring candites by difference from expr
+no matches
+resulution attempt failed
+matching y
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+grouping rules:
+x*n + x*m -> x*(n + m)
+permutation rules:
+
+x*2 + y + x
+
+pass GroupingRules
+rules:
+x*n + x -> x*(n + 1)
+x*n + x*m -> x*(n + m)
+x*n + x
+x*2 = p1
+x = p2
+(p1 + y) + p2 -> p1 + p2 + y | y + p1 + p2
+
+
+
+
+
+

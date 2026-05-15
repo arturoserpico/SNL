@@ -93,7 +93,7 @@ namespace snl {
 	template<typename Callable, typename... Args> requires std::invocable<Callable, Sym<Args>&...>
 	struct SymCall<Callable, TypeList<Args...>> {
 		auto eval(Ref<Sym<Callable>> f, Ref<Sym<Args>>... args) {
-			return f.get().computeGet()(args.get()...);
+			return f.get().eval()(args.get()...);
 		}
 
 		using ArgsList = TypeList<Ref<Sym<Callable>>, Ref<Sym<Args>>...>;

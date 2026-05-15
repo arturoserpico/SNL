@@ -39,7 +39,7 @@ namespace snl {
 	constexpr size_t lenght<TypeList<>> = 0;
 
 	template<typename First, typename... Rest>
-	constexpr size_t lenght<TypeList<First, Rest...>> = lenght<TypeList<Rest...>> + 1;
+	constexpr size_t lenght<TypeList<First, Rest...>> = lenght<TypeList<Rest...>> +1;
 
 
 
@@ -133,4 +133,18 @@ namespace snl {
 
 	template<typename List, template<typename> typename Predicate>
 	using Transform = typename _Transform<List, Predicate>::Type;
+
+
+
+	template<typename List>
+	struct _MakeUnique;
+
+	template<typename Only>
+	struct _MakeUnique<TypeList<Only>> : TypeAlias<TypeList<Only>> {};
+
+	template<typename First, typename... Rest>
+	struct _MakeUnique<TypeList<First, Rest...>> : TypeAlias<If<contains<TypeList<Rest...>, First>, typename _MakeUnique<TypeList<Rest...>>::Type, Prepend<First, typename _MakeUnique<TypeList<Rest...>>::Type>>> {};
+
+	template<typename List>
+	using MakeUnique = _MakeUnique<List>::Type;
 }

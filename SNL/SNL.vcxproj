@@ -180,21 +180,26 @@
     <ClInclude Include="src\Metaprogramming\TypeList.h" />
     <ClInclude Include="src\Metaprogramming\Utils.h" />
     <ClInclude Include="src\Symbolic\ExprOperators.h" />
+    <ClInclude Include="src\Symbolic\GenericSym.h" />
     <ClInclude Include="src\Symbolic\MathContext.h" />
     <ClInclude Include="src\Symbolic\Random.h" />
+    <ClInclude Include="src\Symbolic\SymEdit.h" />
     <ClInclude Include="src\Symbolic\SymUtils.h" />
     <ClInclude Include="src\Symbolic\Constants.h" />
     <ClInclude Include="src\Symbolic\Function.h" />
     <ClInclude Include="src\Symbolic\Sym.h" />
     <ClInclude Include="src\Symbolic\SymNodes.h" />
     <ClInclude Include="src\Symbolic\SymOperators.h" />
+    <ClInclude Include="src\Symbolic\TypeOperations.h" />
     <ClInclude Include="src\Utils\Any.h" />
     <ClInclude Include="src\Utils\Bounded.h" />
+    <ClInclude Include="src\Utils\DebugName.h" />
     <ClInclude Include="src\Utils\ErasedFunction.h" />
     <ClInclude Include="src\Utils\Error.h" />
     <ClInclude Include="src\Memory\ObjectManager.h" />
     <ClInclude Include="src\Utils\HashCombine.h" />
     <ClInclude Include="src\Utils\Ref.h" />
+    <ClInclude Include="src\Utils\Restricted.h" />
     <ClInclude Include="src\Utils\Set.h" />
     <ClInclude Include="src\Utils\UniqueVector.h" />
   </ItemGroup>

@@ -22,7 +22,11 @@ namespace snl {
 		static constexpr auto value = _value;
 	};
 
+	template<auto value>
+	using Static = ValueAlias<value>;
 
+	template<auto value>
+	auto makeStatic = Static<value>{};
 
 	template<bool condition, auto then, auto otherwise>
 	constexpr auto staticIf = 0;
@@ -33,7 +37,17 @@ namespace snl {
 	template<auto then, auto otherwise>
 	constexpr auto staticIf<false, then, otherwise> = otherwise;
 
+	template<bool condition, typename Then, typename Else>
+	struct _If;
 
+	template<typename Then, typename Else>
+	struct _If<true, Then, Else> : TypeAlias<Then> {};
+
+	template<typename Then, typename Else>
+	struct _If<false, Then, Else> : TypeAlias<Else> {};
+
+	template<bool condition, typename Then, typename Else>
+	using If = _If<condition, Then, Else>::Type;
 
 	struct StaticError {
 		constexpr StaticError() {}

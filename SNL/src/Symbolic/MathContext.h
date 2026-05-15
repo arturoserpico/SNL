@@ -8,6 +8,8 @@
 
 
 namespace snl {
+	using RuleNotInvertibleError = Error<"tried to invert a not invertible MathRule">;
+
 	static std::map<const std::type_info*, const std::type_info*> symRuleVarTypes;
 
 	template<typename T>
@@ -35,8 +37,7 @@ namespace snl {
 	class MathRule {
 	public:
 		std::vector<Ref<GenericSym>> variables;
-		size_t specificity;
-		Ref<GenericSym> original, substitute;
+		Ref<GenericSym> original = nullptr, substitute = nullptr;
 
 		template<typename... Ts> requires (sizeof...(Ts) == 0)
 		void makeRuleVars() {}
@@ -52,6 +53,13 @@ namespace snl {
 				makeRuleVars<Rest...>(rest...);
 		}
 	public:
+		MathRule(Ref<const GenericSym> original, Ref<const GenericSym> substitute, std::vector<Ref<GenericSym>> variables)
+		{
+			ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+			this->variables = variables;
+			this->original = original.get().heapCopy();
+			this->substitute = substitute.get().heapCopy();
+		}
 
 		template<typename T, typename... Vars>
 		MathRule(const Sym<T>& original, const Sym<T>& substitute, Sym<Vars>&... variables) :
@@ -134,6 +142,21 @@ namespace snl {
 		template<typename T>
 		Sym<T> apply(const Sym<T>& node) const {
 			return genericApply(Ref(node).as<const GenericSym>().get()).as<Sym<T>>().get();
+		}
+
+		bool invertible() const {
+			for (Ref<GenericSym> var : variables) {
+				if (original.get().occurences(var.asConst()) == 0 ||
+					substitute.get().occurences(var.asConst()) == 0)
+					return false;
+			}
+
+			return true;
+		}
+
+		MathRule inverse() const {
+			expect<RuleNotInvertibleError>(invertible());
+			return MathRule(substitute, original, variables);
 		}
 	};
 
@@ -317,12 +340,20 @@ namespace snl {
 	}
 
 	template<typename T, typename... Vars>
-	void defineRule(const Sym<T>& original, const Sym<T>& substitute, Sym<Vars>&... variables) {
-		mathContext.addRule(MathRule(original, substitute, variables...));
+	void defineRule(bool includeInverse, const Sym<T>& original, const Sym<T>& substitute, Sym<Vars>&... variables) {
+		defineRule(MathRule(original, substitute, variables...), includeInverse);
 	}
 
-	void defineRule(const MathRule& rule) {
+	template<typename T, typename... Vars>
+	void defineRule(const Sym<T>& original, const Sym<T>& substitute, Sym<Vars>&... variables) {
+		defineRule(MathRule(original, substitute, variables...));
+	}
+
+	void defineRule(const MathRule& rule, bool includeInverse = true) {
 		mathContext.addRule(rule);
+
+		if (rule.invertible() && includeInverse)
+			mathContext.addRule(rule.inverse());
 	}
 
 	class Simplifier {
@@ -394,14 +425,14 @@ namespace snl {
 
 		Ref<GenericSym> genericSimplify(const GenericSym& sym) {
 			Ref<GenericSym> result = sym.heapCopy();
-			Ref<GenericSym> last = sym.heapCopy();
-			result = recursiveSimplify(result.get());
-
-			while (last.get() != result.get()) {
-				last = result.get().heapCopy();
-				result = recursiveSimplify(result.get());
-			} 
-
+			//Ref<GenericSym> last = sym.heapCopy();
+			//result = recursiveSimplify(result.get());
+			//
+			//while (last.get() != result.get()) {
+			//	last = result.get().heapCopy();
+			//	result = recursiveSimplify(result.get());
+			//} 
+			//
 			return result;
 		}
 	public:
