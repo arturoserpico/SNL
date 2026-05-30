@@ -30,18 +30,20 @@ constexpr double PI = 3.14159265358979323846;
 int main() {
 	snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
 
-	snl::Sym<snl::Vector<double, 3>> v = snl::Vector<double, 3>{};
+	//snl::Sym<snl::Vector<double, 3>> v = snl::Vector<double, 3>{};
 	snl::Sym<int> n;
 	snl::Sym<double> x, y, z;
 	snl::Function<double(double, double)> f;
+	snl::Function<int(int)> fac;
 
 	snl::addDebugName(f, "test");
 
 	std::cout << snl::getDebugName(f) << std::endl;
 
-	snl::defineRule(f(x, y), snl::pow(x, 2) + y, x, y);
+	snl::defineRule(fac(n), fac(n - 1) * n, n);
+	snl::defineRule(fac(0), snl::Sym(1));
 
-	std::cout << f(3, 2) << std::endl;
+	std::cout << fac(0) << std::endl;
 
 	//std::cout << snl::objManager.count() << std::endl;
 	//
