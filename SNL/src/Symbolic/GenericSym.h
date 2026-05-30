@@ -3,6 +3,7 @@
 #include <optional>
 #include <vector>
 #include <functional>
+#include <unordered_set>
 #include "../Memory/ObjectManager.h"
 #include "../Utils/Any.h"
 #include "../Utils/Ref.h"
@@ -22,6 +23,46 @@ namespace snl {
 	struct GenericSym;
 
 	bool operator==(const GenericSym& a, const GenericSym& b);
+
+	class RelativeSymRef {
+		std::vector<size_t> descender;
+	public:
+		RelativeSymRef(std::initializer_list<size_t> list) : descender(list) {}
+		RelativeSymRef() = default;
+
+		RelativeSymRef operator[](size_t index) {
+			RelativeSymRef result(*this);
+			result.descender.push_back(index);
+			return result;
+		}
+
+		RelativeSymRef& rise() {
+			descender.erase(descender.end() - 1);
+			return *this;
+		}
+
+		const GenericSym& use(const GenericSym& sym) const;
+		GenericSym& use(GenericSym& sym) const;
+
+		RelativeSymRef use(RelativeSymRef sym) const {
+			RelativeSymRef result;
+
+			for (size_t index : descender)
+				result = result[index];
+
+			return result;
+		}
+
+		template<typename T>
+		GenericSym& use(Sym<T>& sym) {
+			return use(Ref(sym).as<GenericSym>().get());
+		}
+
+		template<typename T>
+		const GenericSym& use(const Sym<T>& sym) {
+			return use(Ref(sym).as<const GenericSym>().get());
+		}
+	};
 
 	struct GenericSym {
 		static ErasedFunction<bool, const GenericSym, 2> erasedComparator;
@@ -170,6 +211,28 @@ namespace snl {
 			this->substitute(Ref(target), Ref(substitute));
 		}
 	};
+
+	const GenericSym& RelativeSymRef::use(const GenericSym& sym) const {
+		ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+
+		Ref<const GenericSym> current = Ref(sym);
+		
+		for (size_t index : descender)
+			current = current.get().rawDeps()[index];
+
+		return current.get();
+	}
+
+	GenericSym& RelativeSymRef::use(GenericSym& sym) const {
+		ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+
+		Ref<GenericSym> current = Ref(sym);
+
+		for (size_t index : descender)
+			current = current.get().rawDeps()[index];
+
+		return current.get();
+	}
 
 	ErasedFunction<bool, const GenericSym, 2> GenericSym::erasedComparator;
 	ErasedFunction<std::function<void(GenericSym&)>, const GenericSym> GenericSym::erasedCopyAssignment;

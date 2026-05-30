@@ -1,26 +1,54 @@
 #pragma once
 
-#include
+#include "GenericSym.h"
 
 namespace snl {
-	using InvalidEditError = Error<"SymEdit initialization is invalid">;
+	using InvalidEditError = Error<"SymEdit application is invalid">;
 
 	class SymEdit {
-		Ref<GenericSym> target = nullptr;
+		RelativeSymRef target;
 		Ref<const GenericSym> substitute = nullptr;
 	public:
-		SymEdit(GenericSym& target, const GenericSym& substitute) :
-			target(makeManaged(target)), substitute(makeManaged(substitute))
-		{
-			SNLDebugCall(expect<InvalidEditError>(target.symType() == substitute.symType()));
+		SymEdit(const RelativeSymRef& target, const GenericSym& substitute) :
+			target(target), substitute(makeManaged(substitute)) {}
+
+		template<typename T>
+		SymEdit(const RelativeSymRef& target, const Sym<T>& substitute) :
+			target(target),
+			substitute(makeManaged(substitute).as<const GenericSym>()) {}
+
+		void apply(GenericSym& sym) const {
+			SNLDebugCall(expect<InvalidEditError>(target.use(sym).symType() == substitute.get().symType()))
+			target.use(sym) = substitute.get();
 		}
 
 		template<typename T>
-		SymEdit(Sym<T>& target, const Sym<T>& substitute) :
-			target(makeManaged(target).as<GenericSym>()),
-			substitute(makeManaged(substitute).as<const GenericSym>()) {
+		void apply(Sym<T>& sym) const {
+			SNLDebugCall(expect<InvalidEditError>(target.use(sym).symType() == substitute.get().symType()))
+			target.use(sym) = substitute.get();
+		}
+	};
+
+	class EditGroup {
+		std::vector<SymEdit> edits;
+	public:
+		EditGroup(const std::vector<SymEdit>& edits) : edits(edits) {}
+		EditGroup() = default;
+
+		EditGroup& add(const SymEdit& edit) {
+			edits.push_back(edit);
+			return *this;
 		}
 
+		void apply(GenericSym& sym) const {
+			for (const SymEdit& edit : edits)
+				edit.apply(sym);
+		}
 
+		template<typename T>
+		void apply(Sym<T>& sym) const {
+			for (const SymEdit& edit : edits)
+				edit.apply(sym);
+		}
 	};
 }

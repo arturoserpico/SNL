@@ -23,15 +23,19 @@
 #include "Symbolic/MathContext.h"
 #include "Utils/Restricted.h"
 #include "Utils/DebugName.h"
+#include "Symbolic/SymEdit.h"
 
 constexpr double PI = 3.14159265358979323846;
 
 int main() {
-	snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
+	//snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
 
 	snl::Sym<int> n;
 	snl::Sym<double> x, y, z;
 	snl::Sym<double(*)(double)> f;
+
+	x = 2 + z;
+	y = 3 + (2 + z);
 
 	snl::addDebugName(f, "test");
 
