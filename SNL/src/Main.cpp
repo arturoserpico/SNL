@@ -23,30 +23,25 @@
 #include "Symbolic/MathContext.h"
 #include "Utils/Restricted.h"
 #include "Utils/DebugName.h"
+#include "Linear/Tensor.h"
 
 constexpr double PI = 3.14159265358979323846;
 
 int main() {
 	snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
 
+	snl::Sym<snl::Vector<double, 3>> v = snl::Vector<double, 3>{};
 	snl::Sym<int> n;
 	snl::Sym<double> x, y, z;
-	snl::Sym<double(*)(double)> f;
+	snl::Function<double(double, double)> f;
 
 	snl::addDebugName(f, "test");
 
 	std::cout << snl::getDebugName(f) << std::endl;
 
-	snl::defineRule(x - x, snl::Sym<double>(0), x);
-	snl::defineRule(x, 1 * x, x);
-	snl::defineRule(n * x + x, (n + 1) * x);
-	snl::defineRule(y + x, x + y, x, y);
-	snl::defineRule((x + y) + z, x + (y + z), x, y, z);
-	snl::defineRule(x + y, snl::Sym<double>(2));
-	snl::defineRule(f(x), snl::pow(x, 2), x);
-	snl::defineRule(x - y, x + (-y), x, y);
-	snl::defineRule(x + (-y), x - y, x, y);
+	snl::defineRule(f(x, y), snl::pow(x, 2) + y, x, y);
 
+	std::cout << f(3, 2) << std::endl;
 
 	//std::cout << snl::objManager.count() << std::endl;
 	//

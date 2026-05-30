@@ -60,8 +60,12 @@ namespace snl {
 
 
 	
-	template<typename F>
-	struct FunctionTypeInfo;
+	template<typename T>
+	struct FunctionTypeInfo {
+		using Fail = ErrorType<>;
+		using Return = Fail;
+		using ArgsList = Fail;
+	};
 
 	template<typename R, typename... Args>
 	struct FunctionTypeInfo<R(Args...)> {

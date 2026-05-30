@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../Linear/Tensor.h"
+#include "Sym.h"
+#include "../Utils/Bounded.h"
 
 namespace snl {
 	template<typename T, typename I>

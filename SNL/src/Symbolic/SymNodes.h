@@ -5,7 +5,7 @@
 namespace snl {
 	template<typename A, typename B> requires requires (A a, B b) { a + b; }
 	struct SymAddOp : SymOpType<decltype(std::declval<A>() + std::declval<B>())(A, B)> {
-		decltype(std::declval<A>() + std::declval<B>()) eval(A a, B b) {
+		decltype(auto) eval(A a, B b) {
 			return a + b;
 		}
 	};
@@ -17,7 +17,7 @@ namespace snl {
 
 	template<typename A, typename B> requires requires (A a, B b) { a - b; }
 	struct SymSubOp : SymOpType<decltype(std::declval<A>() - std::declval<B>())(A, B)> {
-		decltype(std::declval<A>() - std::declval<B>()) eval(A a, B b) {
+		decltype(auto) eval(A a, B b) {
 			return a - b;
 		}
 	};
@@ -29,7 +29,7 @@ namespace snl {
 
 	template<typename A, typename B> requires requires (A a, B b) { a * b; }
 	struct SymMulOp : SymOpType<decltype(std::declval<A>() + std::declval<B>())(A, B)> {
-		decltype(std::declval<A>() * std::declval<B>()) eval(A a, B b) {
+		decltype(auto) eval(A a, B b) {
 			return a * b;
 		}
 	};
@@ -41,7 +41,7 @@ namespace snl {
 
 	template<typename A, typename B> requires requires (A a, B b) { a / b; }
 	struct SymDivOp : SymOpType<decltype(std::declval<A>() / std::declval<B>())(A, B)> {
-		decltype(std::declval<A>() / std::declval<B>()) eval(A a, B b) {
+		decltype(auto) eval(A a, B b) {
 			return a / b;
 		}
 	};
@@ -53,7 +53,7 @@ namespace snl {
 
 	template<typename A, typename B> requires requires (A a, B b) { std::pow(a, b); }
 	struct SymPowOp : SymOpType<decltype(std::pow(std::declval<A>(), std::declval<B>()))(A, B)> {
-		auto eval(A a, B b) {
+		decltype(auto) eval(A a, B b) {
 			return std::pow(a, b);
 		}
 	};
@@ -65,7 +65,7 @@ namespace snl {
 
 	template<typename T>
 	struct SymIdentity : SymOpType<T(T)> {
-		T eval(T val) {
+		decltype(auto) eval(T val) {
 			return val;
 		}
 	};
@@ -77,7 +77,7 @@ namespace snl {
 
 	template<typename T, std::convertible_to<T> A>
 	struct SymCast : SymOpType<T(A)> {
-		T eval(A val) {
+		decltype(auto) eval(A val) {
 			return static_cast<T>(val);
 		}
 	};
@@ -92,7 +92,7 @@ namespace snl {
 
 	template<typename Callable, typename... Args> requires std::invocable<Callable, Sym<Args>&...>
 	struct SymCall<Callable, TypeList<Args...>> {
-		auto eval(Ref<Sym<Callable>> f, Ref<Sym<Args>>... args) {
+		decltype(auto) eval(Ref<Sym<Callable>> f, Ref<Sym<Args>>... args) {
 			return f.get().eval()(args.get()...);
 		}
 
@@ -107,7 +107,7 @@ namespace snl {
 
 	template<typename T> requires requires (T a) { -a; }
 	struct SymNegOp : SymOpType<decltype(-std::declval<T>())(T)> {
-		decltype(-std::declval<T>()) eval(T val) {
+		decltype(auto) eval(T val) {
 			return -val;
 		}
 	};

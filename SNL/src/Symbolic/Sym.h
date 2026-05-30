@@ -12,7 +12,6 @@
 #include "../Metaprogramming/TypeList.h"
 #include "TypeOperations.h"
 #include "GenericSym.h"
-//#include "SymNodes.h"
 
 namespace snl {
 	template<typename Fn>
@@ -60,7 +59,7 @@ namespace snl {
 		}
 	};
 
-	template<typename T>
+	template<typename T> 
 	bool operator==(const SymConstant<T>& a, const SymConstant<T>& b) {
 		return a.value == b.value;
 	}
@@ -189,19 +188,29 @@ namespace snl {
 			}
 		}
 
-		template<size_t index, typename TargetList, typename... Deps>
-		static TypeListToTuple<TargetList> computeDeps(const std::tuple<Ref<Sym<Deps>>...>& deps) {
-			TypeListToTuple<TargetList> result;
+		template <typename TargetList, typename... Deps, std::size_t... is>
+		static TypeListToTuple<TargetList>
+			computeDepsImpl(
+				const std::tuple<Ref<Sym<Deps>>...>& deps,
+				std::index_sequence<is...>)
+		{
+			return TypeListToTuple<TargetList>{
+				([&]() -> decltype(auto)
+					{
+						if constexpr (IsSym<SafeRemRef<Get<TargetList, is>>>)
+							return std::get<is>(deps);
+						else
+							return std::get<is>(deps).get().eval();
+					}())...
+			};
+		}
 
-			if constexpr (index != sizeof...(Deps) - 1)
-				result = computeDeps<index + 1, TargetList, Deps...>(deps);
-			 
-			if constexpr (IsSym<SafeRemRef<Get<TargetList, index>>>)
-				std::get<index>(result) = std::get<index>(deps);
-			else
-				std::get<index>(result) = std::get<index>(deps).get().eval();
-
-			return result;
+		template <typename TargetList, typename... Deps>
+		static TypeListToTuple<TargetList>
+			computeDeps(const std::tuple<Ref<Sym<Deps>>...>& deps)
+		{
+			static_assert(sizeof...(Deps) == lenght<TargetList>);
+			return computeDepsImpl<TargetList>(deps, std::index_sequence_for<Deps...>{});
 		}
 
 		template<typename First, typename... Rest>
@@ -296,7 +305,7 @@ namespace snl {
 						if (isEvaluable) {
 							auto& evalObj = _evalObj.get<SymOpType>();
 							auto concretizedDeps = concretizeDeps<Deps...>(deps);
-							auto computedDeps = computeDeps<0, typename SymOpType::ArgsList, Deps...>(concretizedDeps);
+							auto computedDeps = computeDeps<typename SymOpType::ArgsList, Deps...>(concretizedDeps);
 							return std::apply(&SymOpType::eval, std::tuple_cat(std::tuple(evalObj), computedDeps));
 						}
 					}
@@ -420,6 +429,9 @@ namespace snl {
 
 	template<typename TypeObject>
 	Sym(TypeObject) -> Sym<typename TypeObject::Type>;
+
+	template<typename F> requires std::is_function_v<F>
+	using Function = Sym<F*>;
 
 	template<typename T>
 	bool operator==(const snl::Sym<T>& a, const snl::Sym<T>& b) {

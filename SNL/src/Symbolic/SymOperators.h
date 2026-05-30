@@ -3,7 +3,6 @@
 #include "SymNodes.h"
 #include "Sym.h"
 #include "SymUtils.h"
-#include "Function.h"
 
 namespace snl {
 	auto operator+(auto&& _a, auto&& _b) requires IsSymCall<decltype(_a), decltype(_b)> {
@@ -43,14 +42,18 @@ namespace snl {
 
 	template<typename T>
 	auto Sym<T>::operator()(auto&&... args) & {
-		auto tuple = convertArgsToSymRef(std::forward<decltype(args)>(args)...);
+		using TargetTs = If<std::is_pointer_v<T>&& std::is_function_v<std::remove_pointer_t<T>>, typename FunctionTypeInfo<T>::ArgsList, TypeList<>>;
+
+		auto tuple = convertArgsToSymRef<TargetTs>(std::forward<decltype(args)>(args)...);
 		using SymArgsList = Transform<Transform<TupleToTypeList<decltype(tuple)>, RemRef>, RemSym>;
 		return Sym<typename SymCall<T, SymArgsList>::R>(SymCall<T, SymArgsList>(), std::tuple_cat(std::make_tuple(Ref(*this)), tuple));
 	}
 
 	template<typename T>
 	auto Sym<T>::operator()(auto&&... args) && {
-		auto tuple = convertArgsToSymRef(std::forward<decltype(args)>(args)...);
+		using TargetTs = If<std::is_pointer_v<T>&& std::is_function_v<std::remove_pointer_t<T>>, typename FunctionTypeInfo<T>::ArgsList, TypeList<>>;
+
+		auto tuple = convertArgsToSymRef<TargetTs>(std::forward<decltype(args)>(args)...);
 		using SymArgsList = Transform<Transform<TupleToTypeList<decltype(tuple)>, RemRef>, RemSym>;
 		return Sym<typename SymCall<T, SymArgsList>::R>(SymCall<T, SymArgsList>(), std::tuple_cat(std::make_tuple(makeManaged(*this)), tuple));
 	}
