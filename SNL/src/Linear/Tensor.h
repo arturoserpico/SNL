@@ -4,7 +4,6 @@
 #include <algorithm>
 
 #include "../Utils/Bounded.h"
-#include "../Symbolic/Function.h"
 #include "../Symbolic/ExprOperators.h"
 
 namespace snl {
@@ -166,6 +165,9 @@ namespace snl {
 				data.resize((first * ... * rest));
 		}
 
+		Tensor(const DataT& data) : data(data) {}
+		Tensor(const DataT&& data) : data(std::move(data)) {}
+
 		auto& raw() {
 			return data;
 		}
@@ -235,6 +237,10 @@ namespace snl {
 			result[i] = a[i] + b[i];
 
 		return result;
+	}
+
+	bool operator==(IsTensor auto a, IsTensor auto b) {
+		return a.raw() == b.raw();
 	}
 
 	template<typename T, size_t nCovariant, size_t nContravariant, size_t n>

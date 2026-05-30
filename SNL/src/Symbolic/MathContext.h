@@ -4,8 +4,6 @@
 #include <queue>
 #include "../Utils/Set.h"
 #include "Sym.h"
-#include "Function.h"
-
 
 namespace snl {
 	using RuleNotInvertibleError = Error<"tried to invert a not invertible MathRule">;
@@ -372,6 +370,45 @@ namespace snl {
 		}
 	};
 
+	class TrivialLeafSimplify : public Simplifier {
+		Ref<GenericSym> genericSimplify(const GenericSym& sym) override {
+			auto result = sym.heapCopy();
+
+			if (sym.isEvaluable())
+				return result;
+
+			for (Ref<GenericSym>& dep : result.get().rawDeps())
+				dep = genericSimplify(dep.get());
+
+			if (sym.isEvaluable())
+				return result;
+
+			auto orderer = [result](const MathRule& rule) -> size_t {
+				if (!rule.match(result.get()))
+					return 0;
+
+				auto applied = rule.genericApply(result.get());
+				return result.get().unevaluableLeafCount() - applied.get().unevaluableLeafCount();
+				};
+
+			RuleSet rules = context.get().getRules();
+
+			rules = rules.sort(std::function(orderer), std::greater());
+
+			for (const MathRule& rule : rules)
+				if (rule.match(result.get())) {
+					result = rule.genericApply(result.get());
+
+					if (result.get().isEvaluable())
+						return result;
+				}
+
+			return result;
+		}
+	public:
+		using Simplifier::Simplifier;
+	};
+
 	class MakeEvaluableSimplifier : public Simplifier {
 		Ref<GenericSym> recursiveSimplify(const GenericSym& sym, std::set<size_t>& visited) {
 			auto original = sym.heapCopy();
@@ -442,7 +479,7 @@ namespace snl {
 	template<typename T>
 	T Sym<T>::eval() {
 		if (!isEvaluable()) {
-			MakeEvaluableSimplifier simp;
+			TrivialLeafSimplify simp;
 			auto simplified = simp.simplify(*this);
 
 			if (!simplified.isEvaluable())
