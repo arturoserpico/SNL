@@ -24,6 +24,7 @@
 #include "Utils/Restricted.h"
 #include "Utils/DebugName.h"
 #include "Linear/Tensor.h"
+#include "Symbolic/SymEdit.h"
 
 constexpr double PI = 3.14159265358979323846;
 
@@ -44,6 +45,14 @@ int main() {
 	snl::defineRule(fac(0), snl::Sym(1));
 
 	std::cout << fac(0) << std::endl;
+
+	snl::SymEdit edit({ 0, 1 }, snl::Sym(42));
+	
+	auto e = (snl::Sym(2) * 1) + 2;
+	
+	edit.apply(e);
+	
+	std::cout << e << std::endl;
 
 	//std::cout << snl::objManager.count() << std::endl;
 	//

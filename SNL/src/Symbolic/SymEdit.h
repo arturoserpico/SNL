@@ -10,7 +10,7 @@ namespace snl {
 		Ref<const GenericSym> substitute = nullptr;
 	public:
 		SymEdit(const RelativeSymRef& target, const GenericSym& substitute) :
-			target(target), substitute(makeManaged(substitute)) {}
+			target(target), substitute(substitute.heapCopy()) {}
 
 		template<typename T>
 		SymEdit(const RelativeSymRef& target, const Sym<T>& substitute) :
@@ -18,13 +18,13 @@ namespace snl {
 			substitute(makeManaged(substitute).as<const GenericSym>()) {}
 
 		void apply(GenericSym& sym) const {
-			SNLDebugCall(expect<InvalidEditError>(target.use(sym).symType() == substitute.get().symType()))
+			SNLDebugCall(1, expect<InvalidEditError>(target.use(sym).symType() == substitute.get().symType()))
 			target.use(sym) = substitute.get();
 		}
 
 		template<typename T>
 		void apply(Sym<T>& sym) const {
-			SNLDebugCall(expect<InvalidEditError>(target.use(sym).symType() == substitute.get().symType()))
+			SNLDebugCall(1, expect<InvalidEditError>(target.use(sym).symType() == substitute.get().symType()))
 			target.use(sym) = substitute.get();
 		}
 	};
