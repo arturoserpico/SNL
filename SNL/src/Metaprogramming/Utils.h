@@ -1,5 +1,8 @@
 #pragma once
 
+#include <functional>
+#include <type_traits>
+
 namespace snl {
 	struct Empty {
 		Empty() = default;

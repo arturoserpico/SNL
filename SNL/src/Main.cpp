@@ -37,9 +37,26 @@ int main() {
 	snl::Function<double(double, double)> f;
 	snl::Function<int(int)> fac;
 
-	snl::EClass a(0, typeid(int)), b(1, typeid(double)), c(2, typeid(char));
+	snl::ENode n1(snl::SymConstant<int>(2));
+	snl::ENode n2(snl::SymConstant<int>(3));
+	snl::ENode n4(snl::SymConstant<int>(5));
+	snl::EGraph eg;
 
-	snl::ENode e(snl::SymAddOp<int, double>(), { a, b });
+	eg.add(n1).add(n2).add(n4);
+
+	snl::ENode n3(snl::SymAddOp<int, int>(), { eg.find(n1), eg.find(n2) });
+	snl::ENode n5(snl::SymAddOp<int, int>(), { eg.find(n1), eg.find(n4) });
+
+	eg.add(n3).add(n5);
+
+	eg.merge(eg.find(n2), eg.find(n4));
+
+	eg.rebuild();
+
+	std::cout << eg.equal(n3, n5) << std::endl;
+
+
+
 	
 	//std::cout << snl::objManager.count() << std::endl;
 	//
