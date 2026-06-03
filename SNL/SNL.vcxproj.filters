@@ -138,5 +138,11 @@
     <ClInclude Include="src\Symbolic\GenericSym.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Symbolic\EGraph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\UnionFind.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

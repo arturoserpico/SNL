@@ -24,6 +24,7 @@
 #include "Utils/Restricted.h"
 #include "Utils/DebugName.h"
 #include "Linear/Tensor.h"
+#include "Symbolic/EGraph.h"
 
 constexpr double PI = 3.14159265358979323846;
 
@@ -36,15 +37,10 @@ int main() {
 	snl::Function<double(double, double)> f;
 	snl::Function<int(int)> fac;
 
-	snl::addDebugName(f, "test");
+	snl::EClass a(0, typeid(int)), b(1, typeid(double)), c(2, typeid(char));
 
-	std::cout << snl::getDebugName(f) << std::endl;
-
-	snl::defineRule(fac(n), fac(n - 1) * n, n);
-	snl::defineRule(fac(0), snl::Sym(1));
-
-	std::cout << fac(0) << std::endl;
-
+	snl::ENode e(snl::SymAddOp<int, double>(), { a, b });
+	
 	//std::cout << snl::objManager.count() << std::endl;
 	//
 	//for(auto [location, count] : snl::objManager.getObjects())

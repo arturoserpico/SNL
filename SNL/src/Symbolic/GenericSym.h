@@ -26,8 +26,18 @@ namespace snl {
 
 	class RelativeSymRef {
 		std::vector<size_t> descender;
+		Ref<GenericSym> target;
 	public:
-		RelativeSymRef(std::initializer_list<size_t> list) : descender(list) {}
+		RelativeSymRef(std::initializer_list<size_t> list) :
+			descender(list), target(nullptr) {}
+
+		RelativeSymRef(GenericSym& target, std::initializer_list<size_t> list) :
+			descender(list) 
+		{
+			ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+			this->target = Ref(target, Ref(target).realManagmentState());
+		}
+
 		RelativeSymRef() = default;
 
 		RelativeSymRef operator[](size_t index) {
@@ -44,6 +54,10 @@ namespace snl {
 		const GenericSym& use(const GenericSym& sym) const;
 		GenericSym& use(GenericSym& sym) const;
 
+		GenericSym& use() const {
+			return use(target.get());
+		}
+
 		RelativeSymRef use(RelativeSymRef sym) const {
 			RelativeSymRef result;
 
@@ -54,13 +68,29 @@ namespace snl {
 		}
 
 		template<typename T>
-		GenericSym& use(Sym<T>& sym) {
+		GenericSym& use(Sym<T>& sym) const {
 			return use(Ref(sym).as<GenericSym>().get());
 		}
 
 		template<typename T>
-		const GenericSym& use(const Sym<T>& sym) {
+		const GenericSym& use(const Sym<T>& sym) const {
 			return use(Ref(sym).as<const GenericSym>().get());
+		}
+
+		RelativeSymRef& bind(GenericSym& target) {
+			ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+			this->target = Ref(target, Ref(target).realManagmentState());
+			return *this;
+		}
+
+		template<typename T>
+		RelativeSymRef& bind(Sym<T>& target) {
+			ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+			return bind(Ref(target).as<GenericSym>().get());
+		}
+
+		operator GenericSym& () const {
+			return use();
 		}
 	};
 
@@ -209,6 +239,10 @@ namespace snl {
 		void substitute(const Sym<T>& target, const Sym<T>& substitute) {
 			snl::ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
 			this->substitute(Ref(target), Ref(substitute));
+		}
+
+		RelativeSymRef operator[](size_t index) {
+			return RelativeSymRef(*this, { index });
 		}
 	};
 

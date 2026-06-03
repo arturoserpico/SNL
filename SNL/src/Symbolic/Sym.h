@@ -106,7 +106,6 @@ namespace snl {
 	class Sym : public GenericSym {
 		bool isDefined = false;
 		Any<> evalObj;
-		//std::optional<T> value;
 		std::function<T(bool, Any<>&, std::vector<Ref<GenericSym>>&)> fun;
 		std::conditional_t<(debugLevel > 0), std::vector<const std::type_info*>, Empty> depsTypes;
 		std::vector<Ref<GenericSym>> deps;
@@ -252,7 +251,7 @@ namespace snl {
 			return rawDeepCopy().as<Sym<T>>().get();
 		}
 
-		Sym(auto) : Sym() {};
+		//Sym(auto) : Sym() {};
 
 		template<IsSymOpType SymOpType>
 		Sym(SymOpType evalObj) : evalObj(evalObj) {
@@ -318,14 +317,15 @@ namespace snl {
 		Sym() : Sym<T>(SymLabel<T>()) {}
 		Sym(T value) : Sym<T>(SymConstant<T>(value)) {}
 
-		Sym<T>& operator=(T value) {
-			*this = Sym<T>(value);
-			return *this;
-		}
-	private:
+		//Sym<T>& operator=(T value) {
+		//	*this = Sym<T>(value);
+		//	return *this;
+		//}
 		Ref<GenericSym> heapCopy() const {
 			return makeManaged<Sym<T>>(deepCopy()).as<GenericSym>();
 		}
+
+	private:
 
 		template<int... seq, typename SymOpType, typename... Deps>
 		static Sym<T> constructFromTuple(
@@ -356,6 +356,12 @@ namespace snl {
 			depsTypes = other.depsTypes;
 			deps = other.deps;
 
+			return *this;
+		}
+
+		template<typename A> requires (!std::is_same_v<T, A> && std::convertible_to<A, T>)
+		Sym<T>& operator=(const Sym<A>& other) {
+			*this = Sym<T>(SymCast<T, A>(), other.heapCopy().as<Sym<A>>());
 			return *this;
 		}
 

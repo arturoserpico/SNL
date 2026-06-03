@@ -382,4 +382,6 @@ namespace snl {
 
 	template<size_t level, typename T>
 	using Debug = std::conditional_t<debugLevel >= level, T, Empty>;
+
+	using OutOfRangeError = Error<"index is out of range in {} container", std::string>;
 }

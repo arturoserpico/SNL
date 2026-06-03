@@ -179,6 +179,7 @@
     <ClInclude Include="src\Metaprogramming\StaticString.h" />
     <ClInclude Include="src\Metaprogramming\TypeList.h" />
     <ClInclude Include="src\Metaprogramming\Utils.h" />
+    <ClInclude Include="src\Symbolic\EGraph.h" />
     <ClInclude Include="src\Symbolic\ExprOperators.h" />
     <ClInclude Include="src\Symbolic\GenericSym.h" />
     <ClInclude Include="src\Symbolic\MathContext.h" />
@@ -201,6 +202,7 @@
     <ClInclude Include="src\Utils\Ref.h" />
     <ClInclude Include="src\Utils\Restricted.h" />
     <ClInclude Include="src\Utils\Set.h" />
+    <ClInclude Include="src\Utils\UnionFind.h" />
     <ClInclude Include="src\Utils\UniqueVector.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
