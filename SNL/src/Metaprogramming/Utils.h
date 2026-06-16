@@ -86,6 +86,13 @@ namespace snl {
 		using ObjectType = Obj;
 	};
 
+	template<typename Obj, typename R, typename... Args>
+	struct FunctionTypeInfo<R(Obj::*)(Args...) const> {
+		using Return = R;
+		using ArgsList = TypeList<Args...>;
+		using ObjectType = Obj;
+	};
+
 	template<typename R, typename... Args>
 	struct FunctionTypeInfo<std::function<R(Args...)>> {
 		using Return = R;

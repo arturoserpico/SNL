@@ -194,6 +194,7 @@
     <ClInclude Include="src\Symbolic\SymNodes.h" />
     <ClInclude Include="src\Symbolic\SymOperators.h" />
     <ClInclude Include="src\Symbolic\TypeOperations.h" />
+    <ClInclude Include="src\Typing\TypeBase.h" />
     <ClInclude Include="src\Utils\Any.h" />
     <ClInclude Include="src\Utils\Bounded.h" />
     <ClInclude Include="src\Utils\DebugName.h" />

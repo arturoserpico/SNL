@@ -25,55 +25,62 @@
 #include "Utils/DebugName.h"
 #include "Linear/Tensor.h"
 #include "Symbolic/EGraph.h"
+#include "Typing/TypeBase.h"
 
 constexpr double PI = 3.14159265358979323846;
 
+struct Nat : public snl::TypeBase<Nat> {
+	static inline snl::Constructor<Nat()> zero;
+	static inline snl::Constructor<Nat(Nat)> succ;
+
+	Nat() = default;
+
+	Nat(size_t n) {
+		*this = zero;
+
+		for (size_t i = 0; i < n; i++)
+			*this = succ(*this);
+	}
+
+	int toInt() {
+		return snl::match(*this,
+			Nat::zero >> []() { return 0; },
+			Nat::succ >> [](Nat n) { return n.toInt() + 1; }
+		);
+	}
+};
+
+template<typename T>
+struct BinTree : public snl::TypeBase<BinTree<T>> {
+	static inline const snl::Constructor<BinTree<T>(T)> leaf;
+	static inline const snl::Constructor<BinTree<T>(T, BinTree<T>, BinTree<T>)> node;
+};
+
+std::string printTree(BinTree<int> tree) {
+	return snl::match(tree,
+		BinTree<int>::leaf >> [](int i) { return std::to_string(i); },
+		BinTree<int>::node >> [](int i, BinTree<int> a, BinTree<int> b) { 
+			return std::to_string(i) + "{" + printTree(a) + "," + printTree(b) + "}";
+		}
+	);
+}
+
 int main() {
-	snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
+	//snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
 
-	//snl::Sym<snl::Vector<double, 3>> v = snl::Vector<double, 3>{};
-	snl::Sym<int> n;
-	snl::Sym<double> x, y, z;
-	snl::Function<double(double, double)> f;
-	snl::Function<int(int)> fac;
+	BinTree<int> tree = BinTree<int>::node(3, 
+		BinTree<int>::node(4,
+			BinTree<int>::leaf(12),
+			BinTree<int>::leaf(13)
+		), 
+		BinTree<int>::leaf(2)
+	);
 
-	snl::EClass a(0, typeid(int)), b(1, typeid(double)), c(2, typeid(char));
+	std::cout << printTree(tree) << std::endl;
 
-	snl::ENode e(snl::SymAddOp<int, double>(), { a, b });
-	
-	//std::cout << snl::objManager.count() << std::endl;
-	//
-	//for(auto [location, count] : snl::objManager.getObjects())
-	//	std::cout << location << ": " << count.second << std::endl;
+	Nat n = Nat::succ(Nat::succ(Nat::zero));
 
-	//snl::Index<100> i, j, k;
-	//
-	//snl::Vector<double, 100> v, w, c;
-	//
-	//snl::Matrix11<double, 100> A;
-	//
-	//A(i, k) |= snl::random<double>(0, 1);
-	//
-	//w(i) |= snl::random<double>(0, 1);
-	//
-	//auto begin = std::chrono::high_resolution_clock::now();
-	//c(i) |= snl::sum(j) | A(i, j) * w(j);
-	//auto end = std::chrono::high_resolution_clock::now();
-	//
-	//std::cout << c << std::endl;
-	//std::cout << "Time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "ms" << std::endl;
-	//
-	//Eigen::VectorXd eigenV = Eigen::VectorXd::Random(100);
-	//Eigen::VectorXd eigenC = Eigen::VectorXd::Random(100);
-	//Eigen::MatrixXd eigenA = Eigen::MatrixXd::Random(100, 100);
-	//
-	//begin = std::chrono::high_resolution_clock::now();
-	//eigenC = eigenA * eigenV;
-	//end = std::chrono::high_resolution_clock::now();
-	//
-	//std::cout << eigenC << std::endl;
-	//std::cout << "Time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "ms" << std::endl;
+	std::cout << n.toInt() << std::endl;
 
-
-	//std::cout << x << std::endl;
+	std::cout << n.constructor().id << std::endl;
 }

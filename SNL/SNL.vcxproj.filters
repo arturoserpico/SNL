@@ -144,5 +144,8 @@
     <ClInclude Include="src\Utils\UnionFind.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Typing\TypeBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

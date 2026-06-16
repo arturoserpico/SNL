@@ -109,6 +109,105 @@ x = p2
 
 
 
+class Integer : snl::Set {
+	init() {
+		snl::Element zero = 0;
+
+		snl::Sym n(Integer::typeObj());
+
+		snl::Sym succ(Integer::typeObj()(Integer::typeObj()))
+		succ(n) = n + 1;
+		succ.inverse()(n) = n - 1;
+
+		snl::Set::elements(zero, snl::all(n) | succ(n))
+	}
+}
+
+snl::TypeObj<Integer> integer;
 
 
+class Integer : snl::Set {
+	static snl::Element zero;
+	static snl::Sym<Integer(Integer)> succ;
+	init() {
+		snl::Sym n(Integer::typeObj());
+		
+		snl::Set::elements(zero, snl::all(n) | succ(n));
+	}
+}
 
+static snl::TypeObj<Integer> integer;
+
+
+snl::Set nat;
+
+nat.contains(snl::empty);
+
+snl::Set x(nat);
+
+snl::forall(x) | nat.contains(x || snl::Set{x});
+
+class Integer : snl::TypeBase<Integer> {
+	static Constructor<> zero;
+	static Constructor<Integer> succ;
+
+	Integer(int i) {
+		if (i == 0)
+			*this = zero;
+		else
+			*this = succ(Integer(i - 1));
+	}
+};
+
+
+Integer i = Integer::zero;
+
+Integer k = Integer::succ(Integer::zero)
+
+Integer j = 2034
+
+snl::match(i, 
+	Integer::zero >> []{ std::print("zero") },
+	Integer::succ >> [](Integer n){ std::print("succ({})", n) }
+);
+
+template<typename... Ts>
+class Tuple : snl::TypeBase<Tuple<Ts...>> {
+	static snl::Constructor<Ts...> tuple;
+
+	constexpr Tuple(Ts... elems) {
+		*this = tuple(elems...);
+	}
+}
+
+snl::TypeObj<Nat> nat;
+
+snl::Sym a = snl::matchVar(nat); //a is of type snl::Sym<Nat> with an internal
+//eval type of snl::SymMatchVar
+
+snl::TypeObj<snl::Patterned<Tuple<Nat, Nat>, (a, a*a)>> f;
+//f == snl::patterned((nat, nat), (a, a*a));
+//a being a match variable get recognised not as a constant but usable for the pattern
+//internaly Patterned will store a series of patterns that can be used for evaluating the function
+
+snl::Fun f(nat(nat));
+
+f = snl::restricted(nat * nat, (a, a*a));
+
+f(2_snl);
+
+Nat
+
+zero \in Nat
+
+S: Nat -> Nat
+
+x \in Nat \imply S(x) \in Nat
+
+x + S(zero) = S(x)
+
+data BinTree a = Leaf a | Node a (BinTree a) (BinTree a)
+
+tree::BinTree Int
+
+tree = Node 1 (Leaf 2) (Node 3 (Leaf 4) (Leaf 5))
