@@ -65,18 +65,58 @@ std::string printTree(BinTree<int> tree) {
 	);
 }
 
+
+
+template<typename T>
+struct Expr : public snl::TypeBase<Expr<T>> {
+	static inline const snl::Constructor<Expr<T>(T)> val;
+	static inline const snl::Constructor<Expr<T>(Expr<T>, Expr<T>)> add;
+	static inline const snl::Constructor<Expr<T>(Expr<T>, Expr<T>)> mul;
+};
+
+template<typename T>
+Expr<T> val(T val) {
+	return Expr<T>::val(val);
+}
+
+template<typename T>
+Expr<T> operator+(Expr<T> a, Expr<T> b) {
+	return Expr<T>::add(a, b);
+}
+
+template<typename T>
+Expr<T> operator*(Expr<T> a, Expr<T> b) {
+	return Expr<T>::mul(a, b);
+}
+
+std::string printExpr(Expr<int> tree) {
+	using T = Expr<int>;
+	return snl::match(tree,
+		T::val >> [](int i) { return std::to_string(i); },
+		T::add >> [](T a, T b) {
+			return "(" + printExpr(a) + "+" + printExpr(b) + ")";
+		},
+		T::mul >> [](T a, T b) {
+			return "(" + printExpr(a) + "*" + printExpr(b) + ")";
+		}
+	);
+}
+
+
 int main() {
 	//snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
 
-	BinTree<int> tree = BinTree<int>::node(3, 
+	BinTree<int> tree = BinTree<int>::node(3,
 		BinTree<int>::node(4,
 			BinTree<int>::leaf(12),
 			BinTree<int>::leaf(13)
-		), 
+		),
 		BinTree<int>::leaf(2)
 	);
 
-	std::cout << printTree(tree) << std::endl;
+	auto expr = val(2) + val(3) * val(4);
+
+	std::cout << printExpr(expr) << std::endl;
 
 	Nat n = Nat::succ(Nat::succ(Nat::zero));
 

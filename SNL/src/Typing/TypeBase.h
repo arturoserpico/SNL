@@ -144,7 +144,7 @@ namespace snl {
 
 	template<typename Derived>
 	auto match(const Derived& val, auto first, auto... rest) {
-		if (val.constructorType() == typeid(first.constructor))
+		if (val.constructor().id == first.constructor.id)
 			if constexpr (std::is_same_v<typename decltype(first)::Return, void>)
 				first.call(val.getData());
 			else
