@@ -109,7 +109,7 @@ x = p2
 
 
 
-class Integer : snl::Set {
+class Integer : snl::std::unordered_set {
 	init() {
 		snl::Element zero = 0;
 
@@ -119,33 +119,33 @@ class Integer : snl::Set {
 		succ(n) = n + 1;
 		succ.inverse()(n) = n - 1;
 
-		snl::Set::elements(zero, snl::all(n) | succ(n))
+		snl::std::unordered_set::elements(zero, snl::all(n) | succ(n))
 	}
 }
 
 snl::TypeObj<Integer> integer;
 
 
-class Integer : snl::Set {
+class Integer : snl::std::unordered_set {
 	static snl::Element zero;
 	static snl::Sym<Integer(Integer)> succ;
 	init() {
 		snl::Sym n(Integer::typeObj());
 		
-		snl::Set::elements(zero, snl::all(n) | succ(n));
+		snl::std::unordered_set::elements(zero, snl::all(n) | succ(n));
 	}
 }
 
 static snl::TypeObj<Integer> integer;
 
 
-snl::Set nat;
+snl::std::unordered_set nat;
 
 nat.contains(snl::empty);
 
-snl::Set x(nat);
+snl::std::unordered_set x(nat);
 
-snl::forall(x) | nat.contains(x || snl::Set{x});
+snl::forall(x) | nat.contains(x || snl::std::unordered_set{x});
 
 class Integer : snl::TypeBase<Integer> {
 	static Constructor<> zero;

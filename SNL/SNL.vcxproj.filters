@@ -60,9 +60,6 @@
     <ClInclude Include="src\Utils\Ref.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Utils\Set.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Utils\UniqueVector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -145,6 +142,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Typing\TypeBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Typing\Set.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Typing\Types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

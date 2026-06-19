@@ -24,7 +24,7 @@ namespace snl {
 			SNLDebugCall(1, expect<NonManifoldManifoldInitializationError>(this->isManifold()));
 		}
 
-		Manifold(Mesh<meshDimension>& mesh, const Set<Ref<MeshElement<dimension, meshDimension>>>& elements) :
+		Manifold(Mesh<meshDimension>& mesh, const std::unordered_set<Ref<MeshElement<dimension, meshDimension>>>& elements) :
 			ElementComplex<dimension, meshDimension>(mesh, elements)
 		{
 			SNLDebugCall(1, expect<NonManifoldManifoldInitializationError>(this->isManifold()));

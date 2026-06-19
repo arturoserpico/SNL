@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../Utils/Error.h"
-#include "../Utils/Set.h"
 #include "../Utils/Ref.h"
 
 namespace snl {
@@ -16,7 +15,7 @@ namespace snl {
 
 	template<size_t dimension, size_t meshDimension>
 	class ElementComplex {
-		Set<Ref<MeshElement<dimension, meshDimension>>> elementsVal = {};
+		std::unordered_set<Ref<MeshElement<dimension, meshDimension>>> elementsVal = {};
 		Ref<Mesh<meshDimension>> meshVal;
 	public:
 		Mesh<meshDimension>& mesh() {
@@ -86,7 +85,7 @@ namespace snl {
 
 		ElementComplex<dimension - 1, meshDimension> boundary() {
 			std::unordered_map<Ref<MeshElement<dimension - 1, meshDimension>>, size_t> occurenceMap = makeOccurenceMap();
-			Set<Ref<MeshElement<dimension - 1, meshDimension>>> result;
+			std::unordered_set<Ref<MeshElement<dimension - 1, meshDimension>>> result;
 
 			for (const std::pair<Ref<MeshElement<dimension - 1, meshDimension>>, size_t>& p : occurenceMap)
 				if (p.second == 1)
@@ -97,7 +96,7 @@ namespace snl {
 
 		const ElementComplex<dimension - 1, meshDimension> boundary() const {
 			std::unordered_map<Ref<const MeshElement<dimension - 1, meshDimension>>, size_t> occurenceMap = makeOccurenceMap();
-			Set<Ref<const MeshElement<dimension - 1, meshDimension>>> result;
+			std::unordered_set<Ref<const MeshElement<dimension - 1, meshDimension>>> result;
 
 			for (const std::pair<Ref<const MeshElement<dimension - 1, meshDimension>>, size_t>& p : occurenceMap)
 				if (p.second == 1)
@@ -115,7 +114,7 @@ namespace snl {
 
 		ElementComplex() = default;
 
-		ElementComplex(Mesh<meshDimension>& mesh, const Set<Ref<MeshElement<dimension, meshDimension>>>& elements) :
+		ElementComplex(Mesh<meshDimension>& mesh, const std::unordered_set<Ref<MeshElement<dimension, meshDimension>>>& elements) :
 			meshVal(mesh),
 			elementsVal(elements)
 		{}
@@ -123,7 +122,7 @@ namespace snl {
 
 	template<size_t meshDimension>
 	class ElementComplex<0, meshDimension> {
-		Set<Ref<MeshElement<0, meshDimension>>> elementsVal = {};
+		std::unordered_set<Ref<MeshElement<0, meshDimension>>> elementsVal = {};
 		Ref<Mesh<meshDimension>> meshVal;
 	public:
 		Mesh<meshDimension>& mesh() {
@@ -197,7 +196,7 @@ namespace snl {
 
 		ElementComplex() = default;
 
-		ElementComplex(Mesh<meshDimension>& mesh, const Set<Ref<MeshElement<0, meshDimension>>>& elements) :
+		ElementComplex(Mesh<meshDimension>& mesh, const std::unordered_set<Ref<MeshElement<0, meshDimension>>>& elements) :
 			meshVal(mesh),
 			elementsVal(elements)
 		{}

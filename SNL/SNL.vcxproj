@@ -194,7 +194,9 @@
     <ClInclude Include="src\Symbolic\SymNodes.h" />
     <ClInclude Include="src\Symbolic\SymOperators.h" />
     <ClInclude Include="src\Symbolic\TypeOperations.h" />
+    <ClInclude Include="src\Typing\Set.h" />
     <ClInclude Include="src\Typing\TypeBase.h" />
+    <ClInclude Include="src\Typing\Types.h" />
     <ClInclude Include="src\Utils\Any.h" />
     <ClInclude Include="src\Utils\Bounded.h" />
     <ClInclude Include="src\Utils\DebugName.h" />
@@ -204,7 +206,6 @@
     <ClInclude Include="src\Utils\HashCombine.h" />
     <ClInclude Include="src\Utils\Ref.h" />
     <ClInclude Include="src\Utils\Restricted.h" />
-    <ClInclude Include="src\Utils\Set.h" />
     <ClInclude Include="src\Utils\UnionFind.h" />
     <ClInclude Include="src\Utils\UniqueVector.h" />
   </ItemGroup>

@@ -29,7 +29,7 @@ namespace snl
 	//
 	//template<size_t dimension, size_t... indexs>
 	//struct _ElementsRef<dimension, std::index_sequence<indexs...>> {
-	//	using Type = std::tuple<Set<MeshElement<indexs, dimension>*>*...>;
+	//	using Type = std::tuple<std::unordered_set<MeshElement<indexs, dimension>*>*...>;
 	//};
 	//
 	//template<size_t dimension>
@@ -124,21 +124,21 @@ namespace snl
 			return *edge;
 		}
 
-		Face<dimension>& addFace(const Set<Ref<Edge<dimension>>>& edges) {
+		Face<dimension>& addFace(const std::unordered_set<Ref<Edge<dimension>>>& edges) {
 			Face<dimension>* face = new Face<dimension>(*this, edges);
 			faces().add(*face);
 			return *face;
 		}
 
 		template<size_t elementDimension>
-		MeshElement<elementDimension, dimension>& addElement(const Set<Ref<MeshElement<elementDimension - 1, dimension>>>& boundary) {
+		MeshElement<elementDimension, dimension>& addElement(const std::unordered_set<Ref<MeshElement<elementDimension - 1, dimension>>>& boundary) {
 			MeshElement<elementDimension, dimension>* element = new MeshElement<elementDimension, dimension>(*this, boundary);
 			elements<elementDimension>().add(*element);
 			return *element;
 		}
 
 		template<size_t elementDimension>
-		MeshElement<elementDimension, dimension>& findElementByBoundary(const Set<Ref<MeshElement<elementDimension - 1, dimension>>>& boundary) {
+		MeshElement<elementDimension, dimension>& findElementByBoundary(const std::unordered_set<Ref<MeshElement<elementDimension - 1, dimension>>>& boundary) {
 			return findElementByBoundary<elementDimension>(Manifold<elementDimension - 1, dimension>(*this, boundary));
 		}
 
@@ -152,7 +152,7 @@ namespace snl
 		}
 
 		template<size_t elementDimension>
-		const MeshElement<elementDimension, dimension>& findElementByBoundary(const Set<Ref<MeshElement<elementDimension - 1, dimension>>>& boundary) const {
+		const MeshElement<elementDimension, dimension>& findElementByBoundary(const std::unordered_set<Ref<MeshElement<elementDimension - 1, dimension>>>& boundary) const {
 			return findElementByBoundary<elementDimension>(Manifold<elementDimension - 1, dimension>(*this, boundary));
 		}
 
@@ -167,7 +167,7 @@ namespace snl
 
 		template<size_t elementDimension>
 		ElementComplex<elementDimension, dimension> findElementsByBoundary(MeshElement<elementDimension - 1, dimension>& boundaryElement) {
-			Set<Ref<MeshElement<elementDimension, dimension>>> result;
+			std::unordered_set<Ref<MeshElement<elementDimension, dimension>>> result;
 			for (MeshElement<elementDimension, dimension>& element : elements<elementDimension>())
 				if (element.boundary().contains(boundaryElement))
 					result.insert(element);
@@ -177,7 +177,7 @@ namespace snl
 
 		template<size_t elementDimension>
 		const ElementComplex<elementDimension, dimension> findElementsByBoundary(const MeshElement<elementDimension - 1, dimension>& boundaryElement) const {
-			Set<Ref<const MeshElement<elementDimension, dimension>>> result;
+			std::unordered_set<Ref<const MeshElement<elementDimension, dimension>>> result;
 			for (const MeshElement<elementDimension, dimension>& element : elements<elementDimension>())
 				if (element.boundary().contains(boundaryElement))
 					result.insert(element);

@@ -97,7 +97,7 @@ namespace snl {
 
 		MeshElement(
 			Mesh<meshDimension>& mesh,
-			const Set<Ref<Node<meshDimension>>>& boundary = {}
+			const std::unordered_set<Ref<Node<meshDimension>>>& boundary = {}
 		) :
 			meshVal(mesh),
 			boundaryVal(mesh, boundary)

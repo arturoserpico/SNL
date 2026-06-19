@@ -31,7 +31,7 @@ namespace snl {
 		};
 
 	public:
-		template<typename... Args>
+		template<typename F>
 		struct Constructor;
 
 	private:
@@ -39,7 +39,7 @@ namespace snl {
 		struct Data : GenericData {
 			std::tuple<Args...> args;
 
-			Data(const Constructor<Args...>& constructor, Args... args) : 
+			Data(const Constructor<Derived(Args...)>& constructor, Args... args) : 
 				GenericData(constructor), args(args...) {}
 
 			operator Derived() const {
@@ -49,7 +49,7 @@ namespace snl {
 			}
 
 			const std::type_info& constructorType() const {
-				return typeid(Constructor<Args...>);
+				return typeid(Constructor<Derived(Args...)>);
 			}
 
 			Ref<GenericData> heapCopy() const {
@@ -61,8 +61,8 @@ namespace snl {
 		template<typename R, typename... Args>
 		struct MatchArm;
 
-		template<typename... Args>
-		struct Constructor : public GenericConstructor {
+		template<typename R, typename... Args> requires std::is_same_v<R, Derived>
+		struct Constructor<R(Args...)> : public GenericConstructor {
 			Derived operator()(Args... args) const {
 				return Data<Args...>(*this, args...);
 			}
@@ -78,10 +78,10 @@ namespace snl {
 		struct MatchArm {
 			using Return = R;
 
-			Constructor<Args...> constructor;
+			Constructor<Derived(Args...)> constructor;
 			std::function<R(Args...)> f;
 
-			MatchArm(Constructor<Args...> constructor, std::function<R(Args...)> f) :
+			MatchArm(Constructor<Derived(Args...)> constructor, std::function<R(Args...)> f) :
 				constructor(constructor), f(f) {}
 
 			R call(Ref<const GenericData> data) const {
@@ -134,8 +134,8 @@ namespace snl {
 	};
 
 	template<typename Derived>
-	template<typename... Args>
-	auto TypeBase<Derived>::Constructor<Args...>::operator>>(
+	template<typename R, typename... Args> requires std::is_same_v<R, Derived>
+	auto TypeBase<Derived>::Constructor<R(Args...)>::operator>>(
 		auto callable
 	) const {
 		using Info = FunctionTypeInfo<decltype(&decltype(callable)::operator())>;
@@ -144,7 +144,7 @@ namespace snl {
 
 	template<typename Derived>
 	auto match(const Derived& val, auto first, auto... rest) {
-		if (val.constructor().id == first.constructor.id)
+		if (val.TypeBase<Derived>::constructor().id == first.constructor.id)
 			if constexpr (std::is_same_v<typename decltype(first)::Return, void>)
 				first.call(val.getData());
 			else
@@ -162,7 +162,7 @@ namespace snl {
 
 	template<typename Derived, typename... Args>
 	struct _Constructor<Derived(Args...)> : 
-		TypeAlias<typename TypeBase<Derived>::template Constructor<Args...>> {};
+		TypeAlias<typename TypeBase<Derived>::template Constructor<Derived(Args...)>> {};
 
 	template<typename F>
 	using Constructor = _Constructor<F>::Type;

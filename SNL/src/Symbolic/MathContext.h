@@ -2,18 +2,17 @@
 
 #include <map>
 #include <queue>
-#include "../Utils/Set.h"
 #include "Sym.h"
 
 namespace snl {
 	using RuleNotInvertibleError = Error<"tried to invert a not invertible MathRule">;
 
-	static std::map<const std::type_info*, const std::type_info*> symRuleVarTypes;
+	static std::map<const std::type_info*, const std::type_info*> matchVarTypes;
 
 	template<typename T>
-	struct SymRuleVar : SymOpType<T()> {
-		SymRuleVar() {
-			symRuleVarTypes.emplace(&typeid(T), &typeid(SymRuleVar));
+	struct MatchVar : SymOpType<T()> {
+		MatchVar() {
+			matchVarTypes.emplace(&typeid(T), &typeid(MatchVar));
 		}
 
 		static size_t lastLabelId;
@@ -22,11 +21,16 @@ namespace snl {
 	};
 
 	template<typename T>
-	size_t SymRuleVar<T>::lastLabelId = 0;
+	size_t MatchVar<T>::lastLabelId = 0;
 
 	template<typename T>
-	bool operator==(const SymRuleVar<T>& a, const SymRuleVar<T>& b) {
+	bool operator==(const MatchVar<T>& a, const MatchVar<T>& b) {
 		return a.labelId == b.labelId;
+	}
+
+	template<typename T>
+	Sym<T> matchVar() {
+		return Sym<T>(MatchVar<T>());
 	}
 
 	using RuleUnappliyableError = Error<"Can't apply rule to given Sym">;
@@ -34,39 +38,45 @@ namespace snl {
 
 	class MathRule {
 	public:
-		std::vector<Ref<GenericSym>> variables;
+		//std::vector<Ref<GenericSym>> variables;
 		Ref<GenericSym> original = nullptr, substitute = nullptr;
 
-		template<typename... Ts> requires (sizeof...(Ts) == 0)
-		void makeRuleVars() {}
-
-		template<typename First, typename... Rest>
-		void makeRuleVars(Sym<First>& first, Sym<Rest>&... rest) {
-			variables.insert(variables.begin(), makeManaged<Sym<First>>(SymRuleVar<First>()).as<GenericSym>());
-			
-			original.get().substitute(first, variables[0].as<Sym<First>>().get());
-			substitute.get().substitute(first, variables[0].as<Sym<First>>().get());
-
-			if constexpr (sizeof...(rest) != 0)
-				makeRuleVars<Rest...>(rest...);
-		}
+		//template<typename... Ts> requires (sizeof...(Ts) == 0)
+		//void makeRuleVars() {}
+		//
+		//template<typename First, typename... Rest>
+		//void makeRuleVars(Sym<First>& first, Sym<Rest>&... rest) {
+		//	variables.insert(variables.begin(), makeManaged<Sym<First>>(MatchVar<First>()).as<GenericSym>());
+		//	
+		//	original.get().substitute(first, variables[0].as<Sym<First>>().get());
+		//	substitute.get().substitute(first, variables[0].as<Sym<First>>().get());
+		//
+		//	if constexpr (sizeof...(rest) != 0)
+		//		makeRuleVars<Rest...>(rest...);
+		//}
 	public:
-		MathRule(Ref<const GenericSym> original, Ref<const GenericSym> substitute, std::vector<Ref<GenericSym>> variables)
-		{
-			ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
-			this->variables = variables;
-			this->original = original.get().heapCopy();
-			this->substitute = substitute.get().heapCopy();
-		}
+		//MathRule(Ref<const GenericSym> original, Ref<const GenericSym> substitute, std::vector<Ref<GenericSym>>)
+		//{
+		//	ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+		//	//this->variables = variables;
+		//	this->original = original.get().heapCopy();
+		//	this->substitute = substitute.get().heapCopy();
+		//}
 
-		template<typename T, typename... Vars>
-		MathRule(const Sym<T>& original, const Sym<T>& substitute, Sym<Vars>&... variables) :
+		//template<typename T, typename... Vars>
+		//MathRule(const Sym<T>& original, const Sym<T>& substitute, Sym<Vars>&... variables) :
+		//	original(makeManaged<Sym<T>>(original.deepCopy()).as<GenericSym>()),
+		//	substitute(makeManaged<Sym<T>>(substitute.deepCopy()).as<GenericSym>())
+		//{
+		//	this->variables.reserve(sizeof...(variables));
+		//	makeRuleVars<Vars...>(variables...);
+		//}
+
+		template<typename T>
+		MathRule(const Sym<T>& original, const Sym<T>& substitute) :
 			original(makeManaged<Sym<T>>(original.deepCopy()).as<GenericSym>()),
 			substitute(makeManaged<Sym<T>>(substitute.deepCopy()).as<GenericSym>())
-		{
-			this->variables.reserve(sizeof...(variables));
-			makeRuleVars<Vars...>(variables...);
-		}
+		{}
 
 		static bool match(
 			const GenericSym& node, 
@@ -75,8 +85,8 @@ namespace snl {
 		) {
 			ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
 			
-			if (symRuleVarTypes.count(&node.symType())) {
-				if (other.nodeType() == *symRuleVarTypes.at(&node.symType())) {
+			if (matchVarTypes.count(&node.symType())) {
+				if (other.nodeType() == *matchVarTypes.at(&node.symType())) {
 					if (varMap.count(other))
 						return varMap.at(Ref(other)).get() == node;
 					else
@@ -142,20 +152,20 @@ namespace snl {
 			return genericApply(Ref(node).as<const GenericSym>().get()).as<Sym<T>>().get();
 		}
 
-		bool invertible() const {
-			for (Ref<GenericSym> var : variables) {
-				if (original.get().occurences(var.asConst()) == 0 ||
-					substitute.get().occurences(var.asConst()) == 0)
-					return false;
-			}
-
-			return true;
-		}
-
-		MathRule inverse() const {
-			expect<RuleNotInvertibleError>(invertible());
-			return MathRule(substitute, original, variables);
-		}
+		//bool invertible() const {
+		//	for (Ref<GenericSym> var : variables) {
+		//		if (original.get().occurences(var.asConst()) == 0 ||
+		//			substitute.get().occurences(var.asConst()) == 0)
+		//			return false;
+		//	}
+		//
+		//	return true;
+		//}
+		//
+		//MathRule inverse() const {
+		//	expect<RuleNotInvertibleError>(invertible());
+		//	return MathRule(substitute, original, variables);
+		//}
 	};
 
 	class RuleSet {
@@ -337,21 +347,16 @@ namespace snl {
 		mathContext.endMathScope();
 	}
 
-	template<typename T, typename... Vars>
-	void defineRule(bool includeInverse, const Sym<T>& original, const Sym<T>& substitute, Sym<Vars>&... variables) {
-		defineRule(MathRule(original, substitute, variables...), includeInverse);
-	}
-
-	template<typename T, typename... Vars>
-	void defineRule(const Sym<T>& original, const Sym<T>& substitute, Sym<Vars>&... variables) {
-		defineRule(MathRule(original, substitute, variables...));
+	template<typename T>
+	void defineRule(const Sym<T>& original, const Sym<T>& substitute, bool includeInverse = true) {
+		defineRule(MathRule(original, substitute), includeInverse);
 	}
 
 	void defineRule(const MathRule& rule, bool includeInverse = true) {
 		mathContext.addRule(rule);
 
-		if (rule.invertible() && includeInverse)
-			mathContext.addRule(rule.inverse());
+		//if (rule.invertible() && includeInverse)
+		//	mathContext.addRule(rule.inverse());
 	}
 
 	class Simplifier {
@@ -494,8 +499,8 @@ namespace snl {
 
 namespace std {
 	template<typename T>
-	struct hash<snl::SymRuleVar<T>> {
-		size_t operator()(const snl::SymRuleVar<T>& obj) {
+	struct hash<snl::MatchVar<T>> {
+		size_t operator()(const snl::MatchVar<T>& obj) {
 			return obj.labelId;
 		}
 	};

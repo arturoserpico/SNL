@@ -27,100 +27,41 @@
 #include "Symbolic/EGraph.h"
 #include "Typing/TypeBase.h"
 
-constexpr double PI = 3.14159265358979323846;
-
-struct Nat : public snl::TypeBase<Nat> {
-	static inline snl::Constructor<Nat()> zero;
-	static inline snl::Constructor<Nat(Nat)> succ;
-
-	Nat() = default;
-
-	Nat(size_t n) {
-		*this = zero;
-
-		for (size_t i = 0; i < n; i++)
-			*this = succ(*this);
-	}
-
-	int toInt() {
-		return snl::match(*this,
-			Nat::zero >> []() { return 0; },
-			Nat::succ >> [](Nat n) { return n.toInt() + 1; }
-		);
-	}
-};
-
-template<typename T>
-struct BinTree : public snl::TypeBase<BinTree<T>> {
-	static inline const snl::Constructor<BinTree<T>(T)> leaf;
-	static inline const snl::Constructor<BinTree<T>(T, BinTree<T>, BinTree<T>)> node;
-};
-
-std::string printTree(BinTree<int> tree) {
-	return snl::match(tree,
-		BinTree<int>::leaf >> [](int i) { return std::to_string(i); },
-		BinTree<int>::node >> [](int i, BinTree<int> a, BinTree<int> b) { 
-			return std::to_string(i) + "{" + printTree(a) + "," + printTree(b) + "}";
-		}
-	);
-}
-
-
-
-template<typename T>
-struct Expr : public snl::TypeBase<Expr<T>> {
-	static inline const snl::Constructor<Expr<T>(T)> val;
-	static inline const snl::Constructor<Expr<T>(Expr<T>, Expr<T>)> add;
-	static inline const snl::Constructor<Expr<T>(Expr<T>, Expr<T>)> mul;
-};
-
-template<typename T>
-Expr<T> val(T val) {
-	return Expr<T>::val(val);
-}
-
-template<typename T>
-Expr<T> operator+(Expr<T> a, Expr<T> b) {
-	return Expr<T>::add(a, b);
-}
-
-template<typename T>
-Expr<T> operator*(Expr<T> a, Expr<T> b) {
-	return Expr<T>::mul(a, b);
-}
-
-std::string printExpr(Expr<int> tree) {
-	using T = Expr<int>;
-	return snl::match(tree,
-		T::val >> [](int i) { return std::to_string(i); },
-		T::add >> [](T a, T b) {
-			return "(" + printExpr(a) + "+" + printExpr(b) + ")";
-		},
-		T::mul >> [](T a, T b) {
-			return "(" + printExpr(a) + "*" + printExpr(b) + ")";
-		}
-	);
-}
-
+#include "Typing/Set.h"
+#include "Typing/Types.h"
 
 int main() {
-	//snl::breakOnThrow<snl::UnmanagedRefToManagedObjWarning>();
+	auto x = snl::matchVar<double>();
 
-	BinTree<int> tree = BinTree<int>::node(3,
-		BinTree<int>::node(4,
-			BinTree<int>::leaf(12),
-			BinTree<int>::leaf(13)
-		),
-		BinTree<int>::leaf(2)
+	snl::Sym<double> y, c(12);
+
+	snl::defineRule(x + y, x + 1);
+
+	snl::Sym<double> expr = c + y;
+
+	//std::cout << expr << std::endl;
+
+	std::cout << snl::mathContext.getRules().match(expr) << std::endl;
+
+	expr = snl::mathContext.getRules().apply(expr);
+
+	std::cout << expr << std::endl;
+
+	using namespace snl::literals;
+
+	auto n = 13_nat;
+
+	std::cout << n + 5_nat << std::endl;
+
+	using U = snl::Union<int, std::string, char>;
+
+	U u = U::constructor<int>(2);
+
+	std::string str = u.match(
+		[](int i) { return std::to_string(i); },
+		[](std::string s) { return std::string("string"); },
+		[](char c) { return std::string("char"); }
 	);
 
-	auto expr = val(2) + val(3) * val(4);
-
-	std::cout << printExpr(expr) << std::endl;
-
-	Nat n = Nat::succ(Nat::succ(Nat::zero));
-
-	std::cout << n.toInt() << std::endl;
-
-	std::cout << n.constructor().id << std::endl;
+	std::cout << str << std::endl;
 }

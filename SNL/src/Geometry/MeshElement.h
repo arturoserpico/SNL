@@ -65,10 +65,10 @@ namespace snl {
 		//bool isClosed() const {
 		//	std::map<Ref<const MeshElement<dimension - 2, meshDimension>>, size_t> elementCount;
 		//
-		//	Set<Ref<const MeshElement<dimension - 1, meshDimension>>> boundary = this->boundary();
+		//	std::unordered_set<Ref<const MeshElement<dimension - 1, meshDimension>>> boundary = this->boundary();
 		//
 		//	for (const MeshElement<dimension - 1, meshDimension>& boundaryElement : boundary) {
-		//		Set<Ref<const MeshElement<dimension - 2, meshDimension>>> boundaryElementBoundary
+		//		std::unordered_set<Ref<const MeshElement<dimension - 2, meshDimension>>> boundaryElementBoundary
 		//	}
 		//}
 
@@ -84,7 +84,7 @@ namespace snl {
 
 		MeshElement(
 			Mesh<meshDimension>& mesh,
-			const Set<Ref<MeshElement<dimension - 1, meshDimension>>>& boundary = {}
+			const std::unordered_set<Ref<MeshElement<dimension - 1, meshDimension>>>& boundary = {}
 		) :
 			meshVal(mesh),
 			boundaryVal(mesh, boundary)
@@ -107,7 +107,7 @@ namespace snl {
 		if constexpr (elementDimension == dimension) {
 			return *this;
 		} else {
-			Set<Ref<MeshElement<elementDimension, meshDimension>>> result;
+			std::unordered_set<Ref<MeshElement<elementDimension, meshDimension>>> result;
 			ElementComplex<elementDimension, meshDimension> rec;
 
 			for (MeshElement<dimension, meshDimension>& elements : this->elements()) {
@@ -123,7 +123,7 @@ namespace snl {
 	template<size_t dimension, size_t meshDimension>
 	template<size_t elementDimension>
 	const ElementComplex<elementDimension, meshDimension> ElementComplex<dimension, meshDimension>::elements() const {
-		Set<Ref<MeshElement<elementDimension, meshDimension>>> result;
+		std::unordered_set<Ref<MeshElement<elementDimension, meshDimension>>> result;
 		
 		if constexpr (elementDimension == dimension) {
 			for (MeshElement<dimension, meshDimension>& element : elementsVal)
