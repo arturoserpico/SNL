@@ -60,9 +60,20 @@ namespace snl {
 			map.emplace(var.heapCopy(), substitute.heapCopy());
 		}
 
-		void substituteAll(GenericSym& target) {
+		void substituteAll(GenericSym& target) const {
 			for (auto [var, substitute] : map)
 				target.substitute(var.get(), substitute.get());
+		}
+
+		const GenericSym& get(const GenericSym& var) const {
+			ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+			return map.at(Ref(var)).get();
+		}
+
+		template<typename T>
+		const Sym<T>& get(const Sym<T>& var) const {
+			ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+			return Ref(get(Ref(var).as<const GenericSym>().get())).as<const Sym<T>>().get();
 		}
 	};
 

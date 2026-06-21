@@ -36,14 +36,14 @@ int main() {
 
 	auto constructor = snl::Sym(snl::Pair<int, int>::tuple);
 
-	auto pattern = constructor(x, x + 1);
+	auto pattern = constructor(x, x*x);
 
-	auto target = constructor(2, y);
+	auto target = constructor(3, y);
 
 	snl::MatchResult varMap;
 
 	std::cout << snl::symMatch(pattern, target, varMap) << std::endl;
 
-	for (auto [a, b] : varMap)
-		std::cout << b.as<const snl::Sym<int>>().get() << std::endl;
+	std::cout << "x: " << varMap.get(x) << std::endl;
+	std::cout << "y: " << varMap.get(y) << std::endl;
 }
