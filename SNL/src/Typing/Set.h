@@ -39,12 +39,12 @@ namespace snl {
 	};
 
 	template<typename T>
-	Set<T> operator|(Set<T> a, Set<T> b) {
+	Set<T> operator|(const Set<T>& a, const Set<T>& b) {
 		return Set<T>::unionSet(a, b);
 	}
 
 	template<typename T>
-	Set<T> operator&(Set<T> a, Set<T> b) {
+	Set<T> operator&(const Set<T>& a, const Set<T>& b) {
 		return Set<T>::intersectionSet(a, b);
 	}
 }

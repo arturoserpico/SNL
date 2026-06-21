@@ -33,6 +33,53 @@ namespace snl {
 		return Sym<T>(MatchVar<T>());
 	}
 
+	bool symMatch(
+		const GenericSym& pattern,
+		const GenericSym& target,
+		std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>>& varMap
+	) {
+		ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+
+		if (matchVarTypes.count(&target.symType())) {
+			if (pattern.nodeType() == *matchVarTypes.at(&target.symType())) {
+				if (varMap.count(pattern))
+					return varMap.at(Ref(pattern)).get() == target;
+				else
+					varMap.emplace(Ref(pattern), Ref(target, Ref(target).realManagmentState()));
+
+				return true;
+			}
+		}
+
+		if (target.nodeType() != pattern.nodeType() || target.rawDeps().size() != pattern.rawDeps().size())
+			return false;
+
+		if (target.rawDeps().size() == 0)
+			return target == pattern;
+
+		for (size_t i = 0; i < target.rawDeps().size(); i++)
+			if (!symMatch(pattern.rawDeps()[i].get(), target.rawDeps()[i].get(), varMap))
+				return false;
+
+		return true;
+	}
+	
+	template<typename T>
+	bool symMatch(
+		const Sym<T>& pattern,
+		const Sym<T>& target,
+		std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>>& varMap
+	) {
+		ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+		return symMatch(Ref(pattern).as<const GenericSym>().get(), Ref(target).as<const GenericSym>().get(), varMap);
+	}
+
+	template<typename T>
+	bool symMatch(const Sym<T>& pattern, const Sym<T>& target) {
+		std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>> varMap;
+		return symMatch(pattern, target, varMap);
+	}
+
 	using RuleUnappliyableError = Error<"Can't apply rule to given Sym">;
 	using RuleSetUnappliyableError = Error<"Can't apply ruleset to given Sym">;
 
@@ -78,59 +125,28 @@ namespace snl {
 			substitute(makeManaged<Sym<T>>(substitute.deepCopy()).as<GenericSym>())
 		{}
 
-		static bool match(
-			const GenericSym& node, 
-			const GenericSym& other, 
-			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>>& varMap
-		) {
-			ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
-			
-			if (matchVarTypes.count(&node.symType())) {
-				if (other.nodeType() == *matchVarTypes.at(&node.symType())) {
-					if (varMap.count(other))
-						return varMap.at(Ref(other)).get() == node;
-					else
-						varMap.emplace(Ref(other), Ref(node, Ref(node).realManagmentState()));
-
-					return true;
-				}
-			}
-
-			if (node.nodeType() != other.nodeType() || node.rawDeps().size() != other.rawDeps().size())
-				return false;
-
-			if (node.rawDeps().size() == 0)
-				return node == other;
-
-			for (size_t i = 0; i < node.rawDeps().size(); i++)
-				if (!match(node.rawDeps()[i].get(), other.rawDeps()[i].get(), varMap))
-					return false;
-
-			return true;
-		}
-
 		bool match(const GenericSym& node) const {
 			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>> varMap;
-			return match(node, original.get(), varMap);
+			return symMatch(original.get(), node, varMap);
 		}
 
 		bool match(GenericSym& node) const {
 			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>> varMap;
-			return match(node, original.get(), varMap);
+			return symMatch(original.get(), node, varMap);
 		}
 
 		bool match(
 			const GenericSym& node, 
 			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>>& varMap
 		) const {
-			return match(node, original.get(), varMap);
+			return symMatch(original.get(), node, varMap);
 		}
 
 		bool match(
 			GenericSym& node,
 			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>>& varMap
 		) const {
-			return match(node, original.get(), varMap);
+			return symMatch(original.get(), node, varMap);
 		}
 
 		Ref<GenericSym> genericApply(const GenericSym& node) const {

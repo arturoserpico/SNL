@@ -211,3 +211,33 @@ data BinTree a = Leaf a | Node a (BinTree a) (BinTree a)
 tree::BinTree Int
 
 tree = Node 1 (Leaf 2) (Node 3 (Leaf 4) (Leaf 5))
+
+canMatch(node)
+	if node is matchVar
+		return false
+
+	bool result = true
+	
+	for child in node.children
+		result = result && canMatch(child)
+
+	return result
+
+match(a, b, matchMap)
+	if a is matchVar
+		assert(canMatch(b))
+		matchMap[a] = b
+		return true
+
+	if b is matchVar
+		assert(canMatch(a))
+		matchMap[b] = a
+		return true
+		
+	
+	if a.evalType = b.evalType
+		for childA, childB in zip(a.children, b.children)
+			match(childA, childB, matchMap)
+
+
+		

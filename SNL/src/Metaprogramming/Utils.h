@@ -68,18 +68,21 @@ namespace snl {
 		using Fail = ErrorType<>;
 		using Return = Fail;
 		using ArgsList = Fail;
+		using Function = Fail;
 	};
 
 	template<typename R, typename... Args>
 	struct FunctionTypeInfo<R(Args...)> {
 		using Return = R;
 		using ArgsList = TypeList<Args...>;
+		using Function = R(Args...);
 	};
 
 	template<typename R, typename... Args>
 	struct FunctionTypeInfo<R(*)(Args...)> {
 		using Return = R;
 		using ArgsList = TypeList<Args...>;
+		using Function = R(Args...);
 	};
 
 	template<typename Obj, typename R, typename... Args>
@@ -87,6 +90,7 @@ namespace snl {
 		using Return = R;
 		using ArgsList = TypeList<Args...>;
 		using ObjectType = Obj;
+		using Function = R(Args...);
 	};
 
 	template<typename Obj, typename R, typename... Args>
@@ -94,12 +98,14 @@ namespace snl {
 		using Return = R;
 		using ArgsList = TypeList<Args...>;
 		using ObjectType = Obj;
+		using Function = R(Args...);
 	};
 
 	template<typename R, typename... Args>
 	struct FunctionTypeInfo<std::function<R(Args...)>> {
 		using Return = R;
 		using ArgsList = TypeList<Args...>;
+		using Function = R(Args...);
 	};
 
 

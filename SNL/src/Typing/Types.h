@@ -35,7 +35,7 @@ namespace snl {
 		}
 	}
 
-	Nat operator+(Nat a, Nat b) {
+	Nat operator+(const Nat& a, const Nat& b) {
 		return match(b,
 			Nat::zero >> [&]() { return a; },
 			Nat::succ >> [&](Nat n) { return Nat::succ(a) + n; }
@@ -83,4 +83,64 @@ namespace snl {
 			}
 		}
 	};
+
+	template<typename T>
+	struct List : public snl::TypeBase<List<T>> {
+		static inline Constructor<List<T>()> empty;
+		static inline Constructor<List<T>(T, List<T>)> prepend;
+
+		List() = default;
+
+		List(std::initializer_list<T> elems) {
+			*this = empty;
+
+			for (auto it = std::rbegin(elems); it != std::rend(elems); it++)
+				*this = prepend(*it, *this);
+		}
+
+		T& operator[](size_t index) {	
+			match(*this,
+				empty >> [&]() { forceThrow<OutOfRangeError>("snl::List"); }
+			);
+
+			return match(*this,
+				prepend >> [&](T& first, List<T>& rest) -> T& {
+					if (index == 0)
+						return first;
+					else
+						return rest[index - 1];
+				}
+			);
+		}
+
+		const T& operator[](size_t index) const {
+			match(*this,
+				empty >> [&]() { forceThrow<OutOfRangeError>("snl::List"); }
+			);
+
+			return match(*this,
+				prepend >> [&](const T& first, const List<T>& rest) -> const T& {
+					if (index == 0)
+						return first;
+					else
+						return rest[index - 1];
+				}
+			);
+		}
+
+		size_t size() const {
+			return match(*this,
+				empty >> [&]() { return 0ull; },
+				prepend >> [&](T first, List<T> rest) { return 1 + rest.size(); }
+			);
+		}
+	};
+
+	template<typename T>
+	List<T> operator+(const List<T>& a, const List<T>& b) {
+		return match(a,
+			List<T>::empty >> [&]() { return b; },
+			List<T>::prepend >> [&](T first, List<T> rest) { return List<T>::prepend(first, rest + b); }
+		);
+	}
 }

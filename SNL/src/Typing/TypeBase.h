@@ -16,6 +16,10 @@ namespace snl {
 			size_t id;
 
 			GenericConstructor() : id(lastId++) {}
+
+			bool operator==(const GenericConstructor& other) const {
+				return id == other.id;
+			}
 		};
 	private:
 		struct GenericData {
@@ -28,6 +32,8 @@ namespace snl {
 			virtual const std::type_info& constructorType() const = 0;
 
 			virtual Ref<GenericData> heapCopy() const = 0;
+
+			virtual bool compare(const GenericData& other) const = 0;
 		};
 
 	public:
@@ -55,6 +61,15 @@ namespace snl {
 			Ref<GenericData> heapCopy() const {
 				return makeManaged(*this).as<GenericData>();
 			}
+
+			bool compare(const GenericData& other) const {
+				ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+				
+				if (constructorType() != other.constructorType())
+					return false;
+
+				return Ref(other).as<const Data<Args...>>().get().args == args;
+			}
 		};
 
 	public:
@@ -72,20 +87,28 @@ namespace snl {
 			}
 
 			auto operator>>(auto callable) const;
+
+			bool operator==(const Constructor<R(Args...)>& other) const {
+				return this->id == other.id;
+			}
 		};
 
-		template<typename R, typename... Args>
+		template<typename F, typename... Args> //requires std::is_invocable_v<F*, Args...>
 		struct MatchArm {
-			using Return = R;
+			using Return = FunctionTypeInfo<F>::Return;
 
 			Constructor<Derived(Args...)> constructor;
-			std::function<R(Args...)> f;
+			std::function<F> f;
 
-			MatchArm(Constructor<Derived(Args...)> constructor, std::function<R(Args...)> f) :
+			MatchArm(Constructor<Derived(Args...)> constructor, std::function<F> f) :
 				constructor(constructor), f(f) {}
 
-			R call(Ref<const GenericData> data) const {
+			Return call(Ref<const GenericData> data) const {
 			 	return std::apply(f, data.as<const Data<Args...>>().get().args);
+			}
+
+			Return call(Ref<GenericData> data) const {
+				return std::apply(f, data.as<Data<Args...>>().get().args);
 			}
 		};
 
@@ -133,17 +156,42 @@ namespace snl {
 		}
 	};
 
+	template<typename Derived> requires std::derived_from<Derived, TypeBase<Derived>>
+	bool operator==(const TypeBase<Derived>& a, const TypeBase<Derived>& b) {
+		return a.getData().get().compare(b.getData().get());
+	}
+
+	template<typename Derived> requires std::derived_from<Derived, TypeBase<Derived>>
+	bool operator==(const Derived& a, const Derived& b) {
+		return static_cast<const TypeBase<Derived>&>(a) == static_cast<const TypeBase<Derived>&>(b);
+	}
+
 	template<typename Derived>
 	template<typename R, typename... Args> requires std::is_same_v<R, Derived>
 	auto TypeBase<Derived>::Constructor<R(Args...)>::operator>>(
 		auto callable
 	) const {
 		using Info = FunctionTypeInfo<decltype(&decltype(callable)::operator())>;
-		return typename TypeBase<Derived>::template MatchArm<typename Info::Return, Args...>(*this, std::function(callable));
+		return typename TypeBase<Derived>::template MatchArm<typename Info::Function, Args...>(*this, std::function(callable));
 	}
 
 	template<typename Derived>
-	auto match(const Derived& val, auto first, auto... rest) {
+	decltype(auto) match(Derived& val, auto first, auto... rest) {
+		if (val.TypeBase<Derived>::constructor().id == first.constructor.id)
+			if constexpr (std::is_same_v<typename decltype(first)::Return, void>)
+				first.call(val.getData());
+			else
+				return first.call(val.getData());
+		else
+			if constexpr (sizeof...(rest) != 0)
+				if constexpr (std::is_same_v<typename decltype(first)::Return, void>)
+					match(val, rest...);
+				else
+					return match(val, rest...);
+	}
+
+	template<typename Derived>
+	decltype(auto) match(const Derived& val, auto first, auto... rest) {
 		if (val.TypeBase<Derived>::constructor().id == first.constructor.id)
 			if constexpr (std::is_same_v<typename decltype(first)::Return, void>)
 				first.call(val.getData());

@@ -31,37 +31,19 @@
 #include "Typing/Types.h"
 
 int main() {
-	auto x = snl::matchVar<double>();
+	auto x = snl::matchVar<int>();
+	auto y = snl::matchVar<int>();
 
-	snl::Sym<double> y, c(12);
+	auto constructor = snl::Sym(snl::Pair<int, int>::tuple);
 
-	snl::defineRule(x + y, x + 1);
+	auto pattern = constructor(x, y);
 
-	snl::Sym<double> expr = c + y;
+	auto target = constructor(1, 2);
 
-	//std::cout << expr << std::endl;
+	std::unordered_map<snl::Ref<const snl::GenericSym>, snl::Ref<const snl::GenericSym>> varMap;
 
-	std::cout << snl::mathContext.getRules().match(expr) << std::endl;
+	std::cout << snl::symMatch(pattern, target, varMap) << std::endl;
 
-	expr = snl::mathContext.getRules().apply(expr);
-
-	std::cout << expr << std::endl;
-
-	using namespace snl::literals;
-
-	auto n = 13_nat;
-
-	std::cout << n + 5_nat << std::endl;
-
-	using U = snl::Union<int, std::string, char>;
-
-	U u = U::constructor<int>(2);
-
-	std::string str = u.match(
-		[](int i) { return std::to_string(i); },
-		[](std::string s) { return std::string("string"); },
-		[](char c) { return std::string("char"); }
-	);
-
-	std::cout << str << std::endl;
+	for (auto [a, b] : varMap)
+		std::cout << b.as<const snl::Sym<int>>().get() << std::endl;
 }
