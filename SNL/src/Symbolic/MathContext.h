@@ -1,11 +1,13 @@
 #pragma once
 
+#include <ranges>
 #include <map>
 #include <queue>
 #include "Sym.h"
 
 namespace snl {
 	using RuleNotInvertibleError = Error<"tried to invert a not invertible MathRule">;
+	using MatchNotAppliableError = Error<"SymMatch impossible with given inputs">;
 
 	static std::map<const std::type_info*, const std::type_info*> matchVarTypes;
 
@@ -33,51 +35,98 @@ namespace snl {
 		return Sym<T>(MatchVar<T>());
 	}
 
-	bool symMatch(
-		const GenericSym& pattern,
-		const GenericSym& target,
-		std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>>& varMap
-	) {
+	bool isMatchVar(const GenericSym& node) {
+		return matchVarTypes[&node.symType()] == &node.nodeType();
+	}
+
+	template<typename T>
+	bool isMatchVar(const Sym<T>& node) {
 		ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
+		return isMatchVar(Ref(node).as<const GenericSym>().get());
+	}
 
-		if (matchVarTypes.count(&target.symType())) {
-			if (pattern.nodeType() == *matchVarTypes.at(&target.symType())) {
-				if (varMap.count(pattern))
-					return varMap.at(Ref(pattern)).get() == target;
-				else
-					varMap.emplace(Ref(pattern), Ref(target, Ref(target).realManagmentState()));
-
-				return true;
-			}
+	class MatchResult {
+		std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>> map;
+	public:
+		auto begin() const {
+			return map.begin();
 		}
 
-		if (target.nodeType() != pattern.nodeType() || target.rawDeps().size() != pattern.rawDeps().size())
+		auto end() const {
+			return map.end();
+		}
+
+		void add(const GenericSym& var, const GenericSym& substitute) {
+			map.emplace(var.heapCopy(), substitute.heapCopy());
+		}
+
+		void substituteAll(GenericSym& target) {
+			for (auto [var, substitute] : map)
+				target.substitute(var.get(), substitute.get());
+		}
+	};
+
+	bool canBeMatched(const GenericSym& node) {
+		if (isMatchVar(node))
 			return false;
 
-		if (target.rawDeps().size() == 0)
-			return target == pattern;
+		bool result = true;
 
-		for (size_t i = 0; i < target.rawDeps().size(); i++)
-			if (!symMatch(pattern.rawDeps()[i].get(), target.rawDeps()[i].get(), varMap))
-				return false;
+		for (Ref<const GenericSym> dep : node.rawDeps())
+			result &= canBeMatched(dep.get());
 
-		return true;
+		return result;
+	}
+
+	bool symMatch(
+		const GenericSym& a,
+		const GenericSym& b,
+		MatchResult& varMap
+	) {
+		if (isMatchVar(a)) {
+			auto bSubst = b.heapCopy();
+			varMap.substituteAll(bSubst.get());
+			expect<MatchNotAppliableError>(canBeMatched(bSubst.get()));
+			varMap.add(a, bSubst.get());
+			return true;
+		}
+
+		if (isMatchVar(b)) {
+			auto aSubst = a.heapCopy();
+			varMap.substituteAll(aSubst.get());
+			expect<MatchNotAppliableError>(canBeMatched(aSubst.get()));
+			varMap.add(b, aSubst.get());
+			return true;
+		}
+
+		if (a.evalObj != b.evalObj)
+			return false;
+
+		if (a.rawDeps().size() != b.rawDeps().size())
+			return false;
+
+		bool result = true;
+
+		for(size_t i = 0; i < a.rawDeps().size(); i++)
+			result &= symMatch(a.rawDeps()[i].get(), b.rawDeps()[i].get(), varMap);
+
+		return result;
 	}
 	
 	template<typename T>
 	bool symMatch(
-		const Sym<T>& pattern,
-		const Sym<T>& target,
-		std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>>& varMap
+		const Sym<T>& a,
+		const Sym<T>& b,
+		MatchResult& varMap
 	) {
 		ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
-		return symMatch(Ref(pattern).as<const GenericSym>().get(), Ref(target).as<const GenericSym>().get(), varMap);
+		return symMatch(Ref(a).as<const GenericSym>().get(), Ref(b).as<const GenericSym>().get(), varMap);
 	}
 
 	template<typename T>
-	bool symMatch(const Sym<T>& pattern, const Sym<T>& target) {
-		std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>> varMap;
-		return symMatch(pattern, target, varMap);
+	bool symMatch(const Sym<T>& a, const Sym<T>& b) {
+		MatchResult varMap;
+		return symMatch(a, b, varMap);
 	}
 
 	using RuleUnappliyableError = Error<"Can't apply rule to given Sym">;
@@ -126,25 +175,25 @@ namespace snl {
 		{}
 
 		bool match(const GenericSym& node) const {
-			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>> varMap;
+			MatchResult varMap;
 			return symMatch(original.get(), node, varMap);
 		}
 
 		bool match(GenericSym& node) const {
-			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>> varMap;
+			MatchResult varMap;
 			return symMatch(original.get(), node, varMap);
 		}
 
 		bool match(
 			const GenericSym& node, 
-			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>>& varMap
+			MatchResult& varMap
 		) const {
 			return symMatch(original.get(), node, varMap);
 		}
 
 		bool match(
 			GenericSym& node,
-			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>>& varMap
+			MatchResult& varMap
 		) const {
 			return symMatch(original.get(), node, varMap);
 		}
@@ -152,7 +201,7 @@ namespace snl {
 		Ref<GenericSym> genericApply(const GenericSym& node) const {
 			ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
 
-			std::unordered_map<Ref<const GenericSym>, Ref<const GenericSym>> varMap;
+			MatchResult varMap;
 			expect<RuleUnappliyableError>(match(node, varMap));
 
 			Ref<GenericSym> substituteCopy = substitute.get().heapCopy();
@@ -509,7 +558,7 @@ namespace snl {
 			return simplified.eval();
 		}
 
-		return fun(isEvaluable(), evalObj, deps);
+		return evalFun(isEvaluable(), evalObj, deps);
 	}
 }
 

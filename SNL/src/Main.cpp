@@ -36,11 +36,11 @@ int main() {
 
 	auto constructor = snl::Sym(snl::Pair<int, int>::tuple);
 
-	auto pattern = constructor(x, y);
+	auto pattern = constructor(x, x + 1);
 
-	auto target = constructor(1, 2);
+	auto target = constructor(2, y);
 
-	std::unordered_map<snl::Ref<const snl::GenericSym>, snl::Ref<const snl::GenericSym>> varMap;
+	snl::MatchResult varMap;
 
 	std::cout << snl::symMatch(pattern, target, varMap) << std::endl;
 
