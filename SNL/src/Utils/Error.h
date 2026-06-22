@@ -90,8 +90,8 @@ namespace snl {
 	struct ErrorBase : GenericError {
 		std::tuple<Ts...> args;
 
-		ErrorBase() requires (sizeof...(Ts) != 0) = default;
-		ErrorBase(Ts... args) : args(args...) {}
+		ErrorBase() = default;
+		ErrorBase(Ts... args) requires (sizeof...(Ts) != 0) : args(args...) {}
 
 		std::string msg() const {
 			return std::apply(
