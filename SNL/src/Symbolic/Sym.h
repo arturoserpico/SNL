@@ -314,6 +314,16 @@ namespace snl {
 		stream << val.eval();
 		return stream;
 	}
+
+	template<typename First, typename... Rest>
+	std::tuple<Sym<First>, Sym<Rest>...> GenericSym::getDeps(size_t index) {
+		auto initial = std::make_tuple(rawDeps()[index].as<Sym<First>>().get());
+		
+		if constexpr (sizeof...(Rest) == 0)
+			return initial;
+		else
+			return std::tuple_cat(initial, getDeps<Rest...>(index + 1));
+ 	}
 }
 
 namespace std {

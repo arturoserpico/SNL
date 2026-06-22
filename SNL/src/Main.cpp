@@ -34,16 +34,22 @@ int main() {
 	auto x = snl::matchVar<int>();
 	auto y = snl::matchVar<int>();
 
-	auto constructor = snl::Sym(snl::Pair<int, int>::tuple);
+	auto expr = snl::Sym<int>(2) + 3.0;
 
-	auto pattern = constructor(x, x*x);
+	auto [a, b] = expr.getDeps<int, double>();
 
-	auto target = constructor(3, y);
+	std::cout << a << "\n" << b << std::endl;
 
-	snl::MatchResult varMap;
-
-	std::cout << snl::symMatch(pattern, target, varMap) << std::endl;
-
-	std::cout << "x: " << varMap.get(x) << std::endl;
-	std::cout << "y: " << varMap.get(y) << std::endl;
+	//auto constructor = snl::Sym(snl::Pair<int, int>::tuple);
+	//
+	//auto pattern = constructor(x, x*x);
+	//
+	//auto target = constructor(3, y);
+	//
+	//snl::MatchResult varMap;
+	//
+	//std::cout << snl::symMatch(pattern, target, varMap) << std::endl;
+	//
+	//std::cout << "x: " << varMap.get(x) << std::endl;
+	//std::cout << "y: " << varMap.get(y) << std::endl;
 }
