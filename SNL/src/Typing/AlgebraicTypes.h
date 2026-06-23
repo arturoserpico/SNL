@@ -1,10 +1,10 @@
 #pragma once
 
-#include "TypeBase.h"
+#include "AlgebraicBase.h"
 #include "../Metaprogramming/Concepts.h"
 
 namespace snl {
-	struct Nat : public snl::TypeBase<Nat> {
+	struct Nat : public snl::AlgebraicBase<Nat> {
 		static inline Constructor<Nat()> zero;
 		static inline Constructor<Nat(Nat)> succ;
 
@@ -42,8 +42,17 @@ namespace snl {
 		);
 	}
 
+	Nat operator*(const Nat& a, const Nat& b) {
+		return match(b,
+			Nat::zero >> [&]() { return Nat::zero(); },
+			Nat::succ >> [&](Nat i) {
+				return a + a * i;
+			}
+		);
+	}
+
 	template<typename... Ts>
-	struct Tuple : public snl::TypeBase<Tuple<Ts...>> {
+	struct Tuple : public snl::AlgebraicBase<Tuple<Ts...>> {
 		static inline Constructor<Tuple(Ts...)> tuple;
 		
 		Tuple() = default;
@@ -57,7 +66,7 @@ namespace snl {
 	using Pair = Tuple<A, B>;
 
 	template<typename... Ts>
-	class Union : public snl::TypeBase<Union<Ts...>> {
+	class Union : public snl::AlgebraicBase<Union<Ts...>> {
 		static const inline std::tuple<Constructor<Union(Ts)>...> constructors;
 		
 	public:
@@ -85,7 +94,7 @@ namespace snl {
 	};
 
 	template<typename T>
-	struct List : public snl::TypeBase<List<T>> {
+	struct List : public snl::AlgebraicBase<List<T>> {
 		static inline Constructor<List<T>()> empty;
 		static inline Constructor<List<T>(T, List<T>)> prepend;
 

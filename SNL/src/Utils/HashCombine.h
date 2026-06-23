@@ -10,7 +10,7 @@ namespace snl {
         };
 
         size_t seed = 0;
-        (combine(seed, hashes), ...); // fold expression (C++17)
+        (combine(seed, hashes), ...);
         return seed;
     }
 }

@@ -141,13 +141,13 @@
     <ClInclude Include="src\Utils\UnionFind.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Typing\TypeBase.h">
+    <ClInclude Include="src\Typing\AlgebraicBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Typing\Set.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Typing\Types.h">
+    <ClInclude Include="src\Typing\AlgebraicTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

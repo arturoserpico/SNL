@@ -14,6 +14,12 @@
 #include "GenericSym.h"
 
 namespace snl {
+	template<typename Derived>
+	class AlgebraicBase;
+
+	template<typename T>
+	concept IsAlgebraic = std::derived_from<T, AlgebraicBase<T>>;
+
 	template<typename Fn>
 	struct SymOpType;
 
@@ -66,10 +72,13 @@ namespace snl {
 
 	using UnevaulableSymEvalError = Error<"tried to evaluate unevaluable snl::Sym">;
 
+	using SymTypeMisMatchError =
+		Error<"two GenericSym with different internal types were used in an operation witch required matching types">;
+
 	template<typename T>
 	class Sym : public GenericSym {
 	private:
-		std::function<T(bool, Any<>&, std::vector<Ref<GenericSym>>&)> evalFun;
+		std::function<T(bool, const Any<>&, const std::vector<Ref<GenericSym>>&)> evalFun;
 	public:
 		bool isEvaluable() const {
 			for (Ref<GenericSym> dep : deps)
@@ -128,7 +137,7 @@ namespace snl {
 
 			this->isDefined = isDefined;
 
-			evalFun = std::function([](bool isEvaluable, Any<>& _evalObj, std::vector<Ref<GenericSym>>& deps) -> T {
+			evalFun = std::function([](bool isEvaluable, const Any<>& _evalObj, const std::vector<Ref<GenericSym>>& deps) -> T {
 					if constexpr (isDefined) {
 						if (isEvaluable) {
 							auto& evalObj = _evalObj.get<SymOpType>();
@@ -156,7 +165,7 @@ namespace snl {
 			this->isDefined = isDefined;
 			
 			this->deps = deconcretizeDeps(deps...);
-			evalFun = std::function([](bool isEvaluable, Any<>& _evalObj, std::vector<Ref<GenericSym>>& deps) -> T {
+			evalFun = std::function([](bool isEvaluable, const Any<>& _evalObj, const std::vector<Ref<GenericSym>>& deps) -> T {
 					if constexpr (isDefined) {
 						if (isEvaluable) {
 							auto& evalObj = _evalObj.get<SymOpType>();
@@ -173,6 +182,7 @@ namespace snl {
 
 		Sym() : Sym<T>(SymLabel<T>()) {}
 		Sym(T value) : Sym<T>(SymConstant<T>(value)) {}
+		Sym(T value) requires IsAlgebraic<T>;
 
 		//Sym<T>& operator=(T value) {
 		//	*this = Sym<T>(value);
@@ -235,7 +245,7 @@ namespace snl {
 			return evalObj.getType() == typeid(SymOpType);
 		}
 
-		T eval();
+		T eval() const;
 
 		//T& get() {
 		//	SNLDebugCall(1, expect(value.has_value(), "Value not computed or assigned yet"));
@@ -282,6 +292,11 @@ namespace snl {
 			return cast<A>();
 		}
 
+		bool genericEvalCompare(const GenericSym& other) const {
+			expect<SymTypeMisMatchError>(typeid(T) == other.symType());
+			return eval() == Ref(other).as<const Sym<T>>().get().eval();
+		}
+
 		size_t getHash() const;
  
 		template<typename T>
@@ -290,7 +305,7 @@ namespace snl {
 		friend struct std::hash<snl::Sym<T>>;
 	};
 
-	template<typename TypeObject>
+	template<IsTypeObject TypeObject>
 	Sym(TypeObject) -> Sym<typename TypeObject::Type>;
 
 	template<typename F> requires std::is_function_v<F>

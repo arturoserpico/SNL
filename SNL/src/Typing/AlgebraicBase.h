@@ -5,10 +5,16 @@
 #include "../Memory/ObjectManager.h"
 #include "../Metaprogramming/Utils.h"
 #include <tuple>
+#include <functional>
+#include <type_traits>
+#include "../Symbolic/SymNodes.h"
 
 namespace snl {
+	template<typename T>
+	class Sym;
+
 	template<typename Derived>
-	class TypeBase {
+	class AlgebraicBase {
 	public:
 		struct GenericConstructor {
 			static inline size_t lastId = 0;
@@ -20,14 +26,20 @@ namespace snl {
 			bool operator==(const GenericConstructor& other) const {
 				return id == other.id;
 			}
+
+			using Type = Derived;
 		};
 	private:
 		struct GenericData {
-			GenericConstructor constructor;
+			virtual size_t hash() const = 0;
 
-			GenericData(GenericConstructor constructor) : constructor(constructor) {}
+			virtual Sym<Derived> sym() const = 0;
+
+			virtual const GenericConstructor& getConstructor() const = 0;
 
 			virtual operator Derived() const = 0;
+
+			virtual const std::type_info& type() const = 0;
 
 			virtual const std::type_info& constructorType() const = 0;
 
@@ -43,15 +55,46 @@ namespace snl {
 	private:
 		template<typename... Args>
 		struct Data : GenericData {
+			Constructor<Derived(Args...)> constructor;
 			std::tuple<Args...> args;
 
 			Data(const Constructor<Derived(Args...)>& constructor, Args... args) : 
-				GenericData(constructor), args(args...) {}
+				constructor(constructor), args(args...) { }
+
+			size_t hash() const {
+				// Use type trait to check if std::hash<Args> is invocable with Args
+				constexpr bool hashable = (... && std::is_invocable_r_v<size_t, std::hash<Args>, Args>);
+
+				if constexpr (hashable)
+					return std::apply([&](Args... args) -> size_t {
+						return hashCombine(constructor.id, std::hash<Args>{}(args)...);
+					}, args);
+				else
+					return 0;
+			}
+
+			Sym<Derived> sym() const {
+				return std::apply([&](Args... args) -> Sym<Derived> {
+					return Sym<Derived>(
+						SymCall<decltype(constructor), TypeList<Args...>>(),
+						makeManaged(Sym<decltype(constructor)>(constructor)),
+						makeManaged(Sym(args))...
+					);
+				}, args);
+			}
+
+			const GenericConstructor& getConstructor() const {
+				return dynamic_cast<const GenericConstructor&>(constructor);
+			}
 
 			operator Derived() const {
 				Derived result;
 				result.data = makeManaged(*this).as<GenericData>();
 				return result;
+			}
+
+			const std::type_info& type() const {
+				return typeid(Data<Args...>);
 			}
 
 			const std::type_info& constructorType() const {
@@ -119,18 +162,17 @@ namespace snl {
 		static constexpr bool isMatchArm<MatchArm<R, Args...>> = true;
 	private:
 		Ref<GenericData> data = nullptr;
-
 	public:
-		TypeBase() = default;
+		AlgebraicBase() = default;
 
-		TypeBase(const TypeBase<Derived>& other) {
+		AlgebraicBase(const AlgebraicBase<Derived>& other) {
 			if (other.data.raw() == nullptr)
 				data = nullptr;
 			else
 				data = other.data.get().heapCopy();
 		}
 
-		TypeBase<Derived>& operator=(const TypeBase<Derived>& other) {
+		AlgebraicBase<Derived>& operator=(const AlgebraicBase<Derived>& other) {
 			if (other.data.raw() == nullptr)
 				data = nullptr;
 			else
@@ -139,8 +181,16 @@ namespace snl {
 			return *this;
 		}
 
+		size_t hash() const {
+			return data.get().hash();
+		}
+
+		Sym<Derived> sym() const {
+			return data.get().sym();
+		}
+
 		GenericConstructor constructor() const {
-			return data.get().constructor;
+			return data.get().getConstructor();
 		}
 
 		const std::type_info& constructorType() const {
@@ -154,30 +204,34 @@ namespace snl {
 		Ref<const GenericData> getData() const {
 			return data.asConst();
 		}
+
+		bool is(const GenericConstructor& constructor) {
+			return data.get().getConstructor() == constructor;
+		}
 	};
 
-	template<typename Derived> requires std::derived_from<Derived, TypeBase<Derived>>
-	bool operator==(const TypeBase<Derived>& a, const TypeBase<Derived>& b) {
+	template<IsAlgebraic Derived>
+	bool operator==(const AlgebraicBase<Derived>& a, const AlgebraicBase<Derived>& b) {
 		return a.getData().get().compare(b.getData().get());
 	}
 
-	template<typename Derived> requires std::derived_from<Derived, TypeBase<Derived>>
+	template<IsAlgebraic Derived>
 	bool operator==(const Derived& a, const Derived& b) {
-		return static_cast<const TypeBase<Derived>&>(a) == static_cast<const TypeBase<Derived>&>(b);
+		return static_cast<const AlgebraicBase<Derived>&>(a) == static_cast<const AlgebraicBase<Derived>&>(b);
 	}
 
 	template<typename Derived>
 	template<typename R, typename... Args> requires std::is_same_v<R, Derived>
-	auto TypeBase<Derived>::Constructor<R(Args...)>::operator>>(
+	auto AlgebraicBase<Derived>::Constructor<R(Args...)>::operator>>(
 		auto callable
 	) const {
 		using Info = FunctionTypeInfo<decltype(&decltype(callable)::operator())>;
-		return typename TypeBase<Derived>::template MatchArm<typename Info::Function, Args...>(*this, std::function(callable));
+		return typename AlgebraicBase<Derived>::template MatchArm<typename Info::Function, Args...>(*this, std::function(callable));
 	}
 
-	template<typename Derived>
+	template<IsAlgebraic Derived>
 	decltype(auto) match(Derived& val, auto first, auto... rest) {
-		if (val.TypeBase<Derived>::constructor().id == first.constructor.id)
+		if (val.AlgebraicBase<Derived>::constructor().id == first.constructor.id)
 			if constexpr (std::is_same_v<typename decltype(first)::Return, void>)
 				first.call(val.getData());
 			else
@@ -190,9 +244,9 @@ namespace snl {
 					return match(val, rest...);
 	}
 
-	template<typename Derived>
+	template<IsAlgebraic Derived>
 	decltype(auto) match(const Derived& val, auto first, auto... rest) {
-		if (val.TypeBase<Derived>::constructor().id == first.constructor.id)
+		if (val.AlgebraicBase<Derived>::constructor().id == first.constructor.id)
 			if constexpr (std::is_same_v<typename decltype(first)::Return, void>)
 				first.call(val.getData());
 			else
@@ -210,8 +264,32 @@ namespace snl {
 
 	template<typename Derived, typename... Args>
 	struct _Constructor<Derived(Args...)> : 
-		TypeAlias<typename TypeBase<Derived>::template Constructor<Derived(Args...)>> {};
+		TypeAlias<typename AlgebraicBase<Derived>::template Constructor<Derived(Args...)>> {};
 
 	template<typename F>
 	using Constructor = _Constructor<F>::Type;
+
+	//template<IsAlgebraic T, typename... Args>
+	//struct SymAlgebraicConstruction : SymOpType<T(Constructor<T(Args...)>, Args...)> {
+	//	T eval(const Constructor<T(Args...)>& constructor, Args... args) {
+	//		return static_cast<T>(constructor(args...));
+	//	}
+	//};
+	//
+	//template<IsAlgebraic T, typename... Args>
+	//bool operator==(SymAlgebraicConstruction<T, Args...> a, SymAlgebraicConstruction<T, Args...> b) {
+	//	return true;
+	//}
+
+	template<typename T>
+	Sym<T>::Sym(T value) requires IsAlgebraic<T> : Sym<T>(value.sym()) {}
+}
+
+namespace std {
+	template<snl::IsAlgebraic T>
+	struct hash<T> {
+		size_t operator()(const T& val) const {
+			return val.hash();
+		}
+	};
 }

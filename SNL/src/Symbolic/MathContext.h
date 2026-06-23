@@ -94,21 +94,29 @@ namespace snl {
 		const GenericSym& b,
 		MatchResult& varMap
 	) {
+		auto bSubst = b.heapCopy();
+		varMap.substituteAll(bSubst.get());
+		auto aSubst = a.heapCopy();
+		varMap.substituteAll(aSubst.get());
+
 		if (isMatchVar(a)) {
-			auto bSubst = b.heapCopy();
-			varMap.substituteAll(bSubst.get());
-			expect<MatchNotAppliableError>(canBeMatched(bSubst.get()));
+			if (!canBeMatched(bSubst.get()) || a.symType() != bSubst.get().symType())
+				return false;
+			
 			varMap.add(a, bSubst.get());
 			return true;
 		}
 
 		if (isMatchVar(b)) {
-			auto aSubst = a.heapCopy();
-			varMap.substituteAll(aSubst.get());
-			expect<MatchNotAppliableError>(canBeMatched(aSubst.get()));
+			if (!canBeMatched(aSubst.get()) || b.symType() != aSubst.get().symType())
+				return false;
+
 			varMap.add(b, aSubst.get());
 			return true;
 		}
+
+		if (aSubst.get().isEvaluable() && bSubst.get().isEvaluable())
+			return aSubst.get().genericEvalCompare(bSubst.get());
 
 		if (a.evalObj != b.evalObj)
 			return false;
@@ -116,12 +124,11 @@ namespace snl {
 		if (a.rawDeps().size() != b.rawDeps().size())
 			return false;
 
-		bool result = true;
+		for (size_t i = 0; i < a.rawDeps().size(); i++)
+			if (!symMatch(a.rawDeps()[i].get(), b.rawDeps()[i].get(), varMap))
+				return false;
 
-		for(size_t i = 0; i < a.rawDeps().size(); i++)
-			result &= symMatch(a.rawDeps()[i].get(), b.rawDeps()[i].get(), varMap);
-
-		return result;
+		return true;
 	}
 	
 	template<typename T>
@@ -558,7 +565,7 @@ namespace snl {
 	};
 
 	template<typename T>
-	T Sym<T>::eval() {
+	T Sym<T>::eval() const {
 		if (!isEvaluable()) {
 			TrivialLeafSimplify simp;
 			auto simplified = simp.simplify(*this);

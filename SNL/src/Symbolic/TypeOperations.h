@@ -6,6 +6,15 @@ namespace snl {
 		using Type = T;
 	};
 
+	template<typename T>
+	constexpr bool isTypeObject = false;
+
+	template<typename T>
+	constexpr bool isTypeObject<TypeObject<T>> = true;
+
+	template<typename T>
+	concept IsTypeObject = isTypeObject<T>;
+
 	template<typename TypeA, typename TypeB>
 	consteval TypeObject<std::tuple<typename TypeA::Type, typename TypeB::Type>> operator*(TypeA, TypeB) {
 		return {};

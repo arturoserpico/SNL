@@ -170,7 +170,7 @@ namespace snl {
 		}
 
 		template<typename First, typename... Rest>
-		static std::tuple<Ref<Sym<First>>, Ref<Sym<Rest>>...> concretizeDeps(std::vector<Ref<GenericSym>>& deps, size_t index = 0) {
+		static std::tuple<Ref<Sym<First>>, Ref<Sym<Rest>>...> concretizeDeps(const std::vector<Ref<GenericSym>>& deps, size_t index = 0) {
 			Ref<Sym<First>> result = deps[index].as<Sym<First>>();
 
 			if constexpr (sizeof...(Rest) == 0) {
@@ -257,6 +257,7 @@ namespace snl {
 		virtual Ref<GenericSym> rawDeepCopy() const = 0;
 		virtual size_t getHash() const = 0;
 		virtual Ref<GenericSym> rawDep() = 0;
+		virtual bool genericEvalCompare(const GenericSym&) const = 0;
 
 		bool isLeaf() const {
 			return rawDeps().empty();

@@ -10,35 +10,33 @@
 #define SNLDebugLevel 2
 //#define SNLObjectManagerDebugLogging true
 
-#include "Symbolic/ExprOperators.h"
-#include "Symbolic/Random.h"
-//#include "Linear/Tensor.h"
-#include "Utils/Any.h"
-#include "Utils/Bounded.h"
+#include "Symbolic/MathContext.h"
+#include "Typing/AlgebraicBase.h"
+#include "Typing/AlgebraicTypes.h"
+#include "Typing/Set.h"
 #include "Symbolic/Sym.h"
 #include "Symbolic/SymOperators.h"
-#include "Metaprogramming/TypeList.h"
-#include "Memory/ObjectManager.h"
-#include "Utils/ErasedFunction.h"
-#include "Symbolic/MathContext.h"
-#include "Utils/Restricted.h"
-#include "Utils/DebugName.h"
-#include "Linear/Tensor.h"
-#include "Symbolic/EGraph.h"
-#include "Typing/TypeBase.h"
-
-#include "Typing/Set.h"
-#include "Typing/Types.h"
 
 int main() {
-	auto x = snl::matchVar<int>();
-	auto y = snl::matchVar<int>();
+	using namespace snl::literals;
 
-	auto expr = snl::Sym<int>(2) + 3.0;
+	std::cout << (2_nat * 2_nat == 4_nat) << std::endl;
 
-	auto [a, b] = expr.getDeps<int, double>();
+	auto x = snl::matchVar<snl::Nat>();
+	auto y = snl::matchVar<snl::Nat>();
+	auto z = snl::matchVar<snl::Nat>();
 
-	std::cout << a << "\n" << b << std::endl;
+	using F = snl::Set<snl::Pair<snl::Nat, snl::Nat>>;
+
+	auto constructor = snl::Sym(snl::Pair<snl::Nat, snl::Nat>::tuple);
+
+	F set = { constructor(x, x * x) };
+
+	auto pattern = constructor(x, x * x);
+
+	std::cout << snl::symMatch(pattern, snl::Pair(1_nat, 1_nat).sym()) << std::endl;
+
+	std::cout << set.contains(snl::Pair(1_nat, 1_nat)) << " " << set.contains(snl::Pair(2_nat, 4_nat));
 
 	//auto constructor = snl::Sym(snl::Pair<int, int>::tuple);
 	//
