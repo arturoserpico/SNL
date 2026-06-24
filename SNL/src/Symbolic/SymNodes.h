@@ -1,6 +1,8 @@
 #pragma once
 #include <type_traits>
 #include "Sym.h"
+#include "../Math/Pow.h"
+#include "../Typing/AlgebraicTypes.h"
 
 namespace snl {
 	template<typename A, typename B> requires requires (A a, B b) { a + b; }
@@ -51,10 +53,10 @@ namespace snl {
 		return true;
 	}
 
-	template<typename A, typename B> requires requires (A a, B b) { std::pow(a, b); }
-	struct SymPowOp : SymOpType<decltype(std::pow(std::declval<A>(), std::declval<B>()))(A, B)> {
+	template<typename A, typename B> requires requires (A a, B b) { snl::pow(a, b); }
+	struct SymPowOp : SymOpType<decltype(snl::pow(std::declval<A>(), std::declval<B>()))(A, B)> {
 		decltype(auto) eval(A a, B b) {
-			return std::pow(a, b);
+			return snl::pow(a, b);
 		}
 	};
 

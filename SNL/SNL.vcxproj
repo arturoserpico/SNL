@@ -178,6 +178,7 @@
     <ClInclude Include="src\Geometry\MeshElement.h" />
     <ClInclude Include="src\Geometry\Node.h" />
     <ClInclude Include="src\Linear\Tensor.h" />
+    <ClInclude Include="src\Math\Pow.h" />
     <ClInclude Include="src\Metaprogramming\Concepts.h" />
     <ClInclude Include="src\Metaprogramming\StaticString.h" />
     <ClInclude Include="src\Metaprogramming\TypeList.h" />
@@ -194,7 +195,7 @@
     <ClInclude Include="src\Symbolic\Sym.h" />
     <ClInclude Include="src\Symbolic\SymNodes.h" />
     <ClInclude Include="src\Symbolic\SymOperators.h" />
-    <ClInclude Include="src\Symbolic\TypeOperations.h" />
+    <ClInclude Include="src\Typing\TypeOperations.h" />
     <ClInclude Include="src\Typing\Set.h" />
     <ClInclude Include="src\Typing\AlgebraicBase.h" />
     <ClInclude Include="src\Typing\AlgebraicTypes.h" />

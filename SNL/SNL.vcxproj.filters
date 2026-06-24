@@ -120,7 +120,7 @@
     <ClInclude Include="src\Utils\HashCombine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Symbolic\TypeOperations.h">
+    <ClInclude Include="src\Typing\TypeOperations.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Utils\Restricted.h">
@@ -148,6 +148,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Typing\AlgebraicTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Math\Pow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

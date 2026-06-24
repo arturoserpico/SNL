@@ -7,7 +7,7 @@
 #include <tuple>
 #include <functional>
 #include <type_traits>
-#include "../Symbolic/SymNodes.h"
+//#include "../Symbolic/SymNodes.h"
 
 namespace snl {
 	template<typename T>
@@ -209,6 +209,9 @@ namespace snl {
 			return data.get().getConstructor() == constructor;
 		}
 	};
+
+	template<typename T>
+	concept IsAlgebraicSym = IsSym<T> && IsAlgebraic<typename T::Type>;
 
 	template<IsAlgebraic Derived>
 	bool operator==(const AlgebraicBase<Derived>& a, const AlgebraicBase<Derived>& b) {

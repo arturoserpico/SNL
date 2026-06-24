@@ -51,6 +51,15 @@ namespace snl {
 		);
 	}
 
+	Nat pow(const Nat& a, const Nat& b) {
+		return match(b,
+			Nat::zero >> [&]() { return Nat::succ(Nat::zero); },
+			Nat::succ >> [&](Nat i) {
+				return a * pow(a, i);
+			}
+		);
+	}
+
 	template<typename... Ts>
 	struct Tuple : public snl::AlgebraicBase<Tuple<Ts...>> {
 		static inline Constructor<Tuple(Ts...)> tuple;
@@ -61,6 +70,43 @@ namespace snl {
 			*this = tuple(args...);
 		}
 	};
+
+	template<IsAlgebraic A, IsAlgebraic B>
+	Tuple<A, B> operator,(const A& a, const B& b) {
+		return Tuple<A, B>(a, b);
+	}
+
+	template<IsAlgebraic... As, IsAlgebraic B>
+	Tuple<As..., B> operator,(const Tuple<As...>& a, const B& b) {
+		return match(a,
+			Tuple<As...>::tuple >> [&](As... as) {
+				return Tuple<As..., B>(as..., b);
+			}
+		);
+	}
+
+	template<typename T>
+	concept IsAlgebraicOrAlgebraicSym = IsAlgebraic<T> || IsAlgebraicSym<T>;
+
+	template<IsAlgebraicOrAlgebraicSym A, IsAlgebraicOrAlgebraicSym B> requires (IsSym<A> || IsSym<B>)
+	auto operator,(const A& a, const B& b) {
+		using List = TupleToTypeList<decltype(convertArgsToSymRef(a, b))>;
+		using TrueA = RemSym<RemRef<Get<List, 0>>>;
+		using TrueB = RemSym<RemRef<Get<List, 1>>>;
+		return Sym(Tuple<TrueA, TrueB>::tuple)(a, b);
+	}
+
+	template<IsAlgebraic... As, IsAlgebraicOrAlgebraicSym B>
+	auto operator,(const Sym<Tuple<As...>>& a, const B& b) {
+		using List = TupleToTypeList<decltype(convertArgsToSymRef(b))>;
+		using TrueB = RemSym<RemRef<Get<List, 0>>>;
+
+		auto constructor = Sym(Tuple<As..., TrueB>::tuple);
+
+		return std::apply([&](const auto&, const Sym<As>&... elems) {
+			return constructor(elems..., b);
+		}, a.getDeps<decltype(Tuple<As...>::tuple), As...>());
+	}
 
 	template<typename A, typename B>
 	using Pair = Tuple<A, B>;

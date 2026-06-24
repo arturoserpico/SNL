@@ -53,6 +53,8 @@ namespace snl {
 
 		Set() = default;
 
+		Set(IsTypeObject auto) : Set() {}
+
 		Set(std::initializer_list<T> vals) {
 			*this = finite(std::unordered_set<T>(vals));
 		}
@@ -61,6 +63,9 @@ namespace snl {
 			*this = patterned(std::unordered_set<Sym<T>>(vals));
 		}
 	};
+
+	template<IsTypeObject TypeObject>
+	Set(TypeObject) -> Set<typename TypeObject::Type>;
 
 	template<typename T>
 	Set<T> operator|(const Set<T>& a, const Set<T>& b) {

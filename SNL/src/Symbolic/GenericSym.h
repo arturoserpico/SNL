@@ -11,7 +11,6 @@
 #include "../Utils/HashCombine.h"
 #include "../Metaprogramming/Concepts.h"
 #include "../Metaprogramming/TypeList.h"
-#include "TypeOperations.h"
 
 namespace snl {
 	template<typename T>
@@ -265,7 +264,7 @@ namespace snl {
 		//virtual void virtualCompute() = 0;
 
 		template<typename First, typename... Rest>
-		std::tuple<Sym<First>, Sym<Rest>...> getDeps(size_t index = 0);
+		std::tuple<Sym<First>, Sym<Rest>...> getDeps(size_t index = 0) const;
 
 		GenericSym& operator=(const GenericSym& other) {
 			snl::ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;

@@ -55,7 +55,7 @@ namespace snl {
 		Ref<Sym<std::conditional_t<std::is_same_v<TargetList, TypeList<>>, T, SafeGet<TargetList, index>>>> result;
 
 		if constexpr (std::is_same_v<TargetList, TypeList<>> || std::is_same_v<T, SafeGet<TargetList, index>>)
-			result = first;
+			result = makeManaged(first);
 		else
 			result = makeManaged<Sym<Get<TargetList, index>>>(first.cast<Get<TargetList, index>>());
 

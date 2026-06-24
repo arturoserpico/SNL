@@ -10,7 +10,6 @@
 #include "../Utils/HashCombine.h"
 #include "../Metaprogramming/Concepts.h"
 #include "../Metaprogramming/TypeList.h"
-#include "TypeOperations.h"
 #include "GenericSym.h"
 
 namespace snl {
@@ -19,6 +18,18 @@ namespace snl {
 
 	template<typename T>
 	concept IsAlgebraic = std::derived_from<T, AlgebraicBase<T>>;
+
+	template<typename T>
+	struct TypeObject;
+
+	template<typename T>
+	constexpr bool isTypeObject = false;
+
+	template<typename T>
+	constexpr bool isTypeObject<TypeObject<T>> = true;
+
+	template<typename T>
+	concept IsTypeObject = isTypeObject<T>;
 
 	template<typename Fn>
 	struct SymOpType;
@@ -80,6 +91,8 @@ namespace snl {
 	private:
 		std::function<T(bool, const Any<>&, const std::vector<Ref<GenericSym>>&)> evalFun;
 	public:
+		using Type = T;
+
 		bool isEvaluable() const {
 			for (Ref<GenericSym> dep : deps)
 				if (!dep.get().isEvaluable())
@@ -181,6 +194,7 @@ namespace snl {
 		}
 
 		Sym() : Sym<T>(SymLabel<T>()) {}
+		Sym(IsTypeObject auto type) : Sym() {}
 		Sym(T value) : Sym<T>(SymConstant<T>(value)) {}
 		Sym(T value) requires IsAlgebraic<T>;
 
@@ -308,6 +322,9 @@ namespace snl {
 	template<IsTypeObject TypeObject>
 	Sym(TypeObject) -> Sym<typename TypeObject::Type>;
 
+	template<IsSymOpType SymOpType>
+	Sym(SymOpType) -> Sym<typename SymOpType::R>;
+
 	template<typename F> requires std::is_function_v<F>
 	using Function = Sym<F*>;
 
@@ -331,7 +348,7 @@ namespace snl {
 	}
 
 	template<typename First, typename... Rest>
-	std::tuple<Sym<First>, Sym<Rest>...> GenericSym::getDeps(size_t index) {
+	std::tuple<Sym<First>, Sym<Rest>...> GenericSym::getDeps(size_t index) const {
 		auto initial = std::make_tuple(rawDeps()[index].as<Sym<First>>().get());
 		
 		if constexpr (sizeof...(Rest) == 0)
