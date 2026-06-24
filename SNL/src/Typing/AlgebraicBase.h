@@ -77,8 +77,8 @@ namespace snl {
 				return std::apply([&](Args... args) -> Sym<Derived> {
 					return Sym<Derived>(
 						SymCall<decltype(constructor), TypeList<Args...>>(),
-						makeManaged(Sym<decltype(constructor)>(constructor)),
-						makeManaged(Sym(args))...
+						Sym<decltype(constructor)>(constructor),
+						Sym(args)...
 					);
 				}, args);
 			}

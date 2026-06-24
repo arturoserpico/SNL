@@ -117,11 +117,9 @@ namespace snl {
 			return copy.as<GenericSym>();
 		}
 
-		auto operator()(auto&&...) &;
-		auto operator()(auto&&...) &&;
+		auto operator()(auto&&...) const;
 
-		auto operator-() &;
-		auto operator-() &&;
+		auto operator-() const;
 
 		//auto operator|=(auto&&) &;
 		//auto operator|=(auto&&) &&;
@@ -164,7 +162,7 @@ namespace snl {
 		}
 
 		template<IsSymOpType SymOpType, typename... Deps>
-		Sym(SymOpType evalObj, Ref<Sym<Deps>>... deps) : GenericSym(evalObj, { &typeid(Deps)... }) {			
+		Sym(SymOpType evalObj, const Sym<Deps>&... deps) : GenericSym(evalObj, { &typeid(Deps)... }) {			
 			erasedComparator.addVariant<T, T>(std::function([](const Sym<T>& a, const Sym<T>& b) -> bool {
 					return a == b;
 				}));
@@ -177,7 +175,7 @@ namespace snl {
 
 			this->isDefined = isDefined;
 			
-			this->deps = deconcretizeDeps(deps...);
+			this->deps = deconcretizeDeps(makeManaged(deps)...);
 			evalFun = std::function([](bool isEvaluable, const Any<>& _evalObj, const std::vector<Ref<GenericSym>>& deps) -> T {
 					if constexpr (isDefined) {
 						if (isEvaluable) {
@@ -212,13 +210,13 @@ namespace snl {
 		static Sym<T> constructFromTuple(
 			std::index_sequence<seq...> sequence,
 			SymOpType evalObj,
-			std::tuple<Ref<Sym<Deps>>...> deps
+			const std::tuple<Sym<Deps>...>& deps
 		) {
 			return Sym<T>(evalObj, std::get<seq>(deps)...);
 		}
 	public:
 		template<typename SymOpType, typename... Deps>
-		Sym(SymOpType evalObj, std::tuple<Ref<Sym<Deps>>...> deps) {
+		Sym(SymOpType evalObj, const std::tuple<Sym<Deps>...>& deps) {
 			*this = constructFromTuple(std::make_index_sequence<sizeof...(Deps)>(), evalObj, deps);
 		}
 
@@ -247,7 +245,7 @@ namespace snl {
 		}
 
 		Sym<T> dep() {
-			return Sym<T>(SymIdentity<T>(), Ref(*this, Ref(*this).realManagmentState()));
+			return Sym<T>(SymIdentity<T>(), *this);
 		}
 
 		Ref<GenericSym> rawDep() {
@@ -322,8 +320,11 @@ namespace snl {
 	template<IsTypeObject TypeObject>
 	Sym(TypeObject) -> Sym<typename TypeObject::Type>;
 
-	template<IsSymOpType SymOpType>
-	Sym(SymOpType) -> Sym<typename SymOpType::R>;
+	template<IsSymOpType SymOpType, typename... Deps>
+	Sym(SymOpType, const Sym<Deps>&...) -> Sym<typename SymOpType::R>;
+
+	template<IsSymOpType SymOpType, typename... Deps>
+	Sym(SymOpType, const std::tuple<Sym<Deps>&...>) -> Sym<typename SymOpType::R>;
 
 	template<typename F> requires std::is_function_v<F>
 	using Function = Sym<F*>;
@@ -335,12 +336,6 @@ namespace snl {
 			a.depsTypes == b.depsTypes &&
 			a.deps == b.deps;
 	}
-
-	template<typename SymOpType, typename... Deps>
-	Sym(SymOpType, Ref<Sym<Deps>>...) -> Sym<typename SymOpType::R>;
-
-	template<typename SymOpType, typename... Deps>
-	Sym(SymOpType, std::tuple<Ref<Sym<Deps>>...>) -> Sym<typename SymOpType::R>;
 
 	std::ostream& operator<<(std::ostream& stream, IsSym auto val) {
 		stream << val.eval();

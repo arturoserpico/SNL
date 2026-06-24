@@ -26,7 +26,7 @@ int main() {
 	
 	snl::Set set(snl::nat * snl::nat);
 
-	set = { (x, snl::pow(x, 2)) };
+	set = { (x, snl::pow(x, 2_nat)) };
 	
 	std::cout
 		<< set.contains((1_nat, 1_nat)) << " " //true 1^2 == 1

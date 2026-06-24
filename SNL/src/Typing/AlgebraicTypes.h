@@ -91,15 +91,15 @@ namespace snl {
 	template<IsAlgebraicOrAlgebraicSym A, IsAlgebraicOrAlgebraicSym B> requires (IsSym<A> || IsSym<B>)
 	auto operator,(const A& a, const B& b) {
 		using List = TupleToTypeList<decltype(convertArgsToSymRef(a, b))>;
-		using TrueA = RemSym<RemRef<Get<List, 0>>>;
-		using TrueB = RemSym<RemRef<Get<List, 1>>>;
+		using TrueA = RemSym<Get<List, 0>>;
+		using TrueB = RemSym<Get<List, 1>>;
 		return Sym(Tuple<TrueA, TrueB>::tuple)(a, b);
 	}
 
 	template<IsAlgebraic... As, IsAlgebraicOrAlgebraicSym B>
 	auto operator,(const Sym<Tuple<As...>>& a, const B& b) {
 		using List = TupleToTypeList<decltype(convertArgsToSymRef(b))>;
-		using TrueB = RemSym<RemRef<Get<List, 0>>>;
+		using TrueB = RemSym<Get<List, 0>>;
 
 		auto constructor = Sym(Tuple<As..., TrueB>::tuple);
 
