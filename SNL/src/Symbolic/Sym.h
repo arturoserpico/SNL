@@ -296,7 +296,7 @@ namespace snl {
 			if constexpr (std::is_same_v<A, T>)
 				return *this;
 			else
-				return Sym<A>(SymCast<A, T>(), makeManaged(dep()));
+				return Sym<A>(SymCast<A, T>(), dep());
 		}
 
 		template<typename A>
@@ -326,8 +326,8 @@ namespace snl {
 	template<IsSymOpType SymOpType, typename... Deps>
 	Sym(SymOpType, const std::tuple<Sym<Deps>&...>) -> Sym<typename SymOpType::R>;
 
-	template<typename F> requires std::is_function_v<F>
-	using Function = Sym<F*>;
+	//template<typename F> requires std::is_function_v<F>
+	//using Function = Sym<F*>;
 
 	template<typename T>
 	bool operator==(const snl::Sym<T>& a, const snl::Sym<T>& b) {

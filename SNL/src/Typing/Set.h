@@ -61,7 +61,6 @@ namespace snl {
 			return contains(val, result);
 		}
 
-
 		Set() = default;
 
 		Set(IsTypeObject auto) : Set() {}

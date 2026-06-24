@@ -191,11 +191,11 @@
     <ClInclude Include="src\Symbolic\SymEdit.h" />
     <ClInclude Include="src\Symbolic\SymUtils.h" />
     <ClInclude Include="src\Symbolic\Constants.h" />
-    <ClInclude Include="src\Symbolic\Function.h" />
+    <ClInclude Include="src\Symbolic\Function_.h" />
     <ClInclude Include="src\Symbolic\Sym.h" />
     <ClInclude Include="src\Symbolic\SymNodes.h" />
     <ClInclude Include="src\Symbolic\SymOperators.h" />
-    <ClInclude Include="src\Typing\SNLType.h" />
+    <ClInclude Include="src\Typing\Function.h" />
     <ClInclude Include="src\Typing\TypeOperations.h" />
     <ClInclude Include="src\Typing\Set.h" />
     <ClInclude Include="src\Typing\AlgebraicBase.h" />

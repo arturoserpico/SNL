@@ -17,25 +17,18 @@
 #include "Symbolic/Sym.h"
 #include "Symbolic/SymOperators.h"
 #include "Typing/TypeOperations.h"
+#include "Typing/Function.h"
 
 int main() {
 	using namespace snl::literals;
 
 	auto x = snl::matchVar<snl::Nat>();
 	auto y = snl::matchVar<snl::Nat>();
+	auto z = snl::matchVar<snl::Nat>();
 	
-	snl::Set set(snl::nat * snl::nat);
+	snl::Function f(snl::nat * snl::nat * snl::nat >> snl::nat);
 
-	set = { (x, snl::pow(x, 2_nat)) };
-	
-	snl::MatchResult result;
+	f(x, y, z) |= snl::pow(x, 2_nat) + 2_nat*y + 3_nat*z*y;
 
-	std::cout
-		<< set.contains((1_nat, 1_nat)) << " " //true 1^2 == 1
-		<< set.contains((2_nat, 4_nat)) << " " //true 2^2 == 4 
-		<< set.contains((2_nat, 5_nat)) << " " //false
-		<< set.contains((3_nat, 9_nat)) << " " //true 3^2 == 9
-		<< set.contains((7_nat, y), result) << std::endl; //true y binds to 49
-
-	std::cout << result.get(y) << std::endl;
+	std::cout << f(2_nat, 1_nat, 4_nat) << std::endl;
 }

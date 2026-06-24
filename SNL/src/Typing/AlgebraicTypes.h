@@ -71,6 +71,15 @@ namespace snl {
 		}
 	};
 
+	template<typename T>
+	constexpr bool isTuple = false;
+
+	template<typename... Ts>
+	constexpr bool isTuple<Tuple<Ts...>> = true;
+
+	template<typename T>
+	concept IsTuple = isTuple<T>;
+
 	template<IsAlgebraic A, IsAlgebraic B>
 	Tuple<A, B> operator,(const A& a, const B& b) {
 		return Tuple<A, B>(a, b);
@@ -83,7 +92,7 @@ namespace snl {
 				return Tuple<As..., B>(as..., b);
 			}
 		);
-	}
+	} 
 
 	template<typename T>
 	concept IsAlgebraicOrAlgebraicSym = IsAlgebraic<T> || IsAlgebraicSym<T>;
@@ -94,6 +103,17 @@ namespace snl {
 		using TrueA = RemSym<Get<List, 0>>;
 		using TrueB = RemSym<Get<List, 1>>;
 		return Sym(Tuple<TrueA, TrueB>::tuple)(a, b);
+	}
+
+	template<IsAlgebraic... As, IsAlgebraic B> 
+	auto operator,(const Tuple<As...>& a, const Sym<B>& b) {
+		auto constructor = Sym(Tuple<As..., B>::tuple);
+
+		return match(a,
+			Tuple<As...>::tuple >> [&](As... elems) {
+				return constructor(elems..., b);
+			}
+		);
 	}
 
 	template<IsAlgebraic... As, IsAlgebraicOrAlgebraicSym B>
