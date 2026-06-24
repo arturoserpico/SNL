@@ -1,18 +1,13 @@
 #pragma once
 
 #include <typeinfo>
-#include "../Utils/Ref.h"
-#include "../Memory/ObjectManager.h"
-#include "../Metaprogramming/Utils.h"
+#include "../Symbolic/Sym.h"
 #include <tuple>
 #include <functional>
 #include <type_traits>
 //#include "../Symbolic/SymNodes.h"
 
 namespace snl {
-	template<typename T>
-	class Sym;
-
 	template<typename Derived>
 	class AlgebraicBase {
 	public:

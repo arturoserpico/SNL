@@ -13,21 +13,21 @@ namespace snl {
 		static inline const Constructor<Set<T>(Set<T>, Set<T>)> intersectionSet;
 		static inline const Constructor<Set<T>(std::unordered_set<Sym<T>>)> patterned;
 
-		bool contains(const Sym<T>& sym) {
+		bool contains(const Sym<T>& sym, MatchResult& result) const {
 			return match(*this,
 				Set::empty >> [&]() { return false; },
 				Set::finite >> [&](std::unordered_set<T> vals) {
 					for (T val : vals)
-						if (symMatch(sym, Sym(val)))
+						if (symMatch(sym, Sym(val), result))
 							return true;
 
 					return false;
 				},
-				Set::unionSet >> [&](Set<T> a, Set<T> b) { return a.contains(sym) || b.contains(sym); },
-				Set::intersectionSet >> [&](Set<T> a, Set<T> b) { return a.contains(sym) && b.contains(sym); },
+				Set::unionSet >> [&](Set<T> a, Set<T> b) { return a.contains(sym, result) || b.contains(sym, result); },
+				Set::intersectionSet >> [&](Set<T> a, Set<T> b) { return a.contains(sym, result) && b.contains(sym, result); },
 				Set::patterned >> [&](std::unordered_set<Sym<T>> patterns) {
 					for (Sym<T> pattern : patterns)
-						if (symMatch(pattern, sym))
+						if (symMatch(pattern, sym, result))
 							return true;
 
 					return false;
@@ -35,21 +35,32 @@ namespace snl {
 			);
 		}
 
-		bool contains(const T& val) {
+		bool contains(const T& val, MatchResult& result) const {
 			return match(*this,
 				Set::empty >> [&]() { return false; },
 				Set::finite >> [&](std::unordered_set<T> vals) { return vals.contains(val); },
-				Set::unionSet >> [&](Set<T> a, Set<T> b) { return a.contains(val) || b.contains(val); },
-				Set::intersectionSet >> [&](Set<T> a, Set<T> b) { return a.contains(val) && b.contains(val); },
+				Set::unionSet >> [&](Set<T> a, Set<T> b) { return a.contains(val, result) || b.contains(val, result); },
+				Set::intersectionSet >> [&](Set<T> a, Set<T> b) { return a.contains(val, result) && b.contains(val, result); },
 				Set::patterned >> [&](std::unordered_set<Sym<T>> patterns) {
 					for (Sym<T> pattern : patterns)
-						if (symMatch(pattern, Sym(val)))
+						if (symMatch(pattern, Sym(val), result))
 							return true;
 
 					return false;
 				}
 			);
 		}
+
+		bool contains(const Sym<T>& sym) const {
+			MatchResult result;
+			return contains(sym, result);
+		}
+
+		bool contains(const T& val) const {
+			MatchResult result;
+			return contains(val, result);
+		}
+
 
 		Set() = default;
 

@@ -28,10 +28,14 @@ int main() {
 
 	set = { (x, snl::pow(x, 2_nat)) };
 	
+	snl::MatchResult result;
+
 	std::cout
 		<< set.contains((1_nat, 1_nat)) << " " //true 1^2 == 1
 		<< set.contains((2_nat, 4_nat)) << " " //true 2^2 == 4 
 		<< set.contains((2_nat, 5_nat)) << " " //false
 		<< set.contains((3_nat, 9_nat)) << " " //true 3^2 == 9
-		<< set.contains((7_nat, y)); //true y binds to 49
+		<< set.contains((7_nat, y), result) << std::endl; //true y binds to 49
+
+	std::cout << result.get(y) << std::endl;
 }

@@ -195,6 +195,7 @@
     <ClInclude Include="src\Symbolic\Sym.h" />
     <ClInclude Include="src\Symbolic\SymNodes.h" />
     <ClInclude Include="src\Symbolic\SymOperators.h" />
+    <ClInclude Include="src\Typing\SNLType.h" />
     <ClInclude Include="src\Typing\TypeOperations.h" />
     <ClInclude Include="src\Typing\Set.h" />
     <ClInclude Include="src\Typing\AlgebraicBase.h" />

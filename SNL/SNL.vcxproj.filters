@@ -153,5 +153,8 @@
     <ClInclude Include="src\Math\Pow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Typing\SNLType.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
