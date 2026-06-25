@@ -24,11 +24,8 @@ int main() {
 
 	auto x = snl::matchVar<snl::Nat>();
 	auto y = snl::matchVar<snl::Nat>();
-	auto z = snl::matchVar<snl::Nat>();
 	
-	snl::Function f(snl::nat * snl::nat * snl::nat >> snl::nat);
+	snl::Function f = (x, y) >> snl::pow(x, 2_nat) + 3_nat*y;
 
-	f(x, y, z) |= snl::pow(x, 2_nat) + 2_nat*y + 3_nat*z*y;
-
-	std::cout << f(2_nat, 1_nat, 4_nat) << std::endl;
+	std::cout << f(2_nat, 1_nat) << std::endl;
 }

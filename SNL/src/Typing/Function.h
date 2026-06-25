@@ -25,6 +25,10 @@ namespace snl {
 		Function() = default;
 		Function(IsTypeObject auto type) : Function() {}
 
+		Function(const Function<From, To>& other) {
+			pairSet = other.pairSet;
+		}
+
 		PatternCreationProxy operator()(const Sym<From>& pattern) {
 			return PatternCreationProxy(*this, pattern);
 		}
@@ -60,4 +64,11 @@ namespace snl {
 
 	template<typename From, typename To>
 	Function(TypeObject<Function<From, To>>) -> Function<From, To>;
+
+	template<typename From, typename To>
+	Function<From, To> operator>>(const Sym<From>& pattern, const Sym<To>& result) {
+		Function<From, To> f;
+		f(pattern) |= result;
+		return f;
+	}
 }
