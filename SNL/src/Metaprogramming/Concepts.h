@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <concepts>
 #include "TypeList.h"
 
 namespace snl {
@@ -15,4 +16,7 @@ namespace snl {
 
 	template<typename T, typename Target>
 	concept IsRefOrConstRef = IsOneOf<T, TypeList<Target&, const Target&>>;
+
+	template<typename T>
+	concept IsComparable = requires(T a, T b) { { a == b } -> std::same_as<bool>; };
 }

@@ -5,6 +5,7 @@
 #include "Ref.h"
 #include "../Memory/ObjectManager.h"
 #include "../Utils/ErasedFunction.h"
+#include "../Metaprogramming/Concepts.h"
 #include <initializer_list>
 
 namespace snl {
@@ -132,7 +133,9 @@ namespace snl {
 				});
 				globalErasedCopyConstructor.addVariant<const T>([](const T& obj) { return std::function([obj](void* target) { new(target) T(obj); }); });
 				globalErasedDestructors.addVariant<const T>([](const T& obj) { obj.~T(); });
-				globalErasedComparators.addVariant<const T, const T>([](const T& a, const T& b) { return a == b; });
+
+				if constexpr (IsComparable<T>)
+					globalErasedComparators.addVariant<const T, const T>([](const T& a, const T& b) { return a == b; });
 			}
 
 			if constexpr (sizeof(T) <= 8)
@@ -146,9 +149,10 @@ namespace snl {
 		}
 
 		~Any() {
-			globalErasedDestructors.call({ type }, { raw() });
+			if(!raw().empty())
+				globalErasedDestructors.call({ type }, { raw() });
 			
-			if (storageType == BIG) {
+			if (storageType == BIG && !bigStorage.empty()) {
 				delete bigStorage.raw();
 				bigStorage = nullptr;
 			}

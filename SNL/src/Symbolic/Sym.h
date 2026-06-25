@@ -76,7 +76,7 @@ namespace snl {
 		}
 	};
 
-	template<typename T> 
+	template<IsComparable T>
 	bool operator==(const SymConstant<T>& a, const SymConstant<T>& b) {
 		return a.value == b.value;
 	}
@@ -85,6 +85,8 @@ namespace snl {
 
 	using SymTypeMisMatchError =
 		Error<"two GenericSym with different internal types were used in an operation witch required matching types">;
+
+	using SymTypeNotComparable = Error<"tried using a comparison function on a sym with a non comparable type">;
 
 	template<typename T>
 	class Sym : public GenericSym {
@@ -305,8 +307,16 @@ namespace snl {
 		}
 
 		bool genericEvalCompare(const GenericSym& other) const {
+			constexpr bool isComparable = IsComparable<T>;
+			
 			expect<SymTypeMisMatchError>(typeid(T) == other.symType());
-			return eval() == Ref(other).as<const Sym<T>>().get().eval();
+
+			if constexpr (isComparable)
+				return eval() == dynamic_cast<const Sym<T>&>(other).eval();
+			else {
+				forceThrow<SymTypeNotComparable>();
+				SNLMSVCCall(__assume(false));
+			}
 		}
 
 		size_t getHash() const;

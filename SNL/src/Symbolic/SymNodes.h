@@ -92,14 +92,14 @@ namespace snl {
 	template<typename Callable, typename ArgsList>
 	struct SymCall;
 
-	template<typename Callable, typename... Args> requires std::invocable<Callable, Sym<Args>&...>
+	template<typename Callable, typename... Args> requires std::invocable<Callable, Args...>
 	struct SymCall<Callable, TypeList<Args...>> {
-		decltype(auto) eval(Ref<Sym<Callable>> f, Ref<Sym<Args>>... args) {
-			return f.get().eval()(args.get()...);
+		decltype(auto) eval(Callable f, Args... args) {
+			return f(args...);
 		}
 
-		using ArgsList = TypeList<Ref<Sym<Callable>>, Ref<Sym<Args>>...>;
-		using R = decltype(std::declval<Callable>()(std::declval<Sym<Args>>()...));
+		using ArgsList = TypeList<Callable, Args...>;
+		using R = decltype(std::declval<Callable>()(std::declval<Args>()...));
 	};
 
 	template<typename Callable, typename ArgsList>

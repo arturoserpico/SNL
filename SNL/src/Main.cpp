@@ -24,8 +24,10 @@ int main() {
 
 	auto x = snl::matchVar<snl::Nat>();
 	auto y = snl::matchVar<snl::Nat>();
-	
-	snl::Function f = (x, y) >> snl::pow(x, 2_nat) + 3_nat*y;
+
+	snl::Sym f(snl::nat * snl::nat >> snl::nat);
+
+	f = (x, y) >> snl::pow(x, 2_nat) + 3_nat * y;
 
 	std::cout << f(2_nat, 1_nat) << std::endl;
 }
