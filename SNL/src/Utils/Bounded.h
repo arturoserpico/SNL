@@ -6,18 +6,44 @@
 #include "Restricted.h"
 
 namespace snl {
-	using BoundedInvalidInitializationValueError = 
-		Error<"snl::Bounded initialization is out of bounds">;
+	using BoundedOutOfRange = 
+		Error<"snl::Bounded is out of bounds">;
 
 	template<typename T, T min, T max>
 	constexpr auto boundedCondition = [](T x) { return x >= min && x <= max; };
 
 	template<typename T, T min, T max>
-	struct Bounded : 
-		Restricted<T, boundedCondition<T, min, max>, BoundedInvalidInitializationValueError> 
+	struct Bounded :
+		Restricted<T, boundedCondition<T, min, max>, BoundedOutOfRange>
 	{
-		using Base = Restricted <T, boundedCondition<T, min, max>, BoundedInvalidInitializationValueError > ;
+		using Base = Restricted <T, boundedCondition<T, min, max>, BoundedOutOfRange >;
 		using Base::Base;
+
+		Bounded<T, min, max> operator++()
+			requires requires(T val) { { ++val } -> std::same_as<T>; }
+		{
+			expect<BoundedOutOfRange>(this->value + 1 <= max);
+			++this->value;
+			return *this;
+		}
+
+		Bounded<T, min, max> operator++(int)
+			requires requires(T val) { { val++ } -> std::same_as<T>; }
+		{
+			expect<BoundedOutOfRange>(this->value + 1 <= max);
+			Bounded<T, min, max> old = *this;
+			this->value++;
+			return old;
+		}
+
+		friend auto operator<=>(const Bounded<T, min, max>& a, const Bounded<T, min, max>& b) {
+			return  a.value <=> b.value;
+		}
+
+		//template<T min, T max>
+		//bool operator==(const Bounded<T, min, max>& other) {
+		//	return this->value == other.value;
+		//}
 	};
 
 	template<typename T>

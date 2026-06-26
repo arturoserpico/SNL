@@ -8,6 +8,9 @@
 //#include "../Symbolic/SymNodes.h"
 
 namespace snl {
+	using AlgebraicNotComparableError =
+		Error<"tried comparing two Algabraics wich have constructors with not comparable types">;
+
 	template<typename Derived>
 	class AlgebraicBase {
 	public:
@@ -103,10 +106,17 @@ namespace snl {
 			bool compare(const GenericData& other) const {
 				ErrorSuppressor<UnmanagedRefToManagedObjWarning> _;
 				
+				constexpr bool isComparable = (... && IsComparable<Args>);
+
 				if (constructorType() != other.constructorType())
 					return false;
+				
+				if constexpr (isComparable)
+					return Ref(other).as<const Data<Args...>>().get().args == args;
+				else
+					forceThrow<AlgebraicNotComparableError>(); 
 
-				return Ref(other).as<const Data<Args...>>().get().args == args;
+				SNLMSVCCall(__assume(false));
 			}
 		};
 

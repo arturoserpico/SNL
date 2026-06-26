@@ -2,27 +2,22 @@
 
 #include "Sym.h"
 #include "../Utils/Bounded.h"
+#include "../Typing/Function.h"
 
 namespace snl {
 	template<typename T, typename I>
-	struct SymSumOp : SymOpType<T(I, I, Ref<Sym<T>>)> {
-		Ref<Sym<I>> iter;
-
-		SymSumOp(Ref<Sym<I>> iter) : iter(iter) {}
-
-		T eval(I min, I max, Ref<Sym<T>> expr) {
+	struct SymSumOp : SymOpType<T(I, I, Function<I, T>)> {
+		T eval(I min, I max, const Function<I, T>& expr) {
 			T result = 0;
 
-			iter.get() = min;
+			I i = min;
 
-			while (true) {
-				result += expr.get().eval();
-
-				if (iter.get().eval() == max)
-					break;
-
-				iter.get() = iter.get().eval() + 1;
+			while (i < max) {
+				result = result + expr(i);
+				i++;
 			}
+
+			result = result + expr(i);
 
 			return result;
 		}
@@ -35,17 +30,24 @@ namespace snl {
 
 	template<typename I>
 	class Sum {
-		Ref<Sym<I>> oldIterator;
-		Ref<Sym<I>> iterator;
-		Ref<Sym<I>> min, max;
+		Sym<I> iterator, min, max;
 	public:
-		Sum(Ref<Sym<I>> iterator, Ref<Sym<I>> min, Ref<Sym<I>> max) : 
-			oldIterator(iterator), iterator(makeManaged<Sym<I>>()), min(min), max(max) {}
+		Sum(const Sym<I>& iterator, const Sym<I>& min, const Sym<I>& max) : 
+			iterator(iterator), min(min), max(max) {}
 
-		auto operator|(auto&& _expr) {
-			auto [expr] = convertArgsToSymRef(std::forward<decltype(_expr)>(_expr));
-			expr.get().substitute(oldIterator, iterator);
-			return Sym(SymSumOp<RemSym<RemRef<decltype(expr)>>, I>(iterator), min, max, expr);
+		template<typename T>
+		auto operator|(const Sym<T>& expr) {
+
+			Sym<Function<I, T>> f;
+
+			f = iterator >> expr;
+
+			return Sym<T>(SymSumOp<T, I>(), min, max, f);
+		}
+
+		template<typename T>
+		auto operator|(T val) {
+			return this->operator|(Sym(val));
 		}
 	};
 
@@ -61,36 +63,23 @@ namespace snl {
 			else
 				return std::get<index>(sums) | applyAll<T, index + 1>(expr);
 		}
-
-		template<typename T, size_t index = 0>
-		Sym<T> applyAll(Sym<T>& expr) {
-			if constexpr (index == sizeof...(Is) - 1)
-				return std::get<index>(sums) | expr;
-			else
-				return std::get<index>(sums) | applyAll<T, index + 1>(expr);
-		}
 	public:
 		MultiSum(Sum<Is>... sums) : sums(sums...) {}
 
 		auto operator|(auto&& _expr) {
 			auto [expr] = convertArgsToSymRef(std::forward<decltype(_expr)>(_expr));
-			return applyAll(expr.get());
+			return applyAll(expr);
 		}
 	};
 
 	template<typename I> 
-	Sum<I> sum(Sym<I> iterator, Sym<I>& min, Sym<I>& max) {
-		return Sum<I>(Ref(iterator), min, max);
+	Sum<I> sum(const Sym<I>& iterator, const Sym<I>& min, const Sym<I>& max) {
+		return Sum<I>(iterator, min, max);
 	}
 
 	template<typename I>
-	Sum<I> sum(Sym<I>& iterator, const Sym<I>& min, const Sym<I>& max) {
-		return Sum<I>(Ref(iterator), makeManaged(min), makeManaged(max));
-	}
-
-	template<typename I>
-	Sum<I> sum(Sym<I>& iterator, I min, I max) {
-		return Sum<I>(Ref(iterator), makeManaged<Sym<I>>(min), makeManaged<Sym<I>>(max));
+	Sum<I> sum(const Sym<I>& iterator, I min, I max) {
+		return Sum<I>(iterator, Sym(min), Sym(max));
 	}
 
 	template<IsBounded I>

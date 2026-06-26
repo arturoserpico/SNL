@@ -246,12 +246,12 @@ namespace snl {
 			return *this;
 		}
 
-		Sym<T> dep() {
+		Sym<T> getIdentical() {
 			return Sym<T>(SymIdentity<T>(), *this);
 		}
 
 		Ref<GenericSym> rawDep() {
-			return makeManaged<Sym<T>>(dep()).as<GenericSym>();
+			return makeManaged<Sym<T>>(getIdentical()).as<GenericSym>();
 		}
 
 		template<typename SymOpType>
@@ -298,7 +298,7 @@ namespace snl {
 			if constexpr (std::is_same_v<A, T>)
 				return *this;
 			else
-				return Sym<A>(SymCast<A, T>(), dep());
+				return Sym<A>(SymCast<A, T>(), getIdentical());
 		}
 
 		template<typename A>

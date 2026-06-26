@@ -566,16 +566,6 @@ namespace snl {
 
 	template<typename T>
 	T Sym<T>::eval() const {
-		if (!isEvaluable()) {
-			TrivialLeafSimplify simp;
-			auto simplified = simp.simplify(*this);
-
-			if (!simplified.isEvaluable())
-				throwError<UnevaulableSymEvalError>();
-
-			return simplified.eval();
-		}
-
 		return evalFun(isEvaluable(), evalObj, deps);
 	}
 }

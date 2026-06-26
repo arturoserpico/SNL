@@ -15,7 +15,7 @@ namespace snl {
 		public:
 			PatternCreationProxy(Function& fun, const Sym<From>& pattern) : fun(fun), pattern(pattern) {}
 
-			Function& operator|=(const Sym<To>& result) {
+			Function& operator|=(const Sym<To>& result) const {
 				auto constructor = Sym(Pair<From, To>::tuple);
 				fun.pairSet = fun.pairSet | Set<Pair<From, To>>{ constructor(pattern, result) };
 				return fun;
@@ -33,18 +33,7 @@ namespace snl {
 			return PatternCreationProxy(*this, pattern);
 		}
 
-		auto operator()(const auto&... args) requires IsTuple<From> {
-			auto constructor = From::tuple;
-			
-			constexpr bool isSymbolic = (IsSym<std::remove_cvref_t<decltype(args)>> || ...);
-
-			if constexpr (isSymbolic)
-				return this->operator()(Sym(constructor)(args...));
-			else
-				return this->operator()(constructor(args...));
-		}
-
-		To operator()(const From& val) {
+		auto call(const From& val) const {
 			auto x = matchVar<To>();
 
 			MatchResult result;
@@ -54,6 +43,26 @@ namespace snl {
 			pairSet.contains(constructor(val, x), result);
 
 			return result.get(x).eval();
+		}
+
+		auto operator()(const auto&... args) 
+			requires (IsTuple<From> && (IsSym<std::remove_cvref_t<decltype(args)>> || ...))
+		{
+			return this->operator()(Sym(From::tuple)(args...));
+		}
+
+		auto operator()(const auto&... args) const
+			requires (IsTuple<From> && !(IsSym<std::remove_cvref_t<decltype(args)>> || ...))
+		{
+			return this->operator()(From::tuple(args...));
+		}
+
+		To operator()(const From& val) {
+		 	return call(val);
+		}
+
+		To operator()(const From& val) const {
+			return call(val);
 		}
 	};
 

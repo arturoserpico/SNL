@@ -10,24 +10,29 @@
 #define SNLDebugLevel 2
 //#define SNLObjectManagerDebugLogging true
 
+#include "Linear/Tensor.h"
 #include "Symbolic/MathContext.h"
 #include "Typing/AlgebraicBase.h"
 #include "Typing/AlgebraicTypes.h"
 #include "Typing/Set.h"
 #include "Symbolic/Sym.h"
 #include "Symbolic/SymOperators.h"
+#include "Symbolic/ExprOperators.h"
 #include "Typing/TypeOperations.h"
 #include "Typing/Function.h"
 
 int main() {
 	using namespace snl::literals;
 
-	auto x = snl::matchVar<snl::Nat>();
-	auto y = snl::matchVar<snl::Nat>();
+	auto x = snl::index<10>();
+	auto y = snl::matchVar<int>();
+	auto z = snl::matchVar<int>();
 
-	snl::Sym f(snl::nat * snl::nat >> snl::nat);
+	auto a = snl::sum(x) | x.cast<int>();
+	auto b = snl::sum(y, 3, 7) | 2 * y;
 
-	f = (x, y) >> snl::pow(x, 2_nat) + 3_nat * y;
+	auto f = y >> ( snl::sum(z, snl::Sym(0), y) | 2 * z );
 
-	std::cout << f(2_nat, 1_nat) << std::endl;
+	std::cout << f(7) << std::endl;
+	std::cout << a << std::endl << b << std::endl;
 }
