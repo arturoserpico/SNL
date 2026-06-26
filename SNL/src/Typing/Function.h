@@ -51,6 +51,12 @@ namespace snl {
 			return this->operator()(Sym(From::tuple)(args...));
 		}
 
+		auto operator()(const auto&... args)
+			requires (IsTuple<From> && !(IsSym<std::remove_cvref_t<decltype(args)>> || ...))
+		{
+			return this->operator()(From::tuple(args...));
+		}
+
 		auto operator()(const auto&... args) const
 			requires (IsTuple<From> && !(IsSym<std::remove_cvref_t<decltype(args)>> || ...))
 		{

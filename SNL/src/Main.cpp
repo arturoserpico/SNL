@@ -27,12 +27,15 @@ int main() {
 	auto x = snl::index<10>();
 	auto y = snl::matchVar<int>();
 	auto z = snl::matchVar<int>();
+	auto i = snl::index<3>();
 
 	auto a = snl::sum(x) | x.cast<int>();
 	auto b = snl::sum(y, 3, 7) | 2 * y;
 
 	auto f = y >> ( snl::sum(z, snl::Sym(0), y) | 2 * z );
 
+	auto c = snl::sum(x) | (snl::sum(z, snl::Sym(0), x.cast<int>()) | x.cast<int>() * 2);
+
 	std::cout << f(7) << std::endl;
-	std::cout << a << std::endl << b << std::endl;
+	std::cout << a << std::endl << b << std::endl << c << std::endl;
 }
